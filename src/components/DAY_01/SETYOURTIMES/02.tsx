@@ -214,37 +214,99 @@ export default function SetYourTimes02({ onComplete }) {
   const [streak, setStreak] = useState(1);
   
   
-  const userId = 'mfT1HBiZYxZmZX1CyI4Ll4PQYwQ2'; // From your Firestore screenshot
-  const datedCourseId = 'N17bDwrYzW00nGPQ3ZR8'; 
+  const userId = 'B7MZs55jCnOu6aA8ZHRH1Dqvblw1'; // From your Firestore screenshot
+  const datedCourseId = 'social_skills'; 
 
   // Update for nested collection
   const datedCourseDocRef = doc(db, 'users', userId, 'datedcourses', datedCourseId);
 
-  // Load user data from Firestore
-// Load user data from Firestore
-// Load user data from Firestore
+ // Fetch and process only Day 1 tasks from Firestore (social_skills)
+// Fetch and process only Day 1 tasks from Firestore (social_skills)
+// Fetch and process only Day 1 tasks from Firestore (social_skills)
 useEffect(() => {
-  const unsubscribe = onSnapshot(datedCourseDocRef, (docSnap) => {
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      
-      // OPTION 1: Use a specific date that has tasks
-      const selectedDate = '2025-08-28'; // Has 3 tasks in Firestore
-      
-      const lessonData = data?.lessons_by_date?.[selectedDate];
-      
-      if (lessonData?.tasks) {
-        setTasks(lessonData.tasks);
+  console.log('🔥 Firestore useEffect started in SetYourTimes02');
+
+  if (!userId) {
+    console.warn('⚠️ No userId found, skipping Firestore listener.');
+    return;
+  }
+
+  const path = `users/${userId}/datedcourses/social_skills`;
+  console.log('📄 Listening to Firestore path:', path);
+
+  const datedCourseDocRef = doc(db, 'users', userId, 'datedcourses', 'social_skills');
+  console.log('📘 Document reference created:', datedCourseDocRef);
+
+  const unsubscribe = onSnapshot(
+    datedCourseDocRef,
+    (docSnap) => {
+      console.log('📡 Snapshot triggered.');
+      console.log('➡️ Document exists:', docSnap.exists());
+
+      if (!docSnap.exists()) {
+        console.warn('❌ No document found at:', path);
+        return;
       }
-      
-      setUserProfile(data.userProfile || {});
-      setXp(data.xp || 0);
-      setStreak(data.streak || 1);
+
+      const data = docSnap.data();
+      console.log('📦 Firestore document data:', data);
+
+      const overview = data.task_overview;
+      if (!overview || !overview.days || !Array.isArray(overview.days)) {
+        console.warn('⚠️ No valid task_overview.days array.');
+        return;
+      }
+
+      console.log(`📅 Found ${overview.days.length} total days in task_overview.`);
+      const day1 = overview.days[0];
+
+      if (!day1 || !Array.isArray(day1.tasks)) {
+        console.warn('⚠️ No tasks found in Day 1.');
+        return;
+      }
+
+      console.log('🗓️ Processing Day 1:', day1);
+
+      const day1Tasks = day1.tasks.map((task, i) => {
+        const title = task.title || `Unnamed Task ${i + 1}`;
+        const description = task.description || 'No description available';
+
+        console.log(`🧠 Day 1 → Task ${i + 1}:`, { title, description, ...task });
+
+        return {
+          id: `day1_task_${i}`,
+          title,
+          description,
+          location: task.location || 'Not specified',
+          comfortLevel: task.comfortLevel || 'unknown',
+          estimatedTime: task.estimatedTime || 'unspecified',
+          xp: task.xp || 0,
+          type: task.type || 'friend',
+          scheduled_time: task.scheduled_time || new Date().toISOString(),
+          time_of_day: task.time_of_day || 'morning',
+          done: task.done || false,
+        };
+      });
+
+      console.log(`✅ Processed ${day1Tasks.length} tasks from Day 1.`);
+      setTasks(day1Tasks);
+      console.log('🧭 Updated state with Day 1 tasks:', day1Tasks);
+    },
+    (error) => {
+      console.error('🔥 Firestore snapshot error:', error);
     }
-  });
-  
-  return () => unsubscribe();
-}, []);
+  );
+
+  console.log('👂 Firestore listener attached.');
+
+  return () => {
+    console.log('🧹 Cleaning up Firestore listener.');
+    unsubscribe();
+  };
+}, [userId]);
+
+
+
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);

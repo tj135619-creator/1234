@@ -3,6 +3,7 @@ import { doc, setDoc, collection } from "firebase/firestore";
 import { db, auth } from "./firebase"; // adjust path to your firebase config
 import { MapPin, Edit2, Check, X, TrendingUp, Sparkles, ChevronUp, ChevronDown, Target, Heart, Zap, Plus, Trash2 } from 'lucide-react';
 
+
 const AILocationDiscovery = ({ onComplete }) => {
   const [stage, setStage] = useState('intro');
   const [interests, setInterests] = useState([]);
@@ -207,9 +208,20 @@ const [isLoadingAI, setIsLoadingAI] = useState(false);
   setIsLoadingAI(true);
   
   try {
+    // ✅ Get the Firebase auth token
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
+    const token = await user.getIdToken();
+    
     const response = await fetch(`${API_BASE}/reply-day-chat-advanced`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer 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` // ✅ Add auth header
+      },
       body: JSON.stringify({
         user_id: userId,
         message: newInputs.join(', '),
@@ -218,7 +230,11 @@ const [isLoadingAI, setIsLoadingAI] = useState(false);
       })
     });
 
-    if (!response.ok) throw new Error('API failed');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error:', response.status, errorText);
+      throw new Error(`API failed: ${response.status}`);
+    }
     
     const data = await response.json();
     setIsLoadingAI(false);
@@ -228,7 +244,7 @@ const [isLoadingAI, setIsLoadingAI] = useState(false);
     console.error('AI Error:', error);
     setIsLoadingAI(false);
     
-    // Fallback
+    // Fallback responses
     const responses = [
       "Fascinating! I'm detecting patterns in your neural map. Keep sharing!",
       "Great! Building connections between your interests. Tell me more!",
@@ -236,24 +252,7 @@ const [isLoadingAI, setIsLoadingAI] = useState(false);
     ];
     return responses[Math.floor(Math.random() * responses.length)];
   }
-
-    
-    const lastInput = newInputs[newInputs.length - 1]?.toLowerCase() || '';
-    
-    if (lastInput.includes('book') || lastInput.includes('read')) {
-      return "Ah, a fellow book lover! I'm connecting this to your intellectual nodes. " + responses[0];
-    } else if (lastInput.includes('coffee') || lastInput.includes('café')) {
-      return "Coffee culture! I'm seeing social connection potential here. " + responses[1];
-    } else if (lastInput.includes('gym') || lastInput.includes('fitness')) {
-      return "Active lifestyle detected! Your wellness nodes are lighting up. " + responses[2];
-    } else if (allInterests.length >= 5) {
-      return "Wow! Your neural network is rich with " + allInterests.length + " nodes. Perfect for location recommendations!";
-    } else if (allInterests.length >= 3) {
-      return "Your interest map is developing nicely! Just a few more for perfect matches.";
-    }
-    
-    return responses[Math.floor(Math.random() * responses.length)];
-  };
+};
 
   const categorizeInterest = (text) => {
     const lower = text.toLowerCase();
@@ -299,7 +298,7 @@ const [isLoadingAI, setIsLoadingAI] = useState(false);
     // Keeping for future use
   };
 
- const analyzeAndGenerate = async () => {
+  const analyzeAndGenerate = async () => {
   if (interests.length === 0) {
     console.warn("[AI] No interests found, aborting analysis.");
     return;
@@ -315,52 +314,67 @@ const [isLoadingAI, setIsLoadingAI] = useState(false);
   }]);
 
   try {
+    // ✅ ADD THIS: Get Firebase auth token
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
+    const token = await user.getIdToken();
+    console.log("[AI] User authenticated, token obtained");
+
     const payload = { user_id: userId, goal_name: goalName };
     console.log("[AI] Sending request to:", `${API_BASE}/generate-user-places`);
     console.log("[AI] Request payload:", payload);
 
     const response = await fetch(`${API_BASE}/generate-user-places`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer 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` // ✅ ADD THIS: Include auth token
+      },
       body: JSON.stringify(payload)
     });
 
     console.log("[AI] Response status:", response.status, response.statusText);
 
-    if (!response.ok) throw new Error(`API failed with status ${response.status}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[AI] Error response:", errorText);
+      throw new Error(`API failed with status ${response.status}`);
+    }
 
     const data = await response.json();
     setIsLoadingAI(false);
 
-// ✅ ADD THIS: Show what was extracted
+    // ✅ ADD THIS: Show what was extracted
     if (data.extracted_this_turn) {
-    console.log("✅ Extracted this turn:", data.extracted_this_turn);
-  
-    const { current_places, desired_places } = data.extracted_this_turn;
-  
-  // Show extraction feedback if places were found
-    if (current_places.length > 0 || desired_places.length > 0) {
-    const badges = [];
-    if (current_places.length > 0) {
-      badges.push(`📍 Places you go: ${current_places.join(", ")}`);
-    }
-    if (desired_places.length > 0) {
-      badges.push(`✨ Want to try: ${desired_places.join(", ")}`);
-    }
+      console.log("✅ Extracted this turn:", data.extracted_this_turn);
     
-    // Add as a special message after AI response
-    setTimeout(() => {
-      setAiResponses(prev => [...prev, {
-        id: Date.now() + 1,
-        text: `I captured: ${badges.join(" • ")}`,
-        isExtraction: true
-        }]);
-      }, 500);
+      const { current_places, desired_places } = data.extracted_this_turn;
+    
+      // Show extraction feedback if places were found
+      if (current_places.length > 0 || desired_places.length > 0) {
+        const badges = [];
+        if (current_places.length > 0) {
+          badges.push(`📍 Places you go: ${current_places.join(", ")}`);
+        }
+        if (desired_places.length > 0) {
+          badges.push(`✨ Want to try: ${desired_places.join(", ")}`);
+        }
+        
+        // Add as a special message after AI response
+        setTimeout(() => {
+          setAiResponses(prev => [...prev, {
+            id: Date.now() + 1,
+            text: `I captured: ${badges.join(" • ")}`,
+            isExtraction: true
+          }]);
+        }, 500);
+      }
     }
-  }
 
-return data.reply || "Thanks for sharing! Tell me more.";
-console.log("[AI] Raw API response:", data);
+    console.log("[AI] Raw API response:", data);
 
     let aiText = data.suggested_places || '';
     aiText = aiText.replace(/```json|```/g, '').trim();
@@ -562,32 +576,72 @@ const handleRemoveTip = (index) => {
   };
 
   const handleConfirm = async () => {
+  console.log("🟦 handleConfirm triggered");
+
   if (!auth.currentUser) {
     alert("You must be logged in to save locations.");
     return;
   }
 
   const uid = auth.currentUser.uid;
+  console.log("👤 User ID:", uid);
 
   try {
-    // Save locations under: users/{uid}/locations
+    console.log("💾 Starting sequential location saves...");
     const locationsRef = collection(db, "users", uid, "locations");
 
-    // Store each location as a separate document
-    await Promise.all(
-      locations.map(async (loc) => {
-        const locDocRef = doc(locationsRef); // auto-generated ID
-        await setDoc(locDocRef, loc);
-      })
-    );
+    for (const [i, loc] of locations.entries()) {
+      console.log(`📍 Writing location ${i + 1}/${locations.length}:`, loc);
+      const locDocRef = doc(locationsRef);
+      await setDoc(locDocRef, loc);
+      console.log(`✅ Saved location ${i + 1}`);
+    }
 
-    alert("Locations saved successfully!");
-    onComplete(); // your existing callback
+    console.log("✅ All locations saved. Now saving consolidated data...");
+    const userDocRef = doc(db, "users", uid);
+    await setDoc(
+      userDocRef,
+      {
+        selected_locations: locations,
+        locations_confirmed_at: new Date().toISOString(),
+        goal_name: goalName,
+      },
+      { merge: true }
+    );
+    console.log("✅ User document updated with selected locations");
+
+    console.log("🌐 Sending request to modify tasks with locations...");
+    const response = await fetch("https://one23-u2ck.onrender.com/modify-tasks-with-locations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization:
+          "Bearer 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",
+      },
+      body: JSON.stringify({
+        user_id: uid,
+        course_id: "social_skills",
+      }),
+    });
+
+    console.log("🌐 Response received:", response.status);
+    const result = await response.json();
+    console.log("📦 Server result:", result);
+
+    if (result.success) {
+      alert("Locations saved and tasks updated!");
+      console.log("🎯 Success: tasks updated");
+      onComplete();
+    } else {
+      console.error("❌ Task update failed:", result.error);
+      alert("Failed to update tasks: " + result.error);
+    }
   } catch (error) {
-    console.error("Error saving locations: ", error);
+    console.error("🔥 Error in handleConfirm:", error);
     alert("Failed to save locations.");
   }
 };
+
 
 
   const getComfortColor = (score) => {
@@ -637,12 +691,17 @@ const handleRemoveTip = (index) => {
               
               {aiResponses.length > 0 && (
   <div className="absolute inset-0 flex items-center justify-center p-6 md:p-12 pointer-events-none">
-    <div className="max-w-3xl w-full animate-fadeIn">
-      <p className="text-xl md:text-2xl lg:text-3xl text-white text-center leading-relaxed font-bold drop-shadow-2xl" style={{ textShadow: '0 0 40px rgba(168, 85, 247, 0.8), 0 0 20px rgba(0, 0, 0, 0.9)' }}>
-        {aiResponses[aiResponses.length - 1].text}
-      </p>
+    <div className="max-w-3xl w-full h-full flex flex-col animate-fadeIn">
+      {/* Scrollable AI Response Container */}
+      <div className="flex-1 overflow-y-auto pointer-events-auto scrollbar-thin scrollbar-thumb-purple-500/50 scrollbar-track-transparent pr-2">
+        <p className="text-xl md:text-2xl lg:text-3xl text-white text-center leading-relaxed font-bold drop-shadow-2xl" style={{ textShadow: '0 0 40px rgba(168, 85, 247, 0.8), 0 0 20px rgba(0, 0, 0, 0.9)' }}>
+          {aiResponses[aiResponses.length - 1].text}
+        </p>
+      </div>
+      
+      {/* Loading Indicator */}
       {isLoadingAI && (
-        <div className="mt-4 flex gap-2 justify-center">
+        <div className="mt-4 flex gap-2 justify-center pointer-events-none">
           <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce"></div>
           <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
           <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>

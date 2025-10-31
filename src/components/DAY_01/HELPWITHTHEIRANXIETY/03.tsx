@@ -143,49 +143,91 @@ const getLessonLocation = (lessonTitle) => {
 
   
   // HARDCODED USER ID FOR TESTING
-const userId = 'mfT1HBiZYxZmZX1CyI4Ll4PQYwQ2';
-const datedCourseId = 'N17bDwrYzW00nGPQ3ZR8'; // Replace with actual course ID
-
+const userId = 'B7MZs55jCnOu6aA8ZHRH1Dqvblw1';
+const datedCourseId = 'social_skills'; // Replace with actual course ID
 // Fetch tasks from Firestore on mount
 useEffect(() => {
-  console.log('Firestore useEffect running...'); // ADD THIS TO DEBUG
-  
-  const datedCourseDocRef = doc(db, 'users', userId, 'datedcourses', datedCourseId);
-  
-  const unsubscribe = onSnapshot(datedCourseDocRef, (docSnap) => {
-    console.log('Snapshot received:', docSnap.exists()); // ADD THIS TO DEBUG
-    
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      console.log('Firestore data:', data); // ADD THIS TO DEBUG
-      
-      const availableDates = Object.keys(data.lessons_by_date || {}).sort();
-      const selectedDate = availableDates[0];
-      
-      console.log('Selected date:', selectedDate); // ADD THIS TO DEBUG
-      
-      if (selectedDate && data.lessons_by_date[selectedDate]?.tasks) {
-        const firestoreTasks = data.lessons_by_date[selectedDate].tasks;
-        
-        const transformedTasks = firestoreTasks.map((task, index) => ({
-          id: `task_${selectedDate}_${index}`,
-          title: task.task.replace(/\*\*/g, ''),
-          type: 'friend',
-          location: 'event',
-          scheduled_time: new Date(Date.now() + (index + 1) * 3600000).toISOString(),
-          time_of_day: index === 0 ? 'morning' : index === 1 ? 'afternoon' : 'evening',
-          done: task.done || false,
-          lessonTitle: data.lessons_by_date[selectedDate].title // Don't forget this!
-        }));
-        
-        console.log('Setting tasks:', transformedTasks); // ADD THIS TO DEBUG
-        setTasks(transformedTasks);
+  console.log('🔥 Firestore useEffect started...');
+
+  const path = `users/${userId}/datedcourses/social_skills`;
+  console.log('📄 Firestore path:', path);
+
+  const datedCourseDocRef = doc(db, 'users', userId, 'datedcourses', 'social_skills');
+  console.log('📘 Document reference created:', datedCourseDocRef);
+
+  const unsubscribe = onSnapshot(
+    datedCourseDocRef,
+    (docSnap) => {
+      console.log('📡 Snapshot triggered.');
+      console.log('➡️ Snapshot exists:', docSnap.exists());
+
+      if (!docSnap.exists()) {
+        console.warn('❌ No course document found at:', path);
+        return;
       }
+
+      const data = docSnap.data();
+      console.log('📦 Raw Firestore document data:', data);
+
+      if (!data) {
+        console.warn('⚠️ Document has no data.');
+        return;
+      }
+
+      const overview = data.task_overview;
+      console.log('🧩 Extracted task_overview:', overview);
+
+      if (!overview) {
+        console.warn('⚠️ No task_overview field found.');
+        return;
+      }
+
+      if (!overview.days || !Array.isArray(overview.days)) {
+        console.warn('⚠️ task_overview.days missing or not an array:', overview.days);
+        return;
+      }
+
+      console.log(`📅 Found ${overview.days.length} days in task_overview.`);
+
+      const allTasks = overview.days.flatMap((day, dayIndex) => {
+        console.log(`🔍 Processing Day ${dayIndex + 1}:`, day);
+
+        if (!day.tasks || !Array.isArray(day.tasks)) {
+          console.warn(`⚠️ No tasks array found for day ${dayIndex + 1}.`);
+          return [];
+        }
+
+        return day.tasks.map((task, i) => {
+          console.log(`🧠 Task ${i + 1} for Day ${dayIndex + 1}:`, task);
+          return {
+            id: `task_${dayIndex}_${i}`,
+            title: task.title || task.task || `Task ${i + 1}`,
+            type: task.type || 'friend',
+            location: task.location || 'event',
+            scheduled_time: task.scheduled_time || new Date().toISOString(),
+            time_of_day: task.time_of_day || 'morning',
+            done: task.done || false,
+          };
+        });
+      });
+
+      console.log(`✅ Successfully processed ${allTasks.length} total tasks.`);
+      setTasks(allTasks);
+      console.log('🧭 State updated with tasks:', allTasks);
+    },
+    (error) => {
+      console.error('🔥 Firestore snapshot error:', error);
     }
-  });
-  
-  return () => unsubscribe();
+  );
+
+  console.log('👂 Firestore listener attached.');
+
+  return () => {
+    console.log('🧹 Cleaning up Firestore listener.');
+    unsubscribe();
+  };
 }, []);
+
   
   // AI chat helper
   const getAIResponse = async (messageType, userInput = null) => {
@@ -210,64 +252,74 @@ useEffect(() => {
   };
   
   // Breathing animation
-  useEffect(() => {
-    if (!isBreathing || breathingPhase === 'ready') return;
+  // Breathing animation
+useEffect(() => {
+  if (!isBreathing || breathingPhase === 'ready' || breathingPhase === 'complete') return;
+  
+  let animationFrame;
+  const startTime = Date.now();
+  const startSize = breathingSize;
+  let targetSize, duration;
+  
+  if (breathingPhase === 'inhale') {
+    targetSize = 100;
+    duration = breathingDuration;
+    haptic.breatheIn();
+  } else if (breathingPhase === 'hold') {
+    // Just wait for the hold duration, don't animate
+    const timer = setTimeout(() => {
+      setBreathingPhase('exhale');
+    }, breathingDuration);
     
-    let animationFrame;
-    let startTime = Date.now();
-    let startSize = breathingSize;
-    let targetSize, duration;
+    return () => clearTimeout(timer);
+  } else if (breathingPhase === 'exhale') {
+    targetSize = 25;
+    duration = breathingDuration;
+    haptic.breatheOut();
+  }
+  
+  // Only run animation for inhale and exhale
+  if (breathingPhase === 'hold') return;
+  
+  const animate = () => {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
     
-    if (breathingPhase === 'inhale') {
-      targetSize = 100;
-      duration = breathingDuration;
-      haptic.breatheIn();
-    } else if (breathingPhase === 'hold') {
-      targetSize = breathingSize;
-      duration = breathingDuration;
-      setTimeout(() => setBreathingPhase('exhale'), duration);
-      return;
-    } else if (breathingPhase === 'exhale') {
-      targetSize = 25;
-      duration = breathingDuration;
-      haptic.breatheOut();
-    }
+    // Smooth easing function
+    const easeProgress = progress < 0.5
+      ? 2 * progress * progress
+      : 1 - Math.pow(-2 * progress + 2, 2) / 2;
     
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const easeProgress = progress < 0.5
-        ? 2 * progress * progress
-        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-      
-      const newSize = startSize + (targetSize - startSize) * easeProgress;
-      setBreathingSize(newSize);
-      
-      if (progress < 1) {
-        animationFrame = requestAnimationFrame(animate);
-      } else {
-        if (breathingPhase === 'inhale') {
-          setBreathingPhase('hold');
-        } else if (breathingPhase === 'exhale') {
-          const newCycle = breathingCycle + 1;
-          setBreathingCycle(newCycle);
-          
-          if (newCycle >= breathingCycles) {
-            setIsBreathing(false);
-            setBreathingPhase('complete');
-            logExerciseComplete('breathing');
-          } else {
-            setBreathingPhase('inhale');
-          }
+    const newSize = startSize + (targetSize - startSize) * easeProgress;
+    setBreathingSize(newSize);
+    
+    if (progress < 1) {
+      animationFrame = requestAnimationFrame(animate);
+    } else {
+      // Animation complete
+      if (breathingPhase === 'inhale') {
+        setBreathingPhase('hold');
+      } else if (breathingPhase === 'exhale') {
+        const newCycle = breathingCycle + 1;
+        setBreathingCycle(newCycle);
+        
+        if (newCycle >= breathingCycles) {
+          setIsBreathing(false);
+          setBreathingPhase('complete');
+          logExerciseComplete('breathing');
+        } else {
+          setBreathingPhase('inhale');
         }
       }
-    };
-    
-    animate();
-    return () => {
-      if (animationFrame) cancelAnimationFrame(animationFrame);
-    };
-  }, [breathingPhase, isBreathing]);
+    }
+  };
+  
+  animationFrame = requestAnimationFrame(animate);
+  
+  return () => {
+    if (animationFrame) cancelAnimationFrame(animationFrame);
+  };
+}, [breathingPhase, isBreathing]);
   
   // Physical exercise timer
   useEffect(() => {

@@ -64,7 +64,7 @@ streak: 0,
 timeInvested: '0h'
 });
 
-const subpageTypes = ['chaku', 'intro', 'motivation', 'lesson', 'quiz', 'why', 'quote', 'consequences', 'tasks', 'scheduler', 'obstacles', 'reflection', 'complete'];
+const subpageTypes = [ 'intro','chaku',  'reflection', 'complete'];
 
 const ROUTER_COMPONENTS: React.FC<NavigatorProps>[] = [
   /*Day1Navigator as React.FC<NavigatorProps>, */
@@ -355,20 +355,20 @@ const QuizSubpage = ({ lesson, onNext }) => {
 // Update renderSubpage function to include quiz
 function renderSubpage(lesson, tasks, toggleTask, journalEntry, setJournalEntry, onNext, onComplete, onBackToTimeline, type) {
   const subpages = {
+    intro: <IntroSubpage lesson={lesson} onNext={onNext} />,
     chaku: <ChakuSubpage lesson={lesson} currentDayNumber={selectedDayNumber} onNext={onNext} />,
-    //intro: <IntroSubpage lesson={lesson} onNext={onNext} />,
     //motivation: <MotivationSubpage lesson={lesson} onNext={onNext} />,
     //lesson: <LessonSubpage lesson={lesson} onNext={onNext} />,
     //quiz: <QuizSubpage lesson={lesson} onNext={onNext} />,
     //why: <WhySubpage lesson={lesson} onNext={onNext} />,
     //quote: <QuoteSubpage lesson={lesson} onNext={onNext} />,
     //consequences: <ConsequencesSubpage lesson={lesson} onNext={onNext} />,
-    tasks: <TasksSubpage tasks={tasks} toggleTask={toggleTask} onNext={onNext} />,
-    scheduler: <ActionSchedulerPage tasks={tasks} onComplete={(scheduledTasks) => {
-      console.log('Scheduled tasks:', scheduledTasks);
-      onNext();
-    }} onBack={() => {/* handle back */}} />,
-    obstacles: <ObstaclesPage tasks={tasks} onNext={onNext} />,
+    //tasks: <TasksSubpage tasks={tasks} toggleTask={toggleTask} onNext={onNext} />,
+    //scheduler: <ActionSchedulerPage tasks={tasks} onComplete={(scheduledTasks) => {
+      //console.log('Scheduled tasks:', scheduledTasks);
+      //onNext();
+    //}} onBack={() => {/* handle back */}} />,
+    //obstacles: <ObstaclesPage tasks={tasks} onNext={onNext} />,
     reflection: <ReflectionSubpage journalEntry={journalEntry} setJournalEntry={setJournalEntry} onComplete={onComplete} />,
     complete: <CompletionSubpage lesson={lesson} onBackToTimeline={onBackToTimeline} />
   };
@@ -826,7 +826,7 @@ Your 5-Day Journey
 </h2>
 
 
-// ... (Outer div structure)
+
 
 {lessons.length === 0 ? (
 <div className="text-center py-12">
@@ -1329,9 +1329,7 @@ const IntroSubpage = ({ lesson, onNext }) => {
               whileHover={{ scale: 1.05, rotate: 5 }}
               className="bg-slate-800/50 rounded-xl p-4 sm:p-6 text-center border border-yellow-500/30"
             >
-              <Zap className="w-10 h-10 sm:w-12 sm:h-12 text-yellow-400 mx-auto mb-3" />
-              <p className="text-2xl sm:text-3xl font-bold text-yellow-300 mb-1">+{lesson.xp} XP</p>
-              <p className="text-slate-400 text-xs sm:text-sm">Experience Points</p>
+              
             </motion.div>
 
             <motion.div

@@ -57,7 +57,7 @@ const AppLayout = () => {
 
   const contentStyle: React.CSSProperties = isNavHidden
     ? {}
-    : { paddingBottom: '0px', marginTop: '-79px' };
+    : { paddingBottom: '0px', marginTop: '0px' };
 
   return (
     <App>

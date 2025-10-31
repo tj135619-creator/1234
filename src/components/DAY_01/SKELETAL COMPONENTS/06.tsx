@@ -162,7 +162,7 @@ const GenuineAppreciation: React.FC<GenuineAppreciationProps> = ({ onNext }) => 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}` // Your Groq API key
+        'Authorization': `Bearer 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` // Your Groq API key
       },
       body: JSON.stringify({
         user_id: "HfwcJgkyNNb3T3UdWRDbrCiRQuS2",

@@ -543,7 +543,7 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer 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'
+        'Authorization': 'Bearer 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'
       },
       body: JSON.stringify({
         task_name: taskObj.task,

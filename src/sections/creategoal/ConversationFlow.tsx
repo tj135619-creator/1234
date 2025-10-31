@@ -1,615 +1,805 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import type { Avatar, Message } from "@shared/schema";
+
 import { initializeApp, getApps } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { cn } from "@/lib/utils";
-import apiKeysData from "./apikeys.json";
-import { useNavigate } from "react-router-dom";
-import { doc, setDoc, serverTimestamp, getDoc, updateDoc } from "firebase/firestore";
+import { getFirestore, doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import ConversationTrailer from "./ConversationTrailer"; // import the trailer component
-import ParticlesBackground from './ParticlesBackground';
+import { useNavigate } from "react-router-dom";
+
 
 // FIREBASE CONFIG (YOUR ORIGINAL)
 const firebaseConfig = {
-  apiKey: "AIzaSyBNCXIOAX2HUdeLvUxkTJh7DVbv8JU485s",
-  authDomain: "goalgrid-c5e9c.firebaseapp.com",
-  projectId: "goalgrid-c5e9c",
-  storageBucket: "goalgrid-c5e9c.firebasestorage.app",
-  messagingSenderId: "544004357501",
-  appId: "1:544004357501:web:4b81a3686422b28534e014",
-  measurementId: "G-BJQMLK9JJ1",
+apiKey: "AIzaSyBNCXIOAX2HUdeLvUxkTJh7DVbv8JU485s",
+authDomain: "goalgrid-c5e9c.firebaseapp.com",
+projectId: "goalgrid-c5e9c",
+storageBucket: "goalgrid-c5e9c.firebasestorage.app",
+messagingSenderId: "544004357501",
+appId: "1:544004357501:web:4b81a3686422b28534e014",
+measurementId: "G-BJQMLK9JJ1",
 };
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 export const firestore = getFirestore(app);
 
+interface Message {
+id: string;
+role: "user" | "assistant";
+content: string;
+}
+
+interface Avatar {
+name: "Skyler" | "Raven" | "Phoenix";
+}
+
+// AVATAR PERSONALITIES - ACTUALLY DIFFERENT
+const AVATAR_PERSONALITIES = {
+Skyler: {
+icon: "🌤️",
+gradient: "from-purple-400 via-blue-400 to-purple-500",
+borderGlow: "rgba(147, 51, 234, 0.6)",
+greeting: "Let's break this down systematically. What specific, measurable outcome do you want?",
+style: "analytical",
+followUp: "Great. On a scale of 1-10, how committed are you to achieving this?",
+},
+Raven: {
+icon: "🦅",
+gradient: "from-purple-600 via-violet-500 to-purple-600",
+borderGlow: "rgba(124, 58, 237, 0.6)",
+greeting: "Most people approach this all wrong. What unconventional method are you willing to try?",
+style: "creative",
+followUp: "Interesting. What's the wildest thing you'd do if failure wasn't an option?",
+},
+Phoenix: {
+icon: "🔥",
+gradient: "from-purple-700 via-fuchsia-600 to-purple-700",
+borderGlow: "rgba(168, 85, 247, 0.6)",
+greeting: "No fluff. What's ONE action you'll take TODAY?",
+style: "intense",
+followUp: "Good. What's stopping you from starting RIGHT NOW?",
+},
+};
+
+const GENERATION_STEPS = [
+{ icon: "🔍", text: "Analyzing your goal..." },
+{ icon: "📊", text: "Finding similar success patterns..." },
+{ icon: "✍️", text: "Customizing Day 1: Foundation..." },
+{ icon: "✍️", text: "Customizing Day 2: Momentum..." },
+{ icon: "✍️", text: "Customizing Day 3: Breakthrough..." },
+{ icon: "✍️", text: "Customizing Day 4: Refinement..." },
+{ icon: "✍️", text: "Customizing Day 5: Commitment..." },
+{ icon: "✅", text: "Finalizing your personalized plan..." },
+];
+
+
 interface ConversationFlowProps {
-  avatar: Avatar | null;
-  isLoading: boolean;
-  progress: number;
-  answers: Record<string, string>;
+avatar: Avatar | null;
+isLoading: boolean;
+progress: number;
+answers: Record<string, string>;
 }
 
-interface Plan {
-  [key: string]: any;
+export default function ConversationFlow({ avatar, isLoading, progress, answers }: ConversationFlowProps) {
+const [messages, setMessages] = useState<Message[]>([]);
+const [inputValue, setInputValue] = useState("");
+const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+const [hasSharedGoal, setHasSharedGoal] = useState(false);
+const [showExamplePlan, setShowExamplePlan] = useState(true);
+const [currentStep, setCurrentStep] = useState(0);
+const [planPreview, setPlanPreview] = useState<any>(null);
+const [isTyping, setIsTyping] = useState(false);
+const [typingText, setTypingText] = useState("");
+
+const textareaRef = useRef<HTMLTextAreaElement>(null);
+const [localLoading, setLocalLoading] = useState(false);
+const [successfulDays, setSuccessfulDays] = useState(0);
+const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+const navigate = useNavigate();
+const auth = getAuth();
+const userId = auth.currentUser?.uid || "user_demo";
+const messagesEndRef = useRef<HTMLDivElement>(null);
+
+const avatarConfig = avatar ? AVATAR_PERSONALITIES[avatar.name] : AVATAR_PERSONALITIES.Skyler;
+
+// Remove the import line completely
+
+// Replace the apiKeys line with:
+const apiKeys = [
+  "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",
+  "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"
+];
+
+// TOAST NOTIFICATION
+const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+setToast({ message, type });
+setTimeout(() => setToast(null), 3500);
+};
+
+
+// Auto-scroll to bottom
+useEffect(() => {
+messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+}, [messages, typingText]);
+
+// Typewriter effect for AI messages
+useEffect(() => {
+const lastMsg = messages[messages.length - 1];
+if (!lastMsg || lastMsg.role !== "assistant") return;
+
+setIsTyping(true);
+setTypingText("");
+
+let index = 0;
+const interval = setInterval(() => {
+setTypingText(lastMsg.content.slice(0, index + 1));
+index++;
+if (index >= lastMsg.content.length) {
+clearInterval(interval);
+setIsTyping(false);
 }
+}, 20);
 
-const avatarStyles = {
-  Skyler: { gradient: "from-blue-400 to-blue-600", light: "from-blue-100 to-blue-200", dark: "from-blue-900 to-blue-800" },
-  Raven: { gradient: "from-purple-400 to-purple-600", light: "from-purple-100 to-purple-200", dark: "from-purple-900 to-purple-800" },
-  Phoenix: { gradient: "from-orange-400 to-red-600", light: "from-orange-100 to-red-200", dark: "from-orange-900 to-red-800" },
-};
-
-const avatarIcons = {
-  Skyler: "🌤️",
-  Raven: "🦅",
-  Phoenix: "🔥",
-};
-
-export default function ConversationFlow({
-  avatar,
-  isLoading,
-  progress,
-  answers,
-}: ConversationFlowProps) {
-  const style = avatar ? avatarStyles[avatar] : null;
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
-  const [inputValue, setInputValue] = useState("");
-  const [generatedPlan, setGeneratedPlan] = useState<Plan | null>(null);
-  const [typingMessages, setTypingMessages] = useState<Record<string, string>>({});
-  const [successfulDays, setSuccessfulDays] = useState(0);
-  const [currentAIResponse, setCurrentAIResponse] = useState<Message | null>(null);
-  const [currentTyping, setCurrentTyping] = useState("");
-  const [showInput, setShowInput] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const [showTrailer, setShowTrailer] = useState(true); 
-  const [showParticles, setShowParticles] = useState(false);
-  const [messageKey, setMessageKey] = useState(0);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const navigate = useNavigate();
-  const auth = getAuth();
-  const userId = auth.currentUser?.uid || "user_demo";
-  const [localLoading, setLocalLoading] = useState(false);
-
-  const apiKeys = apiKeysData.keys;
-
-  // TOAST NOTIFICATION
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3500);
-  };
-
-  // FOCUS INPUT
-  const focusInput = () => {
-    setShowInput(true);
-    setTimeout(() => textareaRef.current?.focus(), 0);
-  };
-
-  // TYPEWRITER EFFECT
-  useEffect(() => {
-   const latestAI = messages.filter((m) => m.role === "assistant").pop();
-  if (!latestAI) return;
-
-  let idx = 0;
-  const interval = setInterval(() => {
-    idx++;
-    setTypingMessages((prev) => ({
-      ...prev,
-      [latestAI.id]: latestAI.content.slice(0, idx),
-    }));
-    if (idx >= latestAI.content.length) clearInterval(interval);
-  }, 12);
-
-  return () => clearInterval(interval);
+return () => clearInterval(interval);
 }, [messages]);
 
-  // YOUR ORIGINAL LOGIC - COMPLETELY UNCHANGED
-  const markPlanAsCreated = async () => {
-    try {
-      if (!auth.currentUser) {
-        console.error("❌ No authenticated user found");
-        return;
-      }
-
-      const userRef = doc(firestore, "users", auth.currentUser.uid);
-      
-      await updateDoc(userRef, {
-        planCreated: true,
-        planCreatedAt: serverTimestamp(),
-      });
-      
-      console.log("✅ planCreated set to true for user:", auth.currentUser.uid);
-    } catch (error) {
-      console.error("❌ Error marking plan as created:", error);
-    }
-  };
-  
-  const handleGeneratePlan = async () => {
-  console.log("🚀 Starting 5-day task overview generation...");
-  setIsGeneratingPlan(true);
-
-  try {
-    const userMessages = messages.filter((m) => m.role === "user");
-    const userAnswers = Object.values(answers);
-    const goalName =
-      (userMessages[0]?.content && userMessages[0].content.trim()) ||
-      (userAnswers[0] && userAnswers[0].toString().trim()) ||
-      "social skills";
-
-    // Get today's date in YYYY-MM-DD format
-    const joinDate = new Date().toISOString().split('T')[0];
-
-    console.log("📅 Join date:", joinDate);
-    console.log("🎯 Goal name:", goalName);
-    console.log("💬 User answers:", userAnswers);
-
-    const apiKey = apiKeys[Math.floor(Math.random() * apiKeys.length)];
-    console.log("🔑 Using API key:", apiKey);
-
-    const payload = {
-      user_id: userId,
-      goal_name: goalName,
-      user_answers: userAnswers,
-      join_date: joinDate,  // NEW: Pass the join date
-    };
-
-    // Call the NEW endpoint - single call for all 5 days!
-    const resp = await fetch(
-      "https://one23-u2ck.onrender.com/create-task-overview",  // ← NEW ENDPOINT
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(payload),
-      }
-    );
-
-    let data: any;
-    try {
-      data = await resp.json();
-    } catch (jsonErr) {
-      const rawText = await resp.text();
-      console.error("❌ Invalid JSON response from server:", rawText);
-      throw new Error(`Failed due to invalid JSON: ${jsonErr}`);
-    }
-
-    if (!resp.ok) {
-      console.error("❌ Server error:", data);
-      throw new Error(data.error || "Failed to generate task overview");
-    }
-
-    if (!data.success || !data.overview) {
-      console.error("❌ Invalid response structure:", data);
-      throw new Error("Task overview data missing or malformed");
-    }
-
-    console.log("✅ Task overview received:", data.overview);
-
-    // Save to Firebase - single document with all days
-    const courseId = data.course_id || goalName.toLowerCase().replace(" ", "_");
-    const userPlanRef = doc(firestore, "users", userId, "datedcourses", courseId);
-    
-    await setDoc(userPlanRef, {
-      task_overview: data.overview,  // Contains all 5 days
-      goal_name: goalName,
-      user_id: userId,
-      course_id: courseId,
-      generated_at: serverTimestamp(),
-      created_at: serverTimestamp(),
-    });
-
-    console.log("✅ 5-day task overview successfully saved to Firebase");
-
-    // Update progress indicator (all 5 days at once)
-    setSuccessfulDays(5);
-
-    // Mark plan as created
-    await markPlanAsCreated();
-    
-    setShowParticles(true);
-    showToast("🎉 Your 5-day plan is ready!", "success");
-
-  } catch (err) {
-    console.error("🔥 handleGeneratePlan error:", err);
-    showToast(`⚠️ Plan generation failed: ${err.message}`, "error");
-  } finally {
-    setIsGeneratingPlan(false);
-    setTimeout(() => {
-      navigate("/");
-    }, 2000);
-  }
-
-  console.log("⏹️ Task overview generation finished.");
-};
-
-
-
-  const handleSend = () => {
-    if (!inputValue.trim() || isLoading || localLoading) return;
-    handleSendMessage(inputValue.trim());
-    setInputValue("");
-    setShowInput(false);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
 const handleSendMessage = async (msgContent: string) => {
-  if (!msgContent.trim() || localLoading || isLoading) return;
+if (!msgContent.trim() || localLoading || isLoading) return;
 
-  // 1️⃣ Add user message immediately
-  const userMessage: Message = {
-    id: Date.now().toString(),
-    role: "user",
-    content: msgContent,
-  };
-  setMessages((prev) => [...prev, userMessage]);
-  setInputValue("");
-  setShowInput(false);
-  setLocalLoading(true);
+// 1️⃣ Add user message immediately
+const userMessage: Message = {
+id: Date.now().toString(),
+role: "user",
+content: msgContent,
+};
+setMessages((prev) => [...prev, userMessage]);
+setInputValue("");
+setShowExamplePlan(false);
+setLocalLoading(true);
 
-  // 2️⃣ Call AI API
-  const apiKey = apiKeys[Math.floor(Math.random() * apiKeys.length)];
-  try {
-    const payload = {
-      user_id: userId,
-      message: msgContent,
-      goal_name: answers["q1"] || "social skills",
-      answers,
-    };
+// Mark that user shared goal
+if (!hasSharedGoal) {
+setHasSharedGoal(true);
+}
 
-    const resp = await fetch("https://one23-u2ck.onrender.com/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(payload),
-    });
+// 2️⃣ Call AI API
+const apiKey = apiKeys[Math.floor(Math.random() * apiKeys.length)];
+try {
+const payload = {
+user_id: userId,
+message: msgContent,
+goal_name: answers["q1"] || "social skills",
+answers,
+};
 
-    const rawText = await resp.text();
-    let data: any;
-    try {
-      data = JSON.parse(rawText);
-    } catch {
-      data = { reply: rawText };
-    }
+const resp = await fetch("https://one23-u2ck.onrender.com/chat", {
+method: "POST",
+headers: {
+"Content-Type": "application/json",
+Authorization: `Bearer ${apiKey}`,
+},
+body: JSON.stringify(payload),
+});
 
-    // 3️⃣ Set AI message separately for typing
-    const aiMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: "assistant",
-      content: data.reply || "I understand. Tell me more.",
-    };
-    setCurrentAIResponse(aiMessage);
-    setCurrentTyping("");
+const rawText = await resp.text();
+let data: any;
+try {
+data = JSON.parse(rawText);
+} catch {
+data = { reply: rawText };
+}
 
-    // 4️⃣ Typewriter effect
-    let idx = 0;
-    const interval = setInterval(() => {
-      idx++;
-      setCurrentTyping(aiMessage.content.slice(0, idx));
-      if (idx >= aiMessage.content.length) {
-        clearInterval(interval);
-        // 5️⃣ Add AI message to main messages list after typing finishes
-        setMessages((prev) => [...prev, aiMessage]);
-        setCurrentAIResponse(null);
-      }
-    }, 12);
-  } catch (err) {
-    console.error("AI fetch error:", err);
-    const errorMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: "assistant",
-      content: "I'm having trouble connecting to the AI. Try again.",
-    };
-    setMessages((prev) => [...prev, errorMessage]);
-  } finally {
-    setLocalLoading(false);
+// 3️⃣ Add AI message
+const aiMessage: Message = {
+id: (Date.now() + 1).toString(),
+role: "assistant",
+content: data.reply || "I understand. Tell me more.",
+};
+setMessages((prev) => [...prev, aiMessage]);
+} catch (err) {
+console.error("AI fetch error:", err);
+const errorMessage: Message = {
+id: (Date.now() + 1).toString(),
+role: "assistant",
+content: "I'm having trouble connecting. Try again.",
+};
+setMessages((prev) => [...prev, errorMessage]);
+} finally {
+setLocalLoading(false);
+}
+};
+
+const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    handleSendMessage(inputValue);
   }
 };
 
-  // GET LATEST AI MESSAGE
-const latestAI = messages.filter((m) => m.role === "assistant").pop();
-const displayMessage = latestAI
-  ? typingMessages[latestAI.id] || latestAI.content
-  : "Hey! What is it that you exactly want to achieve in your social life or social skills?";
+const markPlanAsCreated = async () => {
+try {
+if (!auth.currentUser) {
+console.error("❌ No authenticated user found");
+return;
+}
+const userRef = doc(firestore, "users", auth.currentUser.uid);
+await updateDoc(userRef, {
+planCreated: true,
+planCreatedAt: serverTimestamp(),
+});
+console.log("✅ planCreated set to true");
+} catch (error) {
+console.error("❌ Error marking plan as created:", error);
+}
+};
+
+const handleGeneratePlan = async () => {
+console.log("🚀 Starting 5-day task overview generation...");
+setIsGeneratingPlan(true);
+setCurrentStep(0);
+
+try {
+const userMessages = messages.filter((m) => m.role === "user");
+const userAnswers = Object.values(answers);
+const goalName =
+(userMessages[0]?.content && userMessages[0].content.trim()) ||
+(userAnswers[0] && userAnswers[0].toString().trim()) ||
+"social skills";
+
+const joinDate = new Date().toISOString().split('T')[0];
+const apiKey = apiKeys[Math.floor(Math.random() * apiKeys.length)];
+
+const payload = {
+user_id: userId,
+goal_name: goalName,
+user_answers: userAnswers,
+join_date: joinDate,
+};
+
+// Simulate step-by-step progress
+const progressInterval = setInterval(() => {
+setCurrentStep(prev => {
+if (prev < GENERATION_STEPS.length) return prev + 1;
+return prev;
+});
+}, 1200);
+
+const resp = await fetch(
+"https://one23-u2ck.onrender.com/create-task-overview",
+{
+method: "POST",
+headers: {
+"Content-Type": "application/json",
+Authorization: `Bearer ${apiKey}`,
+},
+body: JSON.stringify(payload),
+}
+);
+
+clearInterval(progressInterval);
+
+let data: any;
+try {
+data = await resp.json();
+} catch (jsonErr) {
+const rawText = await resp.text();
+console.error("❌ Invalid JSON response:", rawText);
+throw new Error(`Failed due to invalid JSON: ${jsonErr}`);
+}
+
+if (!resp.ok) {
+console.error("❌ Server error:", data);
+throw new Error(data.error || "Failed to generate task overview");
+}
+
+if (!data.success || !data.overview) {
+console.error("❌ Invalid response structure:", data);
+throw new Error("Task overview data missing or malformed");
+}
+
+console.log("✅ Task overview received:", data.overview);
+
+// Save to Firebase
+const courseId = "social_skills"; // Force it to always save as 'social_skills'
+const userPlanRef = doc(firestore, "users", userId, "datedcourses", courseId);
+
+await setDoc(userPlanRef, {
+task_overview: data.overview,
+goal_name: goalName,
+user_id: userId,
+course_id: courseId,
+generated_at: serverTimestamp(),
+created_at: serverTimestamp(),
+});
+
+console.log("✅ 5-day task overview saved to Firebase");
+
+setSuccessfulDays(5);
+setCurrentStep(GENERATION_STEPS.length);
+await markPlanAsCreated();
+
+// Show plan preview
+setPlanPreview({
+days: data.overview.days || [
+{ day: 1, title: "Build Foundation", task: "Start with 15min daily practice" },
+{ day: 2, title: "Gain Momentum", task: "Increase to 30min, track progress" },
+{ day: 3, title: "Push Boundaries", task: "Try one challenging scenario" },
+{ day: 4, title: "Reflect & Adjust", task: "Review what's working" },
+{ day: 5, title: "Commit Long-term", task: "Set up sustainable routine" },
+]
+});
+
+showToast("🎉 Your 5-day plan is ready!", "success");
+
+} catch (err: any) {
+console.error("🔥 handleGeneratePlan error:", err);
+showToast(`⚠️ Plan generation failed: ${err.message}`, "error");
+} finally {
+setIsGeneratingPlan(false);
+}
+};
 
 
-  const cardGradientClasses = style?.light || "from-gray-100 to-gray-200";
 
-  return (
-    <div className="relative w-full min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 overflow-hidden">
-      <ParticlesBackground />
+const latestAIMessage = isTyping ? typingText : messages.filter(m => m.role === "assistant").pop()?.content;
 
- 	{/* Trailer Overlay */}
-      {showTrailer && <ConversationTrailer onClose={() => setShowTrailer(false)} />}
-      
-      {/* ANIMATED BACKGROUND BLOBS */}
-      {/* DYNAMIC AMBIENCE: STARFIELD & CONTEXTUAL LIGHTING */}
-<div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-  {/* Contextual Lighting Effect (Subtle glow matching avatar) */}
-  <div className={`absolute inset-0 transition-all duration-1000 ${
-    avatar === 'Skyler' ? 'bg-blue-500/5' :
-    avatar === 'Raven' ? 'bg-purple-500/5' :
-    avatar === 'Phoenix' ? 'bg-orange-500/5' : ''
-  } blur-3xl opacity-50 animate-pulse`} />
-  
-  {/* Starfield Placeholder (Requires CSS/Library implementation) */}
-  <div className="w-full h-full bg-transparent starfield-effect">
-    {/* If using CSS: Add background-image or ::before for starfield */}
-  </div>
+return (
+<div className="relative w-full min-h-screen bg-gradient-to-br from-purple-950 via-purple-900 to-purple-950 overflow-hidden" style={{ perspective: '1000px' }}>
+
+{/* 3D LAYERED BACKGROUND */}
+<div className="fixed inset-0 pointer-events-none">
+{/* Back layer - Deep purple */}
+<div className="absolute inset-0 bg-gradient-to-br from-purple-950 via-purple-900 to-black" style={{ transform: 'translateZ(-100px) scale(1.1)' }} />
+
+{/* Middle layer - Animated orbs */}
+<div className="absolute top-20 left-20 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl animate-float" style={{ transform: 'translateZ(-50px)' }} />
+<div className="absolute bottom-20 right-20 w-[500px] h-[500px] bg-fuchsia-600/20 rounded-full blur-3xl animate-float-delayed" style={{ transform: 'translateZ(-50px)' }} />
+
+{/* Front layer - Subtle glow */}
+<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-500/10 via-transparent to-transparent" style={{ transform: 'translateZ(0px)' }} />
 </div>
 
-      
+{/* MAIN CONTENT CONTAINER */}
+{/* MAIN CONTENT CONTAINER */}
+<div className="relative z-10 flex flex-col items-center min-h-screen px-6 pt-8 pb-40">
+  <div className="flex-1 flex items-center justify-center w-full">
+    <div className="w-full max-w-4xl">
 
-      {/* MAIN AI MESSAGE - RESPONSIVE CARD */}
-<div className="fixed inset-0 flex items-start  justify-center z-20 px-6 pt-80 pb-40 overflow-y-auto">
-  <div
-    key={messageKey}
-    className={`w-full max-w-3xl transform transition-all duration-700 ${
-      isGeneratingPlan ? "scale-90 opacity-30" : "scale-100 opacity-100"
-    }`}
-  >
-    <div
-  className={`relative p-8 rounded-3xl shadow-2xl border border-purple-400/30 bg-gradient-to-br from-purple-600 via-pink-500 to-purple-700 overflow-hidden group transition-all duration-300`}
-  style={{
-    // Apply the inner shadow/light source effect here
-    boxShadow: `
-      0 0 10px rgba(186, 85, 211, 0.3), /* Outer glow (soft purple) */
-      inset 0 0 15px rgba(255, 255, 255, 0.4), /* Inner white glow/reflection */
-      inset 0 0 5px rgba(255, 0, 255, 0.2) /* Inner magenta light */
-    `,
-    border: '1px solid rgba(200, 100, 255, 0.3)' // Slightly thicker, more pronounced border
-  }}
->
-
-      {/* CARD SHINE */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 transform -skew-x-12"></div>
-
-      {/* DECORATIVE LIGHTS */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-2xl opacity-50"></div>
-      <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-t from-white/10 to-transparent rounded-full blur-2xl opacity-30"></div>
-
-      {/* TEXT CONTENT */}
-      <div className="relative z-10">
-        <p
-  className="text-black text-lg md:text-2xl lg:text-3xl font-semibold leading-relaxed whitespace-pre-wrap break-words"
->
-  {currentTyping || messages.filter((m) => m.role === "assistant").pop()?.content || "Hey! What do you want to achieve?"}
+{/* HERO SECTION - 3D ELEVATED */}
+{showExamplePlan && messages.length === 0 && (
+<div className="w-full max-w-4xl mb-12 text-center animate-fade-in-3d">
+<h1 className="text-5xl md:text-7xl font-black text-white mb-6 tracking-tight"
+style={{
+textShadow: '0 10px 30px rgba(168, 85, 247, 0.5), 0 0 60px rgba(168, 85, 247, 0.3)',
+transform: 'translateZ(50px)'
+}}>
+Get Your Personalized<br />
+<span className="bg-gradient-to-r from-purple-400 via-fuchsia-400 to-purple-500 text-transparent bg-clip-text">
+5-Day Action Plan
+</span>
+</h1>
+<p className="text-xl text-purple-200 mb-12" style={{ transform: 'translateZ(30px)' }}>
+<span className="text-3xl font-bold text-white">12,847</span> people achieved their goals this month
 </p>
 
-      </div>
+{/* EXAMPLE PLAN PREVIEW - 3D CARDS */}
+<div className="relative mb-12" style={{ transform: 'translateZ(20px)', transformStyle: 'preserve-3d' }}>
+<div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-fuchsia-600/20 rounded-3xl blur-xl" style={{ transform: 'translateZ(-10px)' }} />
 
-      {localLoading && (
-        <span className="inline-block ml-1 h-8 w-1 bg-gradient-to-r from-gray-300 to-gray-500 animate-pulse rounded-sm"></span>
-      )}
-    </div>
-  </div>
+<div className="relative bg-gradient-to-br from-purple-900/40 to-purple-950/40 backdrop-blur-2xl border border-purple-400/30 rounded-3xl p-10 shadow-2xl"
+style={{
+boxShadow: '0 25px 50px -12px rgba(168, 85, 247, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.1)',
+transform: 'translateZ(0px)'
+}}>
+<h3 className="text-3xl font-black text-white mb-8" style={{ textShadow: '0 4px 12px rgba(168, 85, 247, 0.5)' }}>
+Here's What You'll Get:
+</h3>
+
+<div className="grid gap-5">
+{[
+{ day: 1, title: "Build Foundation", desc: "Start small with manageable actions", color: "from-purple-500 to-purple-600" },
+{ day: 2, title: "Gain Momentum", desc: "Build on Day 1 with increased intensity", color: "from-purple-600 to-violet-600" },
+{ day: 3, title: "Push Boundaries", desc: "Step outside your comfort zone", color: "from-violet-600 to-fuchsia-600" },
+{ day: 4, title: "Reflect & Adjust", desc: "Review progress and optimize", color: "from-fuchsia-600 to-purple-600" },
+{ day: 5, title: "Commit Long-term", desc: "Create sustainable habits", color: "from-purple-600 to-purple-700" },
+].map((item, idx) => (
+<div key={item.day}
+className="group relative flex items-start gap-5 bg-gradient-to-r from-purple-800/30 to-purple-900/30 backdrop-blur-sm rounded-2xl p-6 border border-purple-400/20 transition-all duration-500 hover:scale-105 hover:border-purple-400/50"
+style={{
+boxShadow: '0 10px 30px -10px rgba(168, 85, 247, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.1)',
+transform: `translateZ(${5 + idx * 2}px)`,
+transformStyle: 'preserve-3d'
+}}>
+{/* 3D number badge */}
+<div className={`flex-shrink-0 w-16 h-16 bg-gradient-to-br ${item.color} rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-lg group-hover:shadow-2xl transition-all duration-500`}
+style={{
+boxShadow: '0 10px 25px -5px rgba(168, 85, 247, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.3)',
+transform: 'translateZ(10px)'
+}}>
+{item.day}
+</div>
+<div className="flex-1 text-left">
+<h4 className="text-white font-bold text-xl mb-2">{item.title}</h4>
+<p className="text-purple-200 text-base leading-relaxed">{item.desc}</p>
 </div>
 
-
-      {/* PROGRESS CIRCLE - DURING GENERATION */}
-      {isGeneratingPlan && (
-        <div className="fixed inset-0 flex items-center justify-center z-30 pointer-events-none">
-          <style>{`
-            @keyframes rotateCircle {
-              from { transform: rotate(0deg); }
-              to { transform: rotate(360deg); }
-            }
-          `}</style>
-          
-          <div className="relative w-56 h-56">
-            <svg className="w-full h-full transform -rotate-90 drop-shadow-2xl" viewBox="0 0 160 160">
-              <defs>
-                <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#60a5fa" />
-                  <stop offset="50%" stopColor="#a78bfa" />
-                  <stop offset="100%" stopColor="#ec4899" />
-                </linearGradient>
-                <filter id="glow">
-                  <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                  <feMerge>
-                    <feMergeNode in="coloredBlur"/>
-                    <feMergeNode in="SourceGraphic"/>
-                  </feMerge>
-                </filter>
-              </defs>
-
-              {/* Background Circle */}
-              <circle
-                cx="80"
-                cy="80"
-                r="70"
-                fill="none"
-                stroke="rgba(255,255,255,0.1)"
-                strokeWidth="10"
-              />
-
-              {/* Progress Circle */}
-              <circle
-                cx="80"
-                cy="80"
-                r="70"
-                fill="none"
-                stroke="url(#progressGradient)"
-                strokeWidth="10"
-                strokeDasharray={`${(successfulDays / 5) * 439} 439`}
-                strokeLinecap="round"
-                className="transition-all duration-700"
-                filter="url(#glow)"
-              />
-            </svg>
-
-            {/* Center Content */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <div className="text-center">
-                <p className="text-7xl font-black text-white drop-shadow-2xl">{successfulDays}</p>
-                <p className="text-2xl text-blue-100 font-semibold drop-shadow-lg">of 5 days</p>
-                <div className="mt-4 flex gap-1 justify-center">
-                  {[1, 2, 3, 4, 5].map((day) => (
-                    <div
-                      key={day}
-                      className={`h-2 rounded-full transition-all duration-500 ${
-                        day <= successfulDays
-                          ? 'w-3 bg-gradient-to-r from-blue-400 to-purple-400'
-                          : 'w-2 bg-white/20'
-                      }`}
-                    ></div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* CONFETTI PARTICLES */}
-      {showParticles && (
-        <div className="fixed inset-0 pointer-events-none z-50">
-          {[...Array(30)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full animate-pulse"
-              style={{
-                left: Math.random() * 100 + "%",
-                top: Math.random() * 100 + "%",
-                animation: `fall ${2 + Math.random() * 1}s linear forwards`,
-                animationDelay: `${Math.random() * 0.5}s`,
-              }}
-            ></div>
-          ))}
-          <style>{`
-            @keyframes fall {
-              to {
-                transform: translateY(${100 + Math.random() * 200}px) rotate(${Math.random() * 360}deg);
-                opacity: 0;
-              }
-            }
-          `}</style>
-        </div>
-      )}
-
-      {/* GENERATE PLAN - PREMIUM BUTTON TOP CENTER */}
-<div className="fixed top-36 left-1/2 transform -translate-x-1/2 z-50 pointer-events-auto">
-  <button
-    onClick={handleGeneratePlan}
-    disabled={isLoading || isGeneratingPlan || localLoading}
-    className={`relative w-80 h-20 md:w-96 md:h-24 rounded-full font-extrabold text-2xl md:text-3xl flex items-center justify-center gap-4 transition-all duration-500 overflow-hidden group ${
-      isGeneratingPlan
-        ? "bg-gradient-to-r from-purple-600 via-pink-500 to-purple-700 text-white scale-105"
-        : "bg-gradient-to-r from-purple-700 via-pink-600 to-purple-500 text-white hover:scale-110 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
-    }`}
-    style={{
-      boxShadow: isGeneratingPlan
-        ? "0 0 60px rgba(186,85,211,0.9), inset 0 0 25px rgba(255,255,255,0.15)"
-        : "0 0 45px rgba(186,85,211,0.8), inset 0 0 20px rgba(255,255,255,0.2)",
-    }}
-  >
-    {/* SHIMMER EFFECT */}
-    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 transform -skew-x-12 animate-pulse"></div>
-
-    {/* ICON + TEXT */}
-    <span className="relative z-10 flex items-center gap-3">
-      {isGeneratingPlan ? "⏳" : "⚡"} Generate Your Plan
-    </span>
-  </button>
+{/* Hover glow effect */}
+<div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-400/5 to-purple-500/0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+</div>
+))}
+</div>
+</div>
 </div>
 
+{/* 3D CTA BUTTON */}
+<button
+onClick={() => {
+setShowExamplePlan(false);
+setTimeout(() => textareaRef.current?.focus(), 100);
+}}
+className="relative px-10 py-5 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-purple-600 text-white text-xl font-black rounded-full transition-all duration-500 hover:scale-110 group overflow-hidden"
+style={{
+boxShadow: '0 20px 40px -10px rgba(168, 85, 247, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.3)',
+transform: 'translateZ(60px)'
+}}>
+{/* Shine effect */}
+<div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+<span className="relative z-10 flex items-center gap-3">
+Ready? Tell Me Your Goal 🎯
+</span>
+</button>
+</div>
+)}
 
-
-
-
-
-   {/* INPUT AREA - ALWAYS VISIBLE */}
-<div
-  className="fixed bottom-0 left-0 right-0 z-50 px-6 py-6 pointer-events-auto translate-y-0"
-  style={{
-    background: "linear-gradient(to top, rgba(55,0,100,0.95), rgba(75,0,130,0.7), transparent)",
-    backdropFilter: "blur(20px)",
-  }}
->
-  <div className="flex gap-3 max-w-3xl mx-auto">
-    <div className="flex-1 relative">
-      <Textarea
-        ref={textareaRef}
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyPress={handleKeyPress}
-        placeholder="Share your thoughts..."
-        className="w-full min-h-[56px] max-h-32 resize-none bg-purple-900/30 text-white border border-purple-600/30 placeholder-purple-300 focus:ring-2 focus:ring-purple-500
- focus:border-transparent focus:outline-none transition-all duration-300 backdrop-blur-sm"
-        disabled={localLoading || isGeneratingPlan}
-      />
-    </div>
-
-    <button
-      onClick={handleSend}
-      disabled={localLoading || isGeneratingPlan || !inputValue.trim()}
-      className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 border border-purple-400/30
-  relative overflow-hidden group"
-    >
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform -skew-x-12"></div>
-      <span className="relative z-10">✉️</span>
-    </button>
-  </div>
-
-  {/* SUGGESTION PILLS - ANIMATED */}
-  <div className="flex gap-2 mt-4 max-w-3xl mx-auto flex-wrap">
-    {["Help me start", "What's next?", "Tell me more"].map((suggestion, i) => (
-      <button
-        key={i}
-        onClick={() => {
-          setInputValue(suggestion);
-          textareaRef.current?.focus();
-        }}
-        className="px-4 py-2 bg-white/5 hover:bg-white/15 text-gray-200 text-sm rounded-full transition-all duration-300 border border-white/10 hover:border-white/30 backdrop-blur-sm hover:scale-105 transform"
+{/* CONVERSATION MESSAGES - 3D DEPTH */}
+{/* LATEST AI MESSAGE - CENTERED & ELEVATED */}
+{!showExamplePlan && (
+  <div className="w-full max-w-3xl flex items-center justify-center">
+    <div className="w-full animate-slide-in-3d">
+      <div
+        className="rounded-3xl p-8 md:p-10 transition-all duration-500 hover:scale-105 bg-gradient-to-br from-purple-900/60 to-purple-950/60 backdrop-blur-xl border border-purple-400/20 text-white"
         style={{
-          animation: `slideInUp 0.5s ease-out forwards`,
-          animationDelay: `${i * 0.1}s`,
-          opacity: 0,
+          boxShadow: '0 25px 50px -12px rgba(168, 85, 247, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.1)',
+          transform: 'translateZ(30px)',
+          transformStyle: 'preserve-3d'
         }}
       >
-        {suggestion}
-      </button>
-    ))}
-    <style>{`
-      @keyframes slideInUp {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-    `}</style>
+        {/* Avatar Header */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full flex items-center justify-center text-2xl shadow-lg"
+               style={{ 
+                 boxShadow: '0 10px 25px -5px rgba(168, 85, 247, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.3)',
+                 transform: 'translateZ(10px)' 
+               }}>
+            {avatarConfig.icon}
+          </div>
+          <span className="text-base text-purple-300 font-bold tracking-wide uppercase">
+            {avatar?.name || "Skyler"}
+          </span>
+        </div>
+
+        {/* AI Message Text */}
+        <p className="text-xl md:text-2xl leading-relaxed whitespace-pre-wrap">
+          {isTyping 
+            ? typingText 
+            : messages.filter(m => m.role === "assistant").pop()?.content || avatarConfig.greeting}
+        </p>
+
+        {/* Typing Cursor */}
+        {isTyping && (
+          <span className="inline-block w-2 h-7 bg-purple-400 ml-1 animate-pulse rounded-sm" />
+        )}
+
+        {/* Loading Indicator */}
+        {localLoading && (
+          <span className="inline-block w-2 h-7 bg-purple-400 ml-1 animate-pulse rounded-sm" />
+        )}
+      </div>
+    </div>
   </div>
+)}
+
+{/* PLAN GENERATION STATUS - 3D MODAL */}
+{isGeneratingPlan && (
+<div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-6">
+<div className="relative max-w-2xl w-full" style={{ transform: 'translateZ(100px)', transformStyle: 'preserve-3d' }}>
+{/* Glow shadow */}
+<div className="absolute inset-0 bg-gradient-to-br from-purple-600/40 to-fuchsia-600/40 rounded-3xl blur-2xl" style={{ transform: 'translateZ(-20px)' }} />
+
+<div className="relative bg-gradient-to-br from-purple-900/95 to-purple-950/95 backdrop-blur-2xl border-2 border-purple-400/40 rounded-3xl p-12 shadow-2xl"
+style={{ boxShadow: '0 30px 60px -15px rgba(168, 85, 247, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.1)' }}>
+<div className="text-center mb-10">
+<div className="inline-flex items-center justify-center w-28 h-28 bg-gradient-to-br from-purple-500 to-purple-700 rounded-3xl mb-6 shadow-2xl animate-pulse-3d"
+style={{
+boxShadow: '0 20px 40px -10px rgba(168, 85, 247, 0.7), inset 0 2px 4px rgba(255, 255, 255, 0.3)',
+transform: 'translateZ(30px)'
+}}>
+<span className="text-6xl">⚡</span>
+</div>
+<h2 className="text-4xl font-black text-white mb-3" style={{ textShadow: '0 4px 12px rgba(168, 85, 247, 0.5)' }}>
+Creating Your Plan
+</h2>
+<p className="text-purple-300 text-lg">This will take about 10 seconds...</p>
 </div>
 
+{/* STEP-BY-STEP STATUS - 3D */}
+<div className="space-y-4 mb-8">
+{GENERATION_STEPS.map((step, index) => (
+<div
+key={index}
+className={`flex items-center gap-5 transition-all duration-700 ${
+index < currentStep ? "opacity-100 translate-x-0" : "opacity-40 translate-x-4"
+}`}
+style={{ transform: `translateZ(${index * 3}px)` }}
+>
+<div className={`flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-bold transition-all duration-500 ${
+index < currentStep
+? "bg-gradient-to-br from-purple-500 to-purple-700 text-white shadow-lg scale-110"
+: "bg-purple-800/30 text-purple-400"
+}`}
+style={index < currentStep ? {
+boxShadow: '0 10px 25px -5px rgba(168, 85, 247, 0.6)',
+transform: 'translateZ(10px)'
+} : {}}>
+{index < currentStep ? "✓" : step.icon}
+</div>
+<p className="text-white text-lg font-medium">{step.text}</p>
+</div>
+))}
+</div>
 
-        {/* SUGGESTION PILLS - ANIMATED */}
-        <div className="flex gap-2 mt-4 max-w-3xl mx-auto flex-wrap">
-          
-          
-          <style>{`
-            @keyframes slideInUp {
-              from {
-                opacity: 0;
-                transform: translateY(10px);
-              }
-              to {
-                opacity: 1;
-                transform: translateY(0);
-              }
-            }
-          `}</style>
-        </div>
-      </div>
-  );
+{/* 3D PROGRESS BAR */}
+<div className="relative h-4 bg-purple-950/50 rounded-full overflow-hidden border border-purple-400/30"
+style={{ boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.3)' }}>
+<div
+className="h-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-purple-600 transition-all duration-500 rounded-full"
+style={{
+width: `${(currentStep / GENERATION_STEPS.length) * 100}%`,
+boxShadow: '0 0 20px rgba(168, 85, 247, 0.8)'
+}}
+/>
+</div>
+</div>
+</div>
+</div>
+)}
+
+{/* PLAN PREVIEW - 3D ELEVATED MODAL */}
+{planPreview && !isGeneratingPlan && (
+<div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-6 overflow-y-auto">
+<div className="relative max-w-4xl w-full" style={{ transform: 'translateZ(100px)', transformStyle: 'preserve-3d' }}>
+{/* Glow shadow */}
+<div className="absolute inset-0 bg-gradient-to-br from-purple-600/40 to-fuchsia-600/40 rounded-3xl blur-3xl" style={{ transform: 'translateZ(-30px)' }} />
+
+<div className="relative bg-gradient-to-br from-purple-900/95 to-purple-950/95 backdrop-blur-2xl border-2 border-purple-400/40 rounded-3xl p-12 shadow-2xl"
+style={{ boxShadow: '0 40px 80px -20px rgba(168, 85, 247, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.1)' }}>
+<div className="text-center mb-10">
+<div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-purple-500 to-purple-700 rounded-3xl mb-5 shadow-2xl animate-bounce-subtle"
+style={{
+boxShadow: '0 20px 40px -10px rgba(168, 85, 247, 0.7), inset 0 2px 4px rgba(255, 255, 255, 0.3)',
+transform: 'translateZ(40px)'
+}}>
+<span className="text-5xl">🎉</span>
+</div>
+<h2 className="text-5xl font-black text-white mb-3" style={{ textShadow: '0 4px 12px rgba(168, 85, 247, 0.5)' }}>
+Your Plan is Ready!
+</h2>
+<p className="text-purple-300 text-xl">Here's your personalized 5-day roadmap</p>
+</div>
+
+<div className="grid gap-5 mb-10">
+{planPreview.days.map((day: any, idx: number) => (
+<div key={day.day}
+className="group relative bg-gradient-to-r from-purple-800/40 to-purple-900/40 backdrop-blur-sm border-2 border-purple-400/30 rounded-3xl p-7 hover:border-purple-400/60 transition-all duration-500 hover:scale-105"
+style={{
+boxShadow: '0 15px 35px -10px rgba(168, 85, 247, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.1)',
+transform: `translateZ(${10 + idx * 5}px)`,
+transformStyle: 'preserve-3d'
+}}>
+<div className="flex items-start gap-5">
+<div className="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl flex items-center justify-center text-white font-black text-3xl shadow-lg group-hover:shadow-2xl transition-all duration-500"
+style={{
+boxShadow: '0 12px 28px -6px rgba(168, 85, 247, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.3)',
+transform: 'translateZ(15px)'
+}}>
+{day.day}
+</div>
+<div className="flex-1">
+<h3 className="text-white font-black text-2xl mb-2">{day.title}</h3>
+<p className="text-purple-200 text-lg leading-relaxed">{day.task}</p>
+</div>
+</div>
+
+{/* Hover shine */}
+<div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 rounded-3xl" />
+</div>
+))}
+</div>
+
+<div className="flex gap-5 justify-center">
+<button
+onClick={() => setPlanPreview(null)}
+className="px-8 py-4 bg-purple-800/50 hover:bg-purple-700/60 text-white text-lg font-bold rounded-2xl transition-all duration-300 border-2 border-purple-400/30 hover:border-purple-400/50 hover:scale-105"
+style={{ boxShadow: '0 10px 25px -5px rgba(168, 85, 247, 0.3)' }}>
+Adjust Plan
+</button>
+<button
+onClick={() => navigate("/")}
+className="relative px-10 py-4 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-purple-600 text-white text-lg font-black rounded-2xl transition-all duration-300 hover:scale-110 group overflow-hidden"
+style={{ boxShadow: '0 15px 35px -5px rgba(168, 85, 247, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.3)' }}>
+<div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+<span className="relative z-10">Start Day 1 🚀</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+)}
+</div>
+</div>
+</div>
+
+{/* GENERATE PLAN BUTTON - 3D FLOATING */}
+{/* GENERATE PLAN BUTTON - 3D FLOATING TOP */}
+{/* GENERATE PLAN BUTTON - 3D FLOATING TOP */}
+{hasSharedGoal && !isGeneratingPlan && !planPreview && (
+<button
+onClick={handleGeneratePlan}
+className="fixed top-32 left-16 z-40 px-10 py-5 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-purple-600 text-white text-xl font-black rounded-2xl transition-all duration-500 hover:scale-110 group overflow-hidden animate-float"
+style={{
+boxShadow: '0 20px 40px -10px rgba(168, 85, 247, 0.7), inset 0 2px 4px rgba(255, 255, 255, 0.3)',
+transform: 'translateZ(80px)'
+}}>
+<div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+<span className="relative z-10">⚡ Generate Plan</span>
+</button>
+)}
+
+{!showExamplePlan && !planPreview && !isGeneratingPlan && (
+  <div className="fixed bottom-0 left-0 right-0 z-40 px-6 py-6 bg-gradient-to-t from-purple-950 via-purple-900/95 to-transparent backdrop-blur-xl border-t-2 border-purple-400/20"
+       style={{
+         boxShadow: '0 -10px 40px -10px rgba(168, 85, 247, 0.4)',
+         transform: 'translateZ(50px)',
+         transformStyle: 'preserve-3d'
+       }}>
+
+<div className="max-w-4xl mx-auto">
+<div className="relative">
+{/* 3D Shadow layer */}
+<div className="absolute inset-0 bg-gradient-to-br from-purple-600/30 to-fuchsia-600/30 rounded-3xl blur-xl"
+style={{ transform: 'translateZ(-10px)' }} />
+
+{/* Main input container */}
+<div className="relative bg-gradient-to-br from-purple-900/60 to-purple-950/60 backdrop-blur-2xl border-2 border-purple-400/30 rounded-3xl p-2 shadow-2xl"
+style={{
+boxShadow: '0 20px 40px -10px rgba(168, 85, 247, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.1)',
+transform: 'translateZ(0px)'
+}}>
+<Textarea
+ref={textareaRef}
+value={inputValue}
+onChange={(e) => setInputValue(e.target.value)}
+onKeyDown={handleKeyPress}
+placeholder={`Share your goal with ${avatar?.name || 'Skyler'}...`}
+className="w-full min-h-[80px] max-h-[200px] bg-transparent border-none text-white text-lg placeholder:text-purple-300/60 focus:outline-none resize-none p-5"
+style={{
+textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+}}
+/>
+
+{/* Send button - 3D elevated */}
+<div className="flex justify-end items-center gap-3 px-3 pb-2">
+<button
+onClick={() => handleSendMessage(inputValue)}
+disabled={!inputValue.trim()}
+className="relative px-8 py-3 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-purple-600 text-white font-bold rounded-2xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 group overflow-hidden"
+style={{
+boxShadow: inputValue.trim()
+? '0 12px 28px -6px rgba(168, 85, 247, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.3)'
+: 'none',
+transform: 'translateZ(10px)'
+}}>
+{/* Shine effect */}
+<div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+<span className="relative z-10 flex items-center gap-2">
+Send
+<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+</svg>
+</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+)}
+
+{/* TOAST NOTIFICATION */}
+{toast && (
+<div className={`fixed top-8 left-1/2 transform -translate-x-1/2 z-[100] px-8 py-4 rounded-2xl shadow-2xl backdrop-blur-xl border-2 transition-all duration-500 ${
+toast.type === 'success'
+? 'bg-green-900/90 border-green-400/50 text-green-100'
+: 'bg-red-900/90 border-red-400/50 text-red-100'
+}`}
+style={{ boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.5)' }}>
+<p className="text-lg font-bold">{toast.message}</p>
+</div>
+)}
+
+{/* CSS ANIMATIONS */}
+<style jsx>{`
+@keyframes float {
+0%, 100% { transform: translateY(0px) translateZ(50px); }
+50% { transform: translateY(-20px) translateZ(50px); }
+}
+
+@keyframes float-delayed {
+0%, 100% { transform: translateY(0px) translateZ(-50px); }
+50% { transform: translateY(20px) translateZ(-50px); }
+}
+
+@keyframes fade-in-3d {
+from {
+opacity: 0;
+transform: translateZ(-50px) scale(0.95);
+}
+to {
+opacity: 1;
+transform: translateZ(0px) scale(1);
+}
+}
+
+@keyframes slide-in-3d {
+from {
+opacity: 0;
+transform: translateX(-30px) translateZ(-20px);
+}
+to {
+opacity: 1;
+transform: translateX(0) translateZ(0);
+}
+}
+
+@keyframes pulse-3d {
+0%, 100% {
+transform: translateZ(30px) scale(1);
+box-shadow: 0 20px 40px -10px rgba(168, 85, 247, 0.7);
+}
+50% {
+transform: translateZ(30px) scale(1.05);
+box-shadow: 0 25px 50px -10px rgba(168, 85, 247, 0.9);
+}
+}
+
+@keyframes bounce-subtle {
+0%, 100% { transform: translateZ(40px) translateY(0); }
+50% { transform: translateZ(40px) translateY(-10px); }
+}
+
+.animate-float {
+animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+animation: float-delayed 8s ease-in-out infinite;
+}
+
+.animate-fade-in-3d {
+animation: fade-in-3d 0.8s ease-out forwards;
+}
+
+.animate-slide-in-3d {
+animation: slide-in-3d 0.6s ease-out forwards;
+}
+
+.animate-pulse-3d {
+animation: pulse-3d 2s ease-in-out infinite;
+}
+
+.animate-bounce-subtle {
+animation: bounce-subtle 2s ease-in-out infinite;
+}
+`}</style>
+</div>
+);
 }

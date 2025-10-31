@@ -563,7 +563,7 @@ export default function Onboardingquiz() { // Renamed component to App for singl
             <label className="block text-lg font-bold text-white mb-4">
               Where do you get your social energy?
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="flex flex-col gap-3">
               {[
                 { value: 'introvert', label: 'Introvert', emoji: '🤫' },
                 { value: 'ambivert', label: 'Ambivert', emoji: '⚖️' },
@@ -789,39 +789,43 @@ export default function Onboardingquiz() { // Renamed component to App for singl
           </div>
 
           {/* Available Times */}
-          <div className="bg-purple-800/30 p-6 rounded-2xl border border-purple-500/30">
-            <label className="block text-lg font-bold text-white mb-4">
-              When are you available for social activities?
-            </label>
-            <div className="space-y-3">
-              {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => (
-                <div key={day} className="flex items-center gap-3">
-                  <div className="w-24 text-purple-200 capitalize">{day}</div>
-                  <div className="flex-1 flex gap-2">
-                    {['morning', 'afternoon', 'evening'].map(time => (
-                      <button
-                        key={time}
-                        onClick={() => {
-                          const current = formData.availableTimes[day] || [];
-                          const updated = current.includes(time)
-                            ? current.filter(t => t !== time)
-                            : [...current, time];
-                          updateFormData(`availableTimes.${day}`, updated);
-                        }}
-                        className={`flex-1 px-3 py-2 rounded-lg text-sm transition-all ${
-                          (formData.availableTimes[day] || []).includes(time)
-                            ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
-                            : 'bg-purple-900/30 text-purple-300 border border-purple-700/30'
-                        }`}
-                      >
-                        {time}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+          {/* Available Times */}
+<div className="bg-purple-800/30 p-6 rounded-2xl border border-purple-500/30">
+  <label className="block text-lg font-bold text-white mb-4">
+    When are you available for social activities?
+  </label>
+  <div className="space-y-3">
+    {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => (
+      <div key={day} className="space-y-2">
+        <div className="text-purple-200 capitalize font-semibold">{day}</div>
+        <div className="relative overflow-x-auto pb-2">
+          <div className="flex gap-2 min-w-max">
+            {['morning', 'afternoon', 'evening'].map(time => (
+              <button
+                key={time}
+                onClick={() => {
+                  const current = formData.availableTimes[day] || [];
+                  const updated = current.includes(time)
+                    ? current.filter(t => t !== time)
+                    : [...current, time];
+                  updateFormData(`availableTimes.${day}`, updated);
+                }}
+                className={`px-6 py-3 rounded-lg text-sm transition-all capitalize whitespace-nowrap ${
+                  (formData.availableTimes[day] || []).includes(time)
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+                    : 'bg-purple-900/30 text-purple-300 border border-purple-700/30'
+                }`}
+              >
+                {time}
+              </button>
+            ))}
           </div>
+        </div>
+      </div>
+    ))}
+  </div>
+  <p className="text-xs text-purple-400 mt-4">💡 Swipe horizontally to see all time options</p>
+</div>
 
           {/* Ideal First Interaction */}
           <div className="bg-purple-800/30 p-6 rounded-2xl border border-purple-500/30">
@@ -1264,19 +1268,30 @@ export default function Onboardingquiz() { // Renamed component to App for singl
       render: () => (
         <div className="space-y-6">
           {/* Motivation Style */}
-          <div className="bg-purple-800/30 p-6 rounded-2xl border border-purple-500/30">
-            <h3 className="text-xl font-bold text-white mb-4">Motivation Style</h3>
-            <RadioGroup
-              label="Which tone motivates you most?"
-              options={[
-                { value: 'gentle_encouragement', label: 'Gentle Encouragement' },
-                { value: 'data_driven', label: 'Data-Driven/Metric Focus' },
-                { value: 'tough_love', label: 'Direct/Challenging' },
-              ]}
-              selected={formData.appPreferences.motivationStyle}
-              onChange={(value) => updateFormData('appPreferences.motivationStyle', value)}
-            />
-          </div>
+          {/* Motivation Style */}
+<div className="bg-purple-800/30 p-6 rounded-2xl border border-purple-500/30">
+  <h3 className="text-xl font-bold text-white mb-4">Motivation Style</h3>
+  <label className="block text-purple-200 font-semibold mb-3">Which tone motivates you most?</label>
+  <div className="flex flex-col space-y-3">
+    {[
+      { value: 'gentle_encouragement', label: 'Gentle Encouragement' },
+      { value: 'data_driven', label: 'Data-Driven/Metric Focus' },
+      { value: 'tough_love', label: 'Direct/Challenging' },
+    ].map(option => (
+      <button
+        key={option.value}
+        onClick={() => updateFormData('appPreferences.motivationStyle', option.value)}
+        className={`px-4 py-3 rounded-xl text-sm transition-all border ${
+          formData.appPreferences.motivationStyle === option.value
+            ? 'bg-purple-600 border-purple-400 text-white shadow-lg'
+            : 'bg-purple-900/30 border-purple-700/30 text-purple-200 hover:bg-purple-800/50'
+        }`}
+      >
+        {option.label}
+      </button>
+    ))}
+  </div>
+</div>
 
           {/* Notifications */}
           <div className="bg-purple-800/30 p-6 rounded-2xl border border-purple-500/30">
@@ -1443,25 +1458,25 @@ export default function Onboardingquiz() { // Renamed component to App for singl
             You can now proceed to your main dashboard to view your first weekly action plan and curated connection opportunities.
           </p>
           <button
-            onClick={() => window.location.reload()} // Placeholder for navigating to dashboard
-            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl font-bold text-lg hover:from-purple-500 hover:to-pink-500 transition-all shadow-xl inline-flex items-center gap-2 mt-4"
-          >
-            Go to Dashboard <ArrowRight className="w-5 h-5" />
-          </button>
+  onClick={() => window.location.href = '/'}
+  className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl font-bold text-lg hover:from-purple-500 hover:to-pink-500 transition-all shadow-xl inline-flex items-center gap-2 mt-4"
+>
+  Go to Dashboard <ArrowRight className="w-5 h-5" />
+</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="absolute inset-0 z-50 bg-gradient-to-br from-[#310b50] to-[#1a0033] text-white font-sans flex justify-center p-4 sm:p-8">
+    <div className="absolute inset-0 z-50 bg-gradient-to-br from-[#4c1d95] via-[#6b21a8] to-[#581c87]">
       {/* Custom Message Box for non-alert messages */}
       <div id="message-box" className="fixed top-4 right-4 bg-red-600 text-white p-3 rounded-lg shadow-xl hidden z-50"></div>
 
       <div className="max-w-3xl w-full">
         {/* Header and Progress Bar (Hidden on Welcome Step) */}
         {currentStep > 0 && (
-          <div className="mb-8 p-4 bg-gradient-to-br from-[#310b50] to-[#1a0033] rounded-2xl shadow-xl sticky top-0 z-10 border border-purple-700/50">
+          <div className="mb-8 p-4 bg-purple-900/40 backdrop-blur-md rounded-2xl shadow-xl sticky top-0 z-10 border border-purple-400/50">
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center text-purple-400">
                 <currentStepData.icon className="w-5 h-5 mr-2" />
@@ -1486,7 +1501,7 @@ export default function Onboardingquiz() { // Renamed component to App for singl
         )}
 
         {/* Quiz Card */}
-        <div className="bg-gradient-to-br from-[#310b50] to-[#1a0033] p-6 md:p-10 rounded-3xl shadow-2xl border border-purple-600/50">
+        <div className="bg-gradient-to-br from-purple-600/30 to-pink-600/20 backdrop-blur-sm p-6 md:p-10 rounded-3xl shadow-2xl border border-purple-400/50">
           <header className="mb-8 text-center">
             <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
               {currentStepData.title}
@@ -1514,11 +1529,11 @@ export default function Onboardingquiz() { // Renamed component to App for singl
 
             {currentStep < steps.length - 1 && (
               <button
-                onClick={nextStep}
-                className="px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-bold hover:from-purple-500 hover:to-pink-500 transition-all flex items-center gap-2"
-              >
-                Next <ArrowRight className="w-5 h-5" />
-              </button>
+  onClick={nextStep}
+  className="px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-bold hover:from-purple-500 hover:to-pink-500 transition-all flex items-center gap-2 text-white"
+>
+  Next <ArrowRight className="w-5 h-5" />
+</button>
             )}
             {currentStep === steps.length - 1 && (
               <button

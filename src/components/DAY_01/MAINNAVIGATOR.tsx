@@ -23,6 +23,13 @@ const Day1Navigator = forwardRef(({ onCompleteNavigator }, ref) => {
     else console.log("⚠️ onCompleteNavigator is undefined!");
   };
 
+  const handleQuit = () => {
+    if (window.confirm("Are you sure you want to quit? Your progress may not be saved.")) {
+      if (onCompleteNavigator) onCompleteNavigator();
+      // Or use: window.location.href = '/dashboard';
+    }
+  };
+
   const pages = [
     <YouAreNotAlone key="youarenotalone" onComplete={nextPage} />,
     <FindAPlace01 key="find" onComplete={nextPage} />,
@@ -51,6 +58,38 @@ const Day1Navigator = forwardRef(({ onCompleteNavigator }, ref) => {
         alignItems: "center",
       }}
     >
+      {/* Quit Button - Top Left */}
+      <button
+        onClick={handleQuit}
+        style={{
+          position: "fixed",
+          top: "20px",
+          left: "20px",
+          padding: "12px 24px",
+          background: "rgba(255,255,255,0.1)",
+          color: "white",
+          borderRadius: "8px",
+          cursor: "pointer",
+          zIndex: 1000002,
+          border: "1px solid rgba(255,255,255,0.2)",
+          backdropFilter: "blur(6px)",
+          fontSize: "14px",
+          fontWeight: "600",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          transition: "all 0.3s ease",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "rgba(255,255,255,0.2)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+        }}
+      >
+        ✕ Quit
+      </button>
+
       {showSpotlight ? (
         <div
           style={{

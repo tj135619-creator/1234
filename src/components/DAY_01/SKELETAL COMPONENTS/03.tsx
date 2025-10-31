@@ -457,7 +457,7 @@ const VoiceToneControl = ({ onNext }) => {
                   onClick={() => practiceVoice('warmth')}
                   className="w-full px-4 py-3 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 rounded-xl font-bold transition-all shadow-lg hover:scale-105"
                 >
-                  Practice Warm Tone
+                  Practiced Warm Tone
                 </button>
               </div>
 
@@ -484,7 +484,7 @@ const VoiceToneControl = ({ onNext }) => {
                   onClick={() => practiceVoice('confidence')}
                   className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-xl font-bold transition-all shadow-lg hover:scale-105"
                 >
-                  Practice Confident Tone
+                  Practiced Confident Tone
                 </button>
               </div>
 
@@ -511,7 +511,7 @@ const VoiceToneControl = ({ onNext }) => {
                   onClick={() => practiceVoice('energy')}
                   className="w-full px-4 py-3 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 rounded-xl font-bold transition-all shadow-lg hover:scale-105"
                 >
-                  Practice Energetic Tone
+                  Practiced Energetic Tone
                 </button>
               </div>
 
@@ -538,7 +538,7 @@ const VoiceToneControl = ({ onNext }) => {
                   onClick={() => practiceVoice('clarity')}
                   className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 rounded-xl font-bold transition-all shadow-lg hover:scale-105"
                 >
-                  Practice Clear Tone
+                  Practiced Clear Tone
                 </button>
               </div>
             </div>
