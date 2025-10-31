@@ -45,10 +45,5 @@ export const navData = [
     title: 'Sign in',
     path: '/sign-in',
     icon: <Lock fontSize="medium" />,
-  },
-  {
-    title: 'Not found',
-    path: '/404',
-    icon: <DisabledByDefault fontSize="medium" />,
-  },
+  }
 ];
