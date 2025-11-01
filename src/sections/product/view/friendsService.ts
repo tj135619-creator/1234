@@ -35,7 +35,8 @@ import {
   serverTimestamp,
   increment,
   writeBatch,
-  onSnapshot
+  onSnapshot,
+  startAfter
 } from 'firebase/firestore';
 import { 
   getStorage,
@@ -553,22 +554,19 @@ async searchUsers(searchQuery, limitCount = 20) {
 },
 
 // 👇 ADD THIS NEW FUNCTION HERE 👇
+// ✅ REPLACE THE ENTIRE getAllUsers FUNCTION WITH THIS:
 async getAllUsers(limitCount = null) {
   try {
     const usersRef = collection(db, 'users');
     
-    // ✅ Build query conditionally
     let q;
     if (limitCount && limitCount > 0) {
-      // With limit
       q = query(usersRef, limit(limitCount));
     } else {
-      // Without limit - get all users
       q = query(usersRef);
     }
     
     const snapshot = await getDocs(q);
-    
     const users = [];
     
     for (const userDoc of snapshot.docs) {
@@ -577,9 +575,9 @@ async getAllUsers(limitCount = null) {
       users.push({
         id: userDoc.id,
         userId: userDoc.id,
-        name: userDoc.data().name,
-        avatar: userDoc.data().avatar,
-        username: userDoc.data().username,
+        name: userDoc.data().name || 'Unknown User',
+        avatar: userDoc.data().avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userDoc.data().name || 'User')}&background=random`,
+        username: userDoc.data().username || 'user',
         bio: userDoc.data().bio || '',
         league: userDoc.data().league || 'BRONZE',
         isOnline: userDoc.data().isOnline || false,
@@ -593,15 +591,15 @@ async getAllUsers(limitCount = null) {
       });
     }
     
-    // ✅ Sort by totalXP (since we can't use orderBy without limit in some cases)
     users.sort((a, b) => (b.stats?.totalXP || 0) - (a.stats?.totalXP || 0));
-    
     return users;
   } catch (error) {
     console.error('Error getting all users:', error);
     return [];
   }
 },
+
+
 
   // Update weekly ranks (should be called by a scheduled job)
   async updateWeeklyRanks() {
@@ -1776,19 +1774,19 @@ export const groupService = {
 
   // Get all groups
   async getAllGroups() {
-    try {
-      const groupsQuery = query(
-        collection(db, 'groups'),
-        orderBy('memberCount', 'desc'),
-        limit(50)
-      );
-      const snapshot = await getDocs(groupsQuery);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
-      console.error('Error getting all groups:', error);
-      throw error;
-    }
-  },
+  try {
+    const groupsQuery = query(
+      collection(db, 'groups'),
+      orderBy('memberCount', 'desc'),
+      limit(20)  // ✅ Changed from 50 to 20
+    );
+    const snapshot = await getDocs(groupsQuery);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error('Error getting all groups:', error);
+    throw error;
+  }
+},
 
   // Join group
   async joinGroup(groupId, userId) {
@@ -2869,14 +2867,14 @@ getUserChallenges: async (userId) => {
       collection(db, 'challenges'),
       where('fromUserId', '==', userId),
       orderBy('createdAt', 'desc'),
-      limit(50)
+      limit(20)  // ✅ Changed from 50 to 20
     );
     
     const receivedQuery = query(
       collection(db, 'challenges'),
       where('toUserId', '==', userId),
       orderBy('createdAt', 'desc'),
-      limit(50)
+      limit(20)  // ✅ Changed from 50 to 20
     );
     
     const [sentSnap, receivedSnap] = await Promise.all([
@@ -2899,7 +2897,6 @@ getUserChallenges: async (userId) => {
       }))
     ];
     
-    // Sort by date (most recent first)
     challenges.sort((a, b) => {
       const aTime = a.createdAt?.seconds || 0;
       const bTime = b.createdAt?.seconds || 0;
@@ -3295,26 +3292,28 @@ export const activityService = {
   },
 
   // Get friends' activities
-  async getFriendsActivities(userId, limitCount = 50) {
-    try {
-      const friends = await userService.getFriends(userId);
-      const friendIds = friends.map(f => f.id);
-      
-      if (friendIds.length === 0) return [];
-      
-      const activitiesQuery = query(
-        collection(db, 'activities'),
-        where('userId', 'in', friendIds.slice(0, 10)),
-        orderBy('createdAt', 'desc'),
-        limit(limitCount)
-      );
-      const snapshot = await getDocs(activitiesQuery);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
-      console.error('Error getting friends activities:', error);
-      throw error;
-    }
-  },
+  async getFriendsActivities(userId, limitCount = 20) {  // ✅ Changed from 50 to 20
+  try {
+    const friends = await userService.getFriends(userId);
+    const friendIds = friends.map(f => f.id);
+    
+    if (friendIds.length === 0) return [];
+    
+    // ✅ Only query first 10 friends
+    const activitiesQuery = query(
+      collection(db, 'activities'),
+      where('userId', 'in', friendIds.slice(0, 10)),
+      orderBy('createdAt', 'desc'),
+      limit(limitCount)
+    );
+    const snapshot = await getDocs(activitiesQuery);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error('Error getting friends activities:', error);
+    throw error;
+  }
+},
+
 
   // Get user's activities
   async getUserActivities(userId, limitCount = 50) {
@@ -3506,24 +3505,25 @@ export const achievementService = {
 export const leaderboardService = {
   // Get weekly leaderboard
   // Get weekly leaderboard
-async getWeeklyLeaderboard(limitCount = 100) {
+async getWeeklyLeaderboard(limitCount = 50) {  // ✅ Changed default from 100 to 50
   try {
     const usersQuery = query(
       collection(db, 'users'),
-      limit(limitCount)
+      limit(limitCount)  // ✅ Already has limit
     );
     
     const snapshot = await getDocs(usersQuery);
     const rankings = [];
     
-    for (let i = 0; i < snapshot.docs.length; i++) {
+    // ✅ Only fetch stats for users with data
+    for (let i = 0; i < Math.min(snapshot.docs.length, limitCount); i++) {
       const userDoc = snapshot.docs[i];
       const statsSnap = await getDoc(doc(db, 'users', userDoc.id, 'stats', 'current'));
       
       if (statsSnap.exists() && statsSnap.data().weeklyXP > 0) {
         rankings.push({
           userId: userDoc.id,
-          totalXP: statsSnap.data().totalXP || 0,  // ADD THIS LINE
+          totalXP: statsSnap.data().totalXP || 0,
           weeklyXP: statsSnap.data().weeklyXP || 0,
           name: userDoc.data().name,
           avatar: userDoc.data().avatar,
@@ -3531,15 +3531,12 @@ async getWeeklyLeaderboard(limitCount = 100) {
           league: userDoc.data().league,
           streak: statsSnap.data().streak || 0,
           crowns: statsSnap.data().crowns || 0,
-          level: statsSnap.data().level || 1  // ADD THIS TOO (optional but good to have)
+          level: statsSnap.data().level || 1
         });
       }
     }
     
-    // Sort by weeklyXP
     rankings.sort((a, b) => b.weeklyXP - a.weeklyXP);
-    
-    // Add ranks
     rankings.forEach((user, index) => {
       user.rank = index + 1;
     });
@@ -3550,6 +3547,7 @@ async getWeeklyLeaderboard(limitCount = 100) {
     throw error;
   }
 },
+
 
   // Get global leaderboard
   async getGlobalLeaderboard(limitCount = 100) {

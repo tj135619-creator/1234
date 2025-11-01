@@ -1,29 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Users, ArrowLeft, MoreVertical, Bell, Pin, Archive, Settings, User, MessageCircle, CheckCircle, Camera, Menu } from 'lucide-react';
 import GroupChatApp from './GroupChatApp'; // Your existing component
 import { db } from '@/firebase'; // adjust path if needed
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { getDoc, setDoc } from 'firebase/firestore';
-import { useEffect } from 'react';
-
-import {
-  addDoc,
-  serverTimestamp
-} from 'firebase/firestore';
-
-import { useParams, useNavigate } from 'react-router-dom';
-// Mock groups data
-
+import { collection, query, orderBy, onSnapshot, getDocs, getDoc, setDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 
 function WhatsAppInterface() {
-  const { groupId } = useParams();
-  const navigate = useNavigate();
+  console.log('🔵 WhatsAppInterface component rendered');
+  
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showMenu, setShowMenu] = useState(false);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [error, setError] = useState(null);
+
+  console.log('📊 Current state:', { 
+    groupsCount: groups.length, 
+    selectedGroup: selectedGroup?.name || 'none',
+    searchQuery,
+    showMenu,
+    loadingGroups,
+    error
+  });
 
   const formatTime = (timestamp) => {
+    console.log('⏰ Formatting time:', timestamp);
     const now = Date.now();
     const diff = now - timestamp;
     const minutes = Math.floor(diff / 60000);
@@ -40,27 +41,199 @@ function WhatsAppInterface() {
   const filteredGroups = groups.filter(group =>
     group.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  console.log('🔍 Filtered groups:', filteredGroups.length, 'out of', groups.length);
 
   const pinnedGroups = filteredGroups.filter(g => g.pinned);
   const regularGroups = filteredGroups.filter(g => !g.pinned);
+  console.log('📌 Pinned groups:', pinnedGroups.length, 'Regular groups:', regularGroups.length);
 
+  // Wrap loadGroups in useCallback to make it stable
+  const loadGroups = useCallback(async () => {
+    console.log('🚀 loadGroups called');
+    const user = "0ZBMPAlN3rRnSs3rBwIQUlbQTJ82";
+    console.log('👤 User ID:', user);
+    
+    if (!user) {
+      console.log('❌ No user authenticated');
+      setError('No user authenticated');
+      return;
+    }
+    
+    try {
+      console.log('⏳ Setting loadingGroups to true');
+      setLoadingGroups(true);
+      setError(null);
+      
+      console.log('📡 Checking db object:', db);
+      if (!db) {
+        throw new Error('Firebase db is not initialized');
+      }
+      
+      console.log('📡 Creating Firestore query...');
+      const q = query(collection(db, 'groups'), orderBy('lastMessageTime', 'desc'));
+      
+      console.log('🔄 Fetching documents from Firestore...');
+      const snapshot = await getDocs(q);
+      
+      console.log('✅ Firestore snapshot received:', snapshot.docs.length, 'documents');
+      
+      const groupsList = snapshot.docs.map(doc => {
+        const data = doc.data();
+        console.log('📄 Group document:', doc.id, data);
+        return {
+          id: doc.id,
+          ...data,
+        };
+      });
+      
+      console.log('📦 Groups list prepared:', groupsList);
+      setGroups(groupsList);
+      console.log('✅ Groups state updated');
+      
+    } catch (err) {
+      console.error('❌ Error loading groups:', err);
+      console.error('Error details:', err.message, err.code, err.stack);
+      setError(err.message);
+    } finally {
+      console.log('⏳ Setting loadingGroups to false');
+      setLoadingGroups(false);
+    }
+  }, []);
 
+  // Initial load - runs once on mount
+  useEffect(() => {
+    console.log('🎬 Initial load useEffect triggered - MOUNTING');
+    const user = "0ZBMPAlN3rRnSs3rBwIQUlbQTJ82";
+    console.log('👤 Checking user:', user);
+    
+    if (user) {
+      console.log('✅ User exists, calling loadGroups');
+      loadGroups();
+    } else {
+      console.log('❌ No user, skipping loadGroups');
+    }
 
-useEffect(() => {
-  const q = query(collection(db, 'groups'), orderBy('lastMessageTime', 'desc'));
-  const unsubscribe = onSnapshot(q, snapshot => {
-    const groupList = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-    setGroups(groupList);
-  });
-  return () => unsubscribe();
-}, []);
+    // Cleanup log
+    return () => {
+      console.log('🧹 Initial load useEffect UNMOUNTING');
+    };
+  }, [loadGroups]);
 
+  // Listen to all groups in real-time - runs once on mount
+  useEffect(() => {
+    console.log('🎧 Real-time listener useEffect triggered - MOUNTING');
+    const user = "0ZBMPAlN3rRnSs3rBwIQUlbQTJ82";
+    console.log('👤 Checking user for listener:', user);
+    
+    if (!user) {
+      console.log('❌ No user, skipping real-time listener');
+      return;
+    }
+    
+    console.log('📡 Setting up Firestore real-time listener...');
+    
+    try {
+      const q = query(collection(db, 'groups'), orderBy('lastMessageTime', 'desc'));
+      
+      const unsubscribe = onSnapshot(q, 
+        (snapshot) => {
+          console.log('🔔 Real-time update received!');
+          console.log('📊 Snapshot contains', snapshot.docs.length, 'documents');
+          
+          const groupList = snapshot.docs.map(doc => {
+            const data = doc.data();
+            console.log('📄 Real-time group update:', doc.id, data);
+            return {
+              id: doc.id,
+              ...data,
+            };
+          });
+          
+          console.log('📦 Real-time groups list:', groupList);
+          setGroups(groupList);
+          console.log('✅ Groups state updated from real-time listener');
+        },
+        (error) => {
+          console.error("❌ Error in real-time listener:", error);
+          console.error('Error details:', error.message, error.code);
+          setError(error.message);
+        }
+      );
+      
+      console.log('✅ Real-time listener set up successfully');
+      
+      return () => {
+        console.log('🧹 Cleaning up real-time listener - UNMOUNTING');
+        unsubscribe();
+      };
+    } catch (err) {
+      console.error('❌ Error setting up real-time listener:', err);
+      setError(err.message);
+    }
+  }, []);
+
+  const handleCreateGroup = async () => {
+    console.log('➕ handleCreateGroup called');
+    const name = prompt("Enter group name:");
+    console.log('📝 Group name entered:', name);
+    
+    if (!name) {
+      console.log('❌ No name provided, cancelling group creation');
+      return;
+    }
+    
+    try {
+      console.log('🔄 Creating new group in Firestore...');
+      const newGroup = {
+        name,
+        members: 1,
+        activeMembers: 1,
+        lastMessage: "New group created",
+        lastMessageTime: serverTimestamp(),
+        unreadCount: 0,
+        avatar: '🆕',
+        pinned: false
+      };
+      console.log('📦 New group data:', newGroup);
+      
+      const docRef = await addDoc(collection(db, 'groups'), newGroup);
+      console.log('✅ Group created successfully with ID:', docRef.id);
+    } catch (err) {
+      console.error('❌ Error creating group:', err);
+      console.error('Error details:', err.message, err.code);
+      alert(`Error creating group: ${err.message}`);
+    }
+  };
+
+  const handleSelectGroup = (group) => {
+    console.log('👆 Group selected:', group);
+    setSelectedGroup(group);
+  };
+
+  const handleBackFromChat = () => {
+    console.log('⬅️ Back button clicked from chat');
+    setSelectedGroup(null);
+  };
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    console.log('🔍 Search query changed:', value);
+    setSearchQuery(value);
+  };
+
+  const handleMenuToggle = () => {
+    console.log('🍔 Menu toggle clicked, current state:', showMenu);
+    setShowMenu(!showMenu);
+  };
+
+  const handleMenuClose = () => {
+    console.log('❌ Menu closed');
+    setShowMenu(false);
+  };
 
   // If a group is selected, render the GroupChatApp component
   if (selectedGroup) {
+    console.log('🎯 Rendering GroupChatApp for group:', selectedGroup.name);
     return (
       <div className="h-screen w-full">
         <GroupChatApp 
@@ -68,28 +241,14 @@ useEffect(() => {
           groupName={selectedGroup.name}
           groupMembers={selectedGroup.members}
           activeMembers={selectedGroup.activeMembers}
-          onBack={() => setSelectedGroup(null)}
+          onBack={handleBackFromChat}
         />
       </div>
     );
   }
 
-  const handleCreateGroup = async () => {
-  const name = prompt("Enter group name:");
-  if (!name) return;
-  await addDoc(collection(db, 'groups'), {
-    name,
-    members: 1,
-    activeMembers: 1,
-    lastMessage: "New group created",
-    lastMessageTime: serverTimestamp(),
-    unreadCount: 0,
-    avatar: '🆕',
-    pinned: false
-  });
-};
-
-
+  console.log('📱 Rendering groups list view');
+  
   // Groups list view
   return (
     <div className="h-screen bg-gradient-to-br from-teal-900 via-teal-800 to-emerald-900 flex flex-col">
@@ -97,7 +256,7 @@ useEffect(() => {
       <div className="bg-teal-700 px-4 py-3 flex items-center justify-between shadow-lg">
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => setShowMenu(!showMenu)}
+            onClick={handleMenuToggle}
             className="p-2 hover:bg-teal-600 rounded-full transition-all"
           >
             <Menu className="w-6 h-6 text-white" />
@@ -122,69 +281,88 @@ useEffect(() => {
             type="text"
             placeholder="Search groups..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchChange}
             className="flex-1 outline-none text-gray-800 placeholder-gray-500"
           />
         </div>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mx-4 mt-2 rounded">
+          <p className="font-bold">Error:</p>
+          <p>{error}</p>
+        </div>
+      )}
+
       {/* Groups List */}
       <div className="flex-1 bg-white overflow-y-auto">
-        {/* Pinned Groups */}
-        {pinnedGroups.length > 0 && (
-          <div>
-            <div className="px-4 py-2 bg-gray-100 flex items-center gap-2">
-              <Pin className="w-4 h-4 text-gray-600" />
-              <span className="text-sm font-semibold text-gray-600">PbvNED</span>
-            </div>
-            {pinnedGroups.map(group => (
-              <GroupItem 
-                key={group.id} 
-                group={group} 
-                onSelect={setSelectedGroup}
-                formatTime={formatTime}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Regular Groups */}
-        {regularGroups.map(group => (
-          <GroupItem 
-            key={group.id} 
-            group={group} 
-            onSelect={setSelectedGroup}
-            formatTime={formatTime}
-          />
-        ))}
-
-        {filteredGroups.length === 0 && (
+        {loadingGroups ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-            <MessageCircle className="w-16 h-16 mb-4 opacity-50" />
-            <p className="text-lg">No groups found</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mb-4"></div>
+            <p className="text-lg">Loading groups...</p>
           </div>
+        ) : (
+          <>
+            {/* Pinned Groups */}
+            {pinnedGroups.length > 0 && (
+              <div>
+                <div className="px-4 py-2 bg-gray-100 flex items-center gap-2">
+                  <Pin className="w-4 h-4 text-gray-600" />
+                  <span className="text-sm font-semibold text-gray-600">Pinned</span>
+                </div>
+                {pinnedGroups.map(group => {
+                  console.log('🖼️ Rendering pinned group:', group.name);
+                  return (
+                    <GroupItem 
+                      key={group.id} 
+                      group={group} 
+                      onSelect={handleSelectGroup}
+                      formatTime={formatTime}
+                    />
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Regular Groups */}
+            {regularGroups.map(group => {
+              console.log('🖼️ Rendering regular group:', group.name);
+              return (
+                <GroupItem 
+                  key={group.id} 
+                  group={group} 
+                  onSelect={handleSelectGroup}
+                  formatTime={formatTime}
+                />
+              );
+            })}
+
+            {filteredGroups.length === 0 && !loadingGroups && (
+              <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                <MessageCircle className="w-16 h-16 mb-4 opacity-50" />
+                <p className="text-lg">No groups found</p>
+                {error && <p className="text-sm mt-2 text-red-500">Check console for errors</p>}
+              </div>
+            )}
+          </>
         )}
       </div>
 
       {/* Floating Action Button */}
-      <button className="fixed bottom-6 right-6 w-14 h-14 bg-teal-600 hover:bg-teal-700 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110">
+      <button
+        onClick={handleCreateGroup}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-teal-600 hover:bg-teal-700 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110"
+      >
         <Plus className="w-7 h-7 text-white" />
       </button>
-
-      <button
-  onClick={handleCreateGroup}
-  className="fixed bottom-6 right-6 w-14 h-14 bg-teal-600 hover:bg-teal-700 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110"
->
-  <Plus className="w-7 h-7 text-white" />
-</button>
-
 
       {/* Side Menu */}
       {showMenu && (
         <>
           <div 
             className="fixed inset-0 bg-black/50 z-40"
-            onClick={() => setShowMenu(false)}
+            onClick={handleMenuClose}
           />
           <div className="fixed left-0 top-0 bottom-0 w-80 bg-white z-50 shadow-2xl animate-slide-in">
             <div className="bg-teal-700 p-6">
@@ -226,9 +404,16 @@ useEffect(() => {
 }
 
 function GroupItem({ group, onSelect, formatTime }) {
+  console.log('🎴 GroupItem rendered for:', group.name);
+  
+  const handleClick = () => {
+    console.log('👆 GroupItem clicked:', group.name);
+    onSelect(group);
+  };
+
   return (
     <button
-      onClick={() => onSelect(group)}
+      onClick={handleClick}
       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-all border-b border-gray-100"
     >
       <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-full flex items-center justify-center text-2xl flex-shrink-0">
@@ -256,8 +441,17 @@ function GroupItem({ group, onSelect, formatTime }) {
 }
 
 function MenuItem({ icon, label }) {
+  console.log('📋 MenuItem rendered:', label);
+  
+  const handleClick = () => {
+    console.log('👆 MenuItem clicked:', label);
+  };
+
   return (
-    <button className="w-full flex items-center gap-4 px-6 py-4 hover:bg-gray-100 transition-all">
+    <button 
+      onClick={handleClick}
+      className="w-full flex items-center gap-4 px-6 py-4 hover:bg-gray-100 transition-all"
+    >
       <div className="text-gray-600">
         {React.cloneElement(icon, { className: 'w-5 h-5' })}
       </div>

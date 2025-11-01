@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect , Fragment } from 'react';
 import GroupGrid from './GroupGrid';
 import { Users, Trophy, Target, MessageCircle, Bell, Search, Filter, TrendingUp, Award, Flame, Crown, Star, Zap, Calendar, Clock, Share2, BarChart3, Gift, Heart, ThumbsUp, Send, X, Plus, ChevronRight, Sparkles, CheckCircle, Edit3, Trash2, LogOut, Settings, UserPlus, UserMinus, Loader, AlertCircle } from 'lucide-react';
 
@@ -111,6 +111,9 @@ const LEAGUES = {
   PLATINUM: { name: 'Platinum', color: '#e5e4e2', gradient: 'linear-gradient(135deg, #e5e4e2 0%, #f5f5f5 100%)', min: 2000 },
   DIAMOND: { name: 'Diamond', color: '#b9f2ff', gradient: 'linear-gradient(135deg, #b9f2ff 0%, #d4f1ff 100%)', min: 5000 },
 };
+
+
+
 
 const MOOD_OPTIONS = [
   { emoji: '🚀', label: 'Motivated', color: '#9333ea' },
@@ -324,6 +327,12 @@ const [allUsers, setAllUsers] = useState([]);
 const [loadingAllUsers, setLoadingAllUsers] = useState(false);
 const [discoverFilters, setDiscoverFilters] = useState({ league: 'ALL', sortBy: 'xp' });
 const [sentRequestIds, setSentRequestIds] = useState([]);
+
+const [discoverPage, setDiscoverPage] = useState(0);
+
+const [hasMoreUsers, setHasMoreUsers] = useState(true);
+const [lastUserDoc, setLastUserDoc] = useState(null);
+const USERS_PER_PAGE = 20;
   
   // Auth & User State
   const [currentUser, setCurrentUser] = useState(null);
@@ -532,21 +541,30 @@ useEffect(() => {
   // ============================================
   
   const loadAllData = async (userId) => {
-    try {
-      await Promise.all([
-        loadFriends(userId),
-        loadGroups(),
+  try {
+    // ⚡ PHASE 1: Load ONLY critical data
+    await Promise.all([
+      loadFriends(userId),
+      loadNotifications(userId),
+      loadGroups()
+    ]);
+    
+    // ⚡ PHASE 2: Load secondary data after 500ms
+    setTimeout(() => {
+      Promise.all([
         loadChallenges(userId),
-        loadNotifications(userId),
         loadActivities(userId),
-        loadLeaderboard(),
-        loadAchievements(userId)
       ]);
-    } catch (err) {
-      console.error('Error loading data:', err);
-      setError('Failed to load some data. Please try refreshing.');
-    }
-  };
+    }, 500);
+    
+    // Groups, Leaderboard, Achievements load when tabs are clicked!
+    
+  } catch (err) {
+    console.error('Error loading data:', err);
+    setError('Failed to load some data. Please try refreshing.');
+  }
+};
+
   
   const loadFriends = async (userId) => {
     try {
@@ -647,6 +665,41 @@ const loadChallenges = async (userId) => {
       console.error('Error loading achievements:', err);
     }
   };
+
+  // Add this new function:
+const loadTabData = async (tabIndex) => {
+  const userId = currentUser?.uid;
+  if (!userId) return;
+  
+  switch(tabIndex) {
+    case 1: // Challenges tab
+      if (challenges.length === 0) {
+        console.log('📊 Loading challenges...');
+        await loadChallenges(userId);
+      }
+      break;
+      
+    case 2: // Leaderboard tab
+      if (leaderboard.length === 0) {
+        console.log('🏆 Loading leaderboard...');
+        await loadLeaderboard();
+      }
+      break;
+      
+    case 3: // Groups tab
+      if (groups.length === 0) {
+        console.log('👥 Loading groups...');
+        await loadGroups();
+      }
+      break;
+  }
+};
+
+// Update your tab click handler:
+const handleTabClick = async (idx) => {
+  setSelectedTab(idx);
+  await loadTabData(idx);  // ⚡ Load data when tab is clicked
+};
   
   // ============================================
   // ACTION HANDLERS
@@ -843,23 +896,29 @@ const handleLogout = async () => {
   };
 
 
-  const handleLoadAllUsers = async () => {
+  const handleLoadAllUsers = async (loadMore = false) => {
   if (!currentUser) return;
   
   try {
     setLoadingAllUsers(true);
     
-    // Get all users (no limit - pass null)
-    const users = await FirebaseService.user.getAllUsers(null);
-    
-    // ✅ ONLY filter out current user (show everyone else including friends)
-    const filteredUsers = users.filter(
-      user => user.id !== currentUser.uid
+    // ✅ Load ONLY 20 users at a time with cursor
+    const result = await FirebaseService.user.getAllUsers(
+      USERS_PER_PAGE, 
+      loadMore ? lastUserDoc : null
     );
     
-    setAllUsers(filteredUsers);
+    if (loadMore) {
+      setAllUsers(prev => [...prev, ...result.users]);
+    } else {
+      setAllUsers(result.users);
+    }
+    
+    setLastUserDoc(result.lastDoc);
+    setHasMoreUsers(result.hasMore);
+    
   } catch (err) {
-    console.error('Error loading all users:', err);
+    console.error('Error loading users:', err);
     alert('Failed to load users');
   } finally {
     setLoadingAllUsers(false);
@@ -1317,26 +1376,26 @@ const loadChallengeTemplates = async () => {
 }
 
 // NEW: Conditional rendering block for the full-screen Hub overlay
-  if (isHubOpen) {
-    return (
-      <div className="fixed inset-0 z-[1000] overflow-y-auto bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950">
-        {/* The Hub Component */}
-        <IRLConnectionsHub onClose={() => setIsHubOpen(false)} />
-        
-        {/* External Close Button */}
-        <button
-          onClick={() => setIsHubOpen(false)}
-          className="absolute top-4 right-4 z-[1001] p-3 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-lg transition-all"
-        >
-          <Users className="w-6 h-6" /> {/* Using the Users icon for now, you might prefer an X */}
-        </button>
-      </div>
-    );
-  }
+  if (isHubOpen) {
+    return (
+      <div className="fixed inset-0 z-[1000] overflow-y-auto bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950">
+        {/* The Hub Component */}
+        <IRLConnectionsHub onClose={() => setIsHubOpen(false)} />
+        
+        {/* External Close Button */}
+        <button
+          onClick={() => setIsHubOpen(false)}
+          className="absolute top-4 right-4 z-[1001] p-3 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-lg transition-all"
+        >
+          <Users className="w-6 h-6" /> {/* Using the Users icon for now, you might prefer an X */}
+        </button>
+      </div>
+    );
+  }
 
   
   return (
-    <>
+  <div>
       <style>{`
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
@@ -1832,7 +1891,7 @@ onClick={() => {
             ].map((tab, idx) => (
               <button
                 key={idx}
-                onClick={() => setSelectedTab(idx)}
+                onClick={() => handleTabClick(idx)}
                 className={`flex items-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all whitespace-nowrap min-h-[48px] ${
                   selectedTab === idx
                     ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg scale-105'
@@ -2967,10 +3026,9 @@ onClick={() => {
 
 {/* Discover People Modal */}
 {/* Discover People Modal */}
+{/* Discover People Modal */}
 {showDiscoverModal && (
-  <div
-    className="fixed inset-0 z-[1000] bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950"
-  >
+  <div className="fixed inset-0 z-[1000] bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950">
     {/* Full-Screen Content Container */}
     <div className="w-full h-full overflow-y-auto">
       {/* Header - Sticky at top */}
@@ -3032,136 +3090,173 @@ onClick={() => {
       </div>
 
       {/* Users Grid - Scrollable Content */}
-      <div className="max-w-7xl mx-auto p-6 md:p-8">
-        {loadingAllUsers ? (
-          <div className="text-center py-20">
-            <Loader className="w-16 h-16 text-purple-400 animate-spin mx-auto mb-4" />
-            <p className="text-purple-200 text-xl">Loading users...</p>
-          </div>
-        ) : allUsers.length === 0 ? (
-          <div className="text-center py-20">
-            <Users className="w-20 h-20 text-purple-400/50 mx-auto mb-4" />
-            <p className="text-purple-300 text-xl">No users found</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {allUsers
-              .filter(user => 
-                discoverFilters.league === 'ALL' || user.league === discoverFilters.league
-              )
-              .sort((a, b) => {
-                if (discoverFilters.sortBy === 'xp') return (b.stats?.totalXP || 0) - (a.stats?.totalXP || 0);
-                if (discoverFilters.sortBy === 'streak') return (b.stats?.streak || 0) - (a.stats?.streak || 0);
-                return 0;
-              })
-              .map(user => (
-                <div
-                  key={user.id}
-                  className="bg-gradient-to-br from-purple-900/60 to-indigo-900/60 backdrop-blur-sm p-5 rounded-2xl border-2 border-purple-500/30 hover:border-purple-400/50 transition-all hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-500/20"
-                >
-                  {/* User Card */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="relative">
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="w-16 h-16 rounded-full border-2 border-purple-500/50"
-                      />
-                      {user.isOnline && (
-                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-purple-900 animate-pulse" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-white truncate text-lg">{user.name}</h4>
-                      <p className="text-sm text-purple-300 truncate">{user.username}</p>
-                      <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-bold ${
-                        user.league === 'GOLD' ? 'bg-yellow-500/20 text-yellow-400' :
-                        user.league === 'SILVER' ? 'bg-gray-400/20 text-gray-300' :
-                        user.league === 'DIAMOND' ? 'bg-blue-400/20 text-blue-300' :
-                        user.league === 'PLATINUM' ? 'bg-gray-300/20 text-gray-200' :
-                        'bg-orange-500/20 text-orange-400'
-                      }`}>
-                        {user.league || 'Bronze'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-purple-200 mb-4 line-clamp-2 italic min-h-[32px]">"{user.bio || 'No bio yet'}"</p>
-
-                  {/* Stats */}
-                  <div className="grid grid-cols-3 gap-2 mb-4 p-3 bg-purple-950/40 rounded-xl">
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-yellow-400">{user.stats?.totalXP || 0}</div>
-                      <div className="text-xs text-purple-300">XP</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-orange-400 flex items-center justify-center gap-1">
-                        <Flame size={14} />
-                        {user.stats?.streak || 0}
-                      </div>
-                      <div className="text-xs text-purple-300">Streak</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-pink-400">{user.stats?.friendsCount || 0}</div>
-                      <div className="text-xs text-purple-300">Friends</div>
-                    </div>
-                  </div>
-
-                  {/* Action Button */}
-                  {/* Action Button */}
-<button
-  onClick={async () => {
-    // Check if already sent
-    if (sentRequestIds.includes(user.id)) {
-      alert('Friend request already sent to this user!');
-      return;
-    }
-    
-    try {
-      // Send request
-      await handleSendFriendRequest(user.id);
-      
-      // Mark as sent
-      setSentRequestIds(prev => [...prev, user.id]);
-      
-      // Optional: Remove from list after 1 second
-      setTimeout(() => {
-        setAllUsers(prev => prev.filter(u => u.id !== user.id));
-      }, 1000);
-      
-    } catch (error) {
-      console.error('Failed to send friend request:', error);
-      alert('Failed to send friend request. Please try again.');
-    }
-  }}
-  disabled={sentRequestIds.includes(user.id)}
-  className={`w-full px-4 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm shadow-lg ${
-    sentRequestIds.includes(user.id)
-      ? 'bg-green-600/50 cursor-not-allowed'
-      : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105'
-  }`}
-  style={{ touchAction: 'manipulation' }}
->
-  {sentRequestIds.includes(user.id) ? (
-    <>
-      <CheckCircle size={16} />
-      Request Sent ✓
-    </>
+      {/* Users Grid - Scrollable Content */}
+<div className="max-w-7xl mx-auto p-6 md:p-8">
+  {loadingAllUsers && allUsers.length === 0 ? (
+    <div className="text-center py-20">
+      <Loader className="w-16 h-16 text-purple-400 animate-spin mx-auto mb-4" />
+      <p className="text-purple-200 text-xl">Loading users...</p>
+    </div>
+  ) : allUsers.length === 0 ? (
+    <div className="text-center py-20">
+      <Users className="w-20 h-20 text-purple-400/50 mx-auto mb-4" />
+      <p className="text-purple-300 text-xl">No users found</p>
+    </div>
   ) : (
     <>
-      <UserPlus size={16} />
-      Add Friend
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {allUsers
+          .filter(user => 
+            discoverFilters.league === 'ALL' || user.league === discoverFilters.league
+          )
+          .map(user => (
+            <div
+              key={user.id}
+              className="bg-gradient-to-br from-purple-900/60 to-indigo-900/60 backdrop-blur-sm p-5 rounded-2xl border-2 border-purple-500/30 hover:border-purple-400/50 transition-all hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-500/20"
+            >
+              {/* User Card */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="relative">
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    className="w-16 h-16 rounded-full border-2 border-purple-500/50"
+                  />
+                  {user.isOnline && (
+                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-purple-900 animate-pulse" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-white truncate text-lg">{user.name}</h4>
+                  <p className="text-sm text-purple-300 truncate">{user.username}</p>
+                  <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                    user.league === 'GOLD' ? 'bg-yellow-500/20 text-yellow-400' :
+                    user.league === 'SILVER' ? 'bg-gray-400/20 text-gray-300' :
+                    user.league === 'DIAMOND' ? 'bg-blue-400/20 text-blue-300' :
+                    user.league === 'PLATINUM' ? 'bg-gray-300/20 text-gray-200' :
+                    'bg-orange-500/20 text-orange-400'
+                  }`}>
+                    {user.league || 'Bronze'}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-xs text-purple-200 mb-4 line-clamp-2 italic min-h-[32px]">"{user.bio || 'No bio yet'}"</p>
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-2 mb-4 p-3 bg-purple-950/40 rounded-xl">
+                <div className="text-center">
+                  <div className="text-lg font-bold text-yellow-400">{user.stats?.totalXP || 0}</div>
+                  <div className="text-xs text-purple-300">XP</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-orange-400 flex items-center justify-center gap-1">
+                    <Flame size={14} />
+                    {user.stats?.streak || 0}
+                  </div>
+                  <div className="text-xs text-purple-300">Streak</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-pink-400">{user.stats?.friendsCount || 0}</div>
+                  <div className="text-xs text-purple-300">Friends</div>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <button
+                onClick={async () => {
+                  if (sentRequestIds.includes(user.id)) {
+                    alert('Friend request already sent to this user!');
+                    return;
+                  }
+                  
+                  try {
+                    await handleSendFriendRequest(user.id);
+                    setSentRequestIds(prev => [...prev, user.id]);
+                    setTimeout(() => {
+                      setAllUsers(prev => prev.filter(u => u.id !== user.id));
+                    }, 1000);
+                  } catch (error) {
+                    console.error('Failed to send friend request:', error);
+                    alert('Failed to send friend request. Please try again.');
+                  }
+                }}
+                disabled={sentRequestIds.includes(user.id)}
+                className={`w-full px-4 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm shadow-lg ${
+                  sentRequestIds.includes(user.id)
+                    ? 'bg-green-600/50 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105'
+                }`}
+                style={{ touchAction: 'manipulation' }}
+              >
+                {sentRequestIds.includes(user.id) ? (
+                  <>
+                    <CheckCircle size={16} />
+                    Request Sent ✓
+                  </>
+                ) : (
+                  <>
+                    <UserPlus size={16} />
+                    Add Friend
+                  </>
+                )}
+              </button>
+            </div>
+          ))}
+      </div>
+
+      {/* ✅ REDDIT-STYLE LOAD MORE BUTTON */}
+      {hasMoreUsers && (
+        <div className="flex flex-col items-center mt-8 gap-4">
+          <button
+            onClick={() => handleLoadAllUsers(true)}
+            disabled={loadingAllUsers}
+            className="px-10 py-4 bg-gradient-to-r from-purple-600 to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-bold hover:scale-105 transition-all flex items-center gap-3 shadow-lg text-lg"
+            style={{ touchAction: 'manipulation' }}
+          >
+            {loadingAllUsers ? (
+              <>
+                <Loader className="w-6 h-6 animate-spin" />
+                Loading more users...
+              </>
+            ) : (
+              <>
+                <ChevronRight className="w-6 h-6" />
+                Load More Users
+                <ChevronRight className="w-6 h-6" />
+              </>
+            )}
+          </button>
+          
+          {/* User count indicator */}
+          <p className="text-purple-300 text-sm">
+            Showing {allUsers.filter(user => 
+              discoverFilters.league === 'ALL' || user.league === discoverFilters.league
+            ).length} users
+          </p>
+        </div>
+      )}
+
+      {/* End of results message */}
+      {!hasMoreUsers && allUsers.length > 0 && (
+        <div className="text-center mt-8 py-6 bg-purple-950/30 rounded-xl border border-purple-700/30">
+          <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-3" />
+          <p className="text-purple-200 font-semibold">You've seen all available users!</p>
+          <p className="text-purple-400 text-sm mt-1">Check back later for new members</p>
+        </div>
+      )}
     </>
   )}
-</button>
-                </div>
-              ))}
-          </div>
-        )}
-      </div>
+  </div>
     </div>
   </div>
+
+
 )}
+
+
+  
+
 
 
 
@@ -3806,6 +3901,9 @@ onClick={() => {
         
         <MobileFloatingButton onClick={() => setShowPostModal(true)} />
       </div>
-    </>
+  </div>
+
+  
+
   );
 }

@@ -47,15 +47,15 @@ const PREDEFINED_ACTIONS = [
 //{ id: 'c2', actionId: '3', userId: 'user2', userName: 'Sarah', text: 'Great session today! Feeling energized.', timestamp: Date.now() - 900000, reactions: { '❤️': 1, '🔥': 2 }, image: null },
 //];
 
-function GroupChat() {
+function GroupChat({ groupId, groupName, groupMembers, activeMembers, onBack }) {
 
 
-const [currentGroup] = useState({
-id: 'group1',
-name: 'Fitness Warriors',
-members: 15,
-activeMembers: 8
-});
+const currentGroup = {
+  id: groupId || 'group1',
+  name: groupName || 'Fitness Warriors',
+  members: groupMembers || 15,
+  activeMembers: activeMembers || 8
+};
 
 const [view, setView] = useState('home');
 const [showActionModal, setShowActionModal] = useState(false);
