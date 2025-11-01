@@ -106,33 +106,33 @@ export async function fetchUserLessons(userId: string): Promise<Lesson[]> {
       const dayCompletionMap = taskCompletionMap[day.day] || {};
       
       const tasksWithStatus: Task[] = (day.tasks || []).map((task: any) => ({
-        task_number: task.task_number,
-        description: task.description,
-        done: dayCompletionMap[task.task_number] || false
-      }));
+  task_number: task.task_number,
+  description: task.description,
+  done: dayCompletionMap[task.task_number] || false
+}));
 
-      const allTasksCompleted = tasksWithStatus.length > 0 && 
-        tasksWithStatus.every(task => task.done);
+const allTasksCompleted = tasksWithStatus.length > 0 && 
+  tasksWithStatus.every(task => task.done);
 
-      // Check if previous day is completed
-      let previousDayCompleted = true;
-      if (index > 0) {
-        const prevDay = index; // Day number is 1-indexed, array is 0-indexed
-        const prevDayTasks = taskCompletionMap[prevDay];
-        previousDayCompleted = prevDayTasks && 
-          Object.keys(prevDayTasks).length >= 3 &&
-          Object.values(prevDayTasks).every(v => v === true);
-      }
+// Check if previous day is completed
+let previousDayCompleted = true;
+if (index > 0) {
+  const prevDay = index; // Day number is 1-indexed, array is 0-indexed
+  const prevDayTasks = taskCompletionMap[prevDay];
+  previousDayCompleted = prevDayTasks && 
+    Object.keys(prevDayTasks).length >= 3 &&
+    Object.values(prevDayTasks).every(v => v === true);
+}
 
-      return {
-        id: day.day,
-        day: day.day,
-        date: day.date,
-        title: day.title,
-        tasks: tasksWithStatus,
-        completed: allTasksCompleted,
-        locked: index > 0 && !previousDayCompleted
-      };
+return {
+  id: day.day,
+  day: day.day,
+  date: day.date,
+  title: day.title,
+  tasks: tasksWithStatus,
+  completed: day.completed || allTasksCompleted, // ← READ FROM FIRESTORE FIRST!
+  locked: index > 0 && !previousDayCompleted
+};
     });
 
     console.log('✅ Successfully loaded', lessonsArray.length, 'lessons');

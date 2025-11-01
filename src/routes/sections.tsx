@@ -10,6 +10,7 @@ export const BlogPage = lazy(() => import('src/pages/blog'));
 export const UserPage = lazy(() => import('src/pages/user'));
 export const ProfilePage = lazy(() => import('src/pages/profile'));
 export const SignInPage = lazy(() => import('src/pages/sign-in'));
+export const ThankYouPage = lazy(() => import('src/sections/auth/Newfolder/thankyoupage'));
 export const CreateGoalPage = lazy(() => import('src/sections/creategoal/CreateGoalView'));
 export const ConversationPage = lazy(() => import('src/pages/conversation'));
 export const ProductsPage = lazy(() => import('src/pages/products'));
@@ -57,6 +58,16 @@ export const routesSection: RouteObject[] = [
     ),
   },
 
+  // THANK YOU PAGE
+  {
+    path: 'thankyou',
+    element: (
+      <Suspense fallback={renderFallback()}>
+        <ThankYouPage />
+      </Suspense>
+    ),
+  },
+
   // CREATE GOAL
   {
     path: 'creategoal',
@@ -98,5 +109,5 @@ export const routesSection: RouteObject[] = [
   },
 
   // DEFAULT REDIRECT -> now goes to dashboard instead of sign-in
-  { path: '*', element: <Navigate to="/dashboard" replace /> },
+  { path: '*', element: <Navigate to="/" replace /> },
 ];

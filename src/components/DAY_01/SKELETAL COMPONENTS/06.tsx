@@ -119,6 +119,7 @@ const GenuineAppreciation: React.FC<GenuineAppreciationProps> = ({ onNext }) => 
   const [missionTarget, setMissionTarget] = useState('');
   const [showConfetti, setShowConfetti] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const [showScenarioButton, setShowScenarioButton] = useState(false);
 
   useEffect(() => {
     if (stage === 'chat' && messages.length === 0) {
@@ -150,57 +151,59 @@ const GenuineAppreciation: React.FC<GenuineAppreciationProps> = ({ onNext }) => 
     }]);
   };
 
-  const handleSendMessage = async () => {
+  
+// Replace the handleSendMessage function with this corrected version:
+const handleSendMessage = async () => {
   if (!userInput.trim()) return;
 
   addUserMessage(userInput);
+  const currentMessage = userInput;
   setUserInput('');
   setIsLoading(true);
 
   try {
-    const response = await fetch('https://one23-u2ck.onrender.com/api/chat/message', {
+    const response = await fetch('https://one23-u2ck.onrender.com/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer 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` // Your Groq API key
+        'Authorization': `Bearer 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`
       },
       body: JSON.stringify({
         user_id: "HfwcJgkyNNb3T3UdWRDbrCiRQuS2",
-        message: userInput,
-        chatStep: chatStep,
-        conversationId: 'conv_test_12345',
-        skill_name: "genuine-appreciation",
-        userName: "currentUserName"
+        message: currentMessage,
+        goal_name: "genuine-appreciation"
       })
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      const errorText = await response.text();
+      console.error('Server error:', errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
 
     const result = await response.json();
+    console.log('API Response:', result);
     
-    if (result.success) {
-      const { data } = result;
-      
-      // Add AI message to chat
-      addBotMessage(data.reply);
+    // Backend returns: { reply, current_state, next_state, states }
+    if (result.reply) {
+      addBotMessage(result.reply);
       
       // Update conversation state
-      setChatStep(data.nextStep);
-      setConversationId(data.conversationId);
+      if (result.next_state) {
+        setChatStep(prev => prev + 1);
+      }
       
-      // Check if ready for scenarios
-      if (data.readyForScenarios || !data.shouldContinueChat) {
+      // Check if we've reached the final state or gotten enough context
+      if (chatStep >= 2 || result.next_state === 'action') {
         setShowScenarioButton(true);
       }
     } else {
-      addBotMessage("Sorry, I encountered an error. Please try again.");
+      addBotMessage("Sorry, I didn't receive a proper response. Please try again.");
     }
 
   } catch (error) {
     console.error('Chat error:', error);
-    addBotMessage("Sorry, I'm having trouble connecting. Please try again.");
+    addBotMessage(`Sorry, I'm having trouble connecting. Please check your internet and try again.`);
   } finally {
     setIsLoading(false);
   }

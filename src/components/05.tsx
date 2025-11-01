@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { auth, db } from '../config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, onSnapshot, doc, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, doc, getDocs, getDoc } from 'firebase/firestore';
 import { fetchUserLessons, getUserStats } from '../services/lessonService'
 
 export default function TodayLessonHero({ onStartLesson, activeDay }) {
@@ -80,53 +80,7 @@ const PLACEHOLDER_LESSONS = {
 
  const [noCourse, setNoCourse] = useState(false); // add at top with other states
 
-const setupProgressListener = (userId) => {
-  const coursesRef = collection(db, 'users', userId, 'datedcourses');
 
-  const unsubscribe = onSnapshot(
-    coursesRef,
-    (snapshot) => {
-      if (!snapshot.empty) {
-        const firstCourseDoc = snapshot.docs[0];
-        const courseData = firstCourseDoc.data();
-
-        // Check if there's an active lesson progress stored
-        if (courseData.active_lesson_progress) {
-          setLessonProgress(courseData.active_lesson_progress);
-        }
-
-        // Check if course data exists in either format
-        const hasTaskOverview = courseData.task_overview && courseData.task_overview.days;
-        const hasLessonsData = courseData.lessons_by_date;
-        
-        if (hasTaskOverview || hasLessonsData) {
-          // Reload lessons data to get updated task completions
-          loadLessonData(userId);
-          setNoCourse(false);
-        } else {
-          // No course data exists
-          setLessonProgress(null);
-          setdisplayLesson(null);
-          setUserStats(null);
-          setNoCourse(true);
-          setLoading(false);
-        }
-      } else {
-        // No datedcourses exist
-        setLessonProgress(null);
-        setdisplayLesson(null);
-        setUserStats(null);
-        setNoCourse(true);
-        setLoading(false);
-      }
-    },
-    (error) => {
-      console.error('Error listening to progress:', error);
-    }
-  );
-
-  return unsubscribe;
-};
 
 const loadLessonData = async (userId) => {
   try {
@@ -147,12 +101,12 @@ const loadLessonData = async (userId) => {
       };
     }
 
-    // Get task_overview from the first course
-    const coursesRef = collection(db, 'users', userId, 'datedcourses');
-    const courseSnapshot = await getDocs(coursesRef);
+    // Get task_overview from the 'social_skills' document
+    const socialSkillsDocRef = doc(db, 'users', userId, 'datedcourses', 'social_skills');
+    const socialSkillsDoc = await getDoc(socialSkillsDocRef);
     
-    if (courseSnapshot.empty) {
-      console.log("No courses found");
+    if (!socialSkillsDoc.exists()) {
+      console.log("No social_skills course found");
       setdisplayLesson(null);
       setUserStats(stats);
       setNoCourse(true);
@@ -160,8 +114,7 @@ const loadLessonData = async (userId) => {
       return;
     }
 
-    const firstCourseDoc = courseSnapshot.docs[0];
-    const courseData = firstCourseDoc.data();
+    const courseData = socialSkillsDoc.data();
     
     console.log("📚 Course data:", courseData);
 
@@ -241,18 +194,6 @@ const loadLessonData = async (userId) => {
       }, 0)
     };
 
-    // Store days data for timeline/progress
-    const lessonsByDateData = {};
-    days.forEach(day => {
-      lessonsByDateData[day.date] = {
-        title: day.title,
-        day_number: day.day,
-        tasks: day.tasks,
-        completed: day.tasks.every(task => task.done === true)
-      };
-    });
-
-    setLessonsByDate(lessonsByDateData);
     setCurrentDayNumber(currentDayNumber);
     setdisplayLesson(todayLesson);
     setUserStats(updatedStats);
@@ -298,7 +239,7 @@ const getInLessonProgress = () => {
     if (noCourse) {
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-pink-500 via-pink-600 to-pink-700 rounded-3xl border border-pink-400/30 shadow-lg p-12 text-center">
-      <h2 className="text-3xl font-bold text-white mb-4">Go Create Your Plan</h2>
+      <h2 className="text-3xl font-bold text-white mb-4">Go Create Your Pvcvlan</h2>
       <p className="text-white/80 mb-6">You don't have any active lessons yet. Start by creating your plan!</p>
       <button
         onClick={() => window.location.href = `/conversation/${user?.uid}`}

@@ -113,54 +113,133 @@ const determineDifficulty = (taskText: string): Difficulty => {
 
 const OnboardingScreen = ({ onDismiss }) => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-950 via-indigo-950 to-purple-900 flex items-center justify-center p-4 animate-fadeIn">
-      <div className="max-w-xl w-full">
+    <div className="relative min-h-screen bg-gradient-to-br from-purple-950 via-indigo-950 to-purple-900 flex items-center justify-center p-4 md:p-8 overflow-hidden rounded-[3rem] md:rounded-[4rem]">
+      {/* Color layer */}
+      
+
+      <div className="max-w-xl w-full relative z-10">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className="text-center mb-10"
         >
-          <div className="inline-flex items-center gap-3 mb-4">
-            <Sparkles className="w-10 h-10 text-yellow-300 animate-pulse" />
+          <div className="inline-flex items-center justify-center gap-3 mb-6">
+            <motion.div
+              animate={{ 
+                rotate: [0, 360],
+                scale: [1, 1.2, 1]
+              }}
+              transition={{ 
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              <Sparkles className="w-12 h-12 text-yellow-300" />
+            </motion.div>
           </div>
           
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-200 via-pink-200 to-purple-300 bg-clip-text text-transparent">
+          <motion.h1 
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-5xl md:text-6xl font-black mb-6 bg-gradient-to-r from-purple-200 via-pink-200 to-purple-300 bg-clip-text text-transparent leading-tight"
+          >
             Welcome! 👋
-          </h1>
+          </motion.h1>
           
-          <p className="text-xl text-purple-200 mb-6 leading-relaxed">
+          <motion.p 
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-2xl text-purple-200 mb-4 font-semibold leading-relaxed"
+          >
             This is where you start your day
-          </p>
+          </motion.p>
+          
+          <motion.p 
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="text-lg text-purple-300/80 leading-relaxed"
+          >
+            Let's make today amazing together
+          </motion.p>
         </motion.div>
 
         <motion.div
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="bg-gradient-to-r from-blue-900/50 to-cyan-900/50 backdrop-blur-sm border-2 border-blue-500/40 rounded-3xl p-6 mb-6"
+          transition={{ delay: 0.5, duration: 0.5 }}
+          className="relative bg-gradient-to-br from-blue-900/60 via-cyan-900/50 to-blue-900/60 backdrop-blur-xl border-2 border-blue-400/50 rounded-3xl p-8 mb-8 shadow-2xl shadow-blue-500/30 overflow-hidden group hover:border-blue-300/70 transition-all duration-300"
         >
-          <div className="flex items-center gap-4 mb-3">
-            <div className="bg-blue-500/30 p-3 rounded-2xl">
-              <Sparkles className="w-8 h-8 text-blue-300" />
+          {/* Animated gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent transform -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
+          
+          <div className="relative z-10">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="bg-gradient-to-br from-blue-500/40 to-cyan-500/40 p-4 rounded-2xl border border-blue-400/30 shadow-lg">
+                <Sparkles className="w-10 h-10 text-blue-200" />
+              </div>
+              <h3 className="text-2xl md:text-3xl font-black text-white leading-tight">
+                Get Live Action Support
+              </h3>
             </div>
-            <h3 className="text-2xl font-bold text-white">Get Live Action Support</h3>
+            <p className="text-blue-50 text-lg md:text-xl leading-relaxed font-medium">
+              Click the <span className="inline-flex items-center gap-1 font-black text-blue-200 bg-blue-500/30 px-3 py-1 rounded-full border border-blue-400/40">🤖 AI Coach</span> button on any task to get personalized, real-time guidance that adapts to your needs.
+            </p>
           </div>
-          <p className="text-blue-100 text-lg leading-relaxed">
-            Click the <span className="font-bold text-blue-300">🤖 AI Coach</span> button on any task to get personalized, real-time guidance.
-          </p>
+          
+          {/* Decorative corner accents */}
+          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-blue-400/20 to-transparent rounded-bl-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-20 h-20 bg-gradient-to-tr from-cyan-400/20 to-transparent rounded-tr-3xl"></div>
         </motion.div>
 
         <motion.button
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.7, duration: 0.5 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.98 }}
           onClick={onDismiss}
-          className="w-full py-5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-3xl font-bold text-white text-xl shadow-2xl shadow-purple-500/50 transition-all hover:scale-105 hover:shadow-purple-500/70"
+          className="relative w-full py-6 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 hover:from-purple-500 hover:via-pink-500 hover:to-purple-500 rounded-3xl font-black text-white text-2xl shadow-2xl shadow-purple-500/60 transition-all border-2 border-purple-400/50 hover:border-purple-300/70 overflow-hidden group"
+          style={{
+            backgroundSize: '200% 100%',
+            animation: 'gradient-shift 3s ease infinite'
+          }}
         >
-          Let's Go! 🚀
+          {/* Button shine effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></div>
+          
+          <span className="relative z-10 flex items-center justify-center gap-3">
+            Let's Go! 🚀
+          </span>
         </motion.button>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+          className="text-center text-purple-300/60 text-sm mt-6 font-medium"
+        >
+          Your journey to growth starts now
+        </motion.p>
       </div>
+
+      <style>{`
+        @keyframes gradient-shift {
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0% 50%;
+          }
+        }
+      `}</style>
     </div>
   );
 };
@@ -224,7 +303,6 @@ const handleDismissOnboarding = () => {
 
   // ============ FETCH FROM FIRESTORE ============
   // ============ FETCH FROM FIRESTORE ============
-// ============ FETCH FROM FIRESTORE ============
 useEffect(() => {
   if (!userId) return;
 
@@ -233,38 +311,29 @@ useEffect(() => {
       setLoading(true);
       setError(null);
 
-      const datedCoursesRef = collection(db, `users/${userId}/datedcourses`);
-      const q = query(datedCoursesRef, limit(1));
-      const querySnapshot = await getDocs(q);
+      // Directly access the social_skills document
+      const docRef = doc(db, `users/${userId}/datedcourses`, 'social_skills');
+      const docSnap = await getDoc(docRef);
 
-      if (querySnapshot.empty) {
-        setError("No courses found. Please create a course first.");
+      if (!docSnap.exists()) {
+        setError("No social_skills course found. Please create a course first.");
         setLoading(false);
         return;
       }
 
-      const docSnap = querySnapshot.docs[0];
       const data = docSnap.data();
-      setFirestoreDocId(docSnap.id);
+      setFirestoreDocId('social_skills');
 
-      let transformedTasks;
-
-      // ============ HANDLE task_overview format (from /create-task-overview) ============
-      if (data.task_overview && data.task_overview.days) {
-        console.log("✅ Reading from task_overview format");
-        transformedTasks = transformTaskOverview(data.task_overview.days);
-      } 
-      // ============ Fallback: OLD lessons_by_date format ============
-      else if (data.lessons_by_date) {
-        console.log("✅ Reading from lessons_by_date format");
-        transformedTasks = transformFirestoreData(data.lessons_by_date);
-      } 
-      else {
-        setError("No lessons found in this course.");
+      // ONLY handle task_overview format
+      if (!data.task_overview || !data.task_overview.days) {
+        setError("No task_overview found in social_skills course.");
         setLoading(false);
         return;
       }
 
+      console.log("✅ Reading from task_overview format in social_skills doc");
+      const transformedTasks = transformTaskOverview(data.task_overview.days);
+      
       setDayTasks(transformedTasks);
 
       // Find today's index or last unlocked day
@@ -891,69 +960,30 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
         <div className="bg-gradient-to-br from-purple-900/40 to-indigo-900/40 backdrop-blur-sm rounded-2xl border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300 overflow-hidden shadow-xl hover:shadow-2xl hover:shadow-purple-500/20">
           
           {/* Header Section */}
-          <div className="bg-gradient-to-br from-purple-800/60 to-pink-900/60 backdrop-blur-sm p-4 sm:p-5 border-b border-purple-500/30">
-            <div className="flex flex-col lg:flex-row justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mb-3">
-                  <div className="flex items-center gap-3">
-                    {canAccessDay ? (
-                      <Trophy className="w-7 h-7 md:w-8 md:h-8 text-yellow-400 flex-shrink-0" />
-                    ) : (
-                      <Lock className="w-7 h-7 md:w-8 md:h-8 text-purple-400 flex-shrink-0" />
-                    )}
-                    <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">
-                      {currentDay.title}
-                    </h3>
-                  </div>
-                  <span className="px-3 py-1.5 bg-purple-900/50 rounded-full text-purple-200 text-base font-medium w-fit">
-                    Day {currentDay.dayNumber}
-                  </span>
-                </div>
-                
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
-                  <div className="flex items-center gap-2 text-purple-200">
-                    <Target className="w-5 h-5 flex-shrink-0" />
-                    <p className="text-base font-medium">{date}</p>
-                  </div>
-                  
-                  {stats.currentStreak > 0 && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-500/20 rounded-lg w-fit">
-                      <Flame className="w-5 h-5 text-orange-400" />
-                      <span className="text-base font-bold text-orange-300">
-                        {stats.currentStreak} day streak
-                      </span>
-                    </div>
-                  )}
-                </div>
+<div className="bg-gradient-to-br from-purple-800/60 to-pink-900/60 backdrop-blur-sm p-4 sm:p-5 border-b border-purple-500/30">
+  <div className="flex flex-col lg:flex-row justify-between gap-4">
+    <div className="flex-1">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mb-3">
+        <div className="flex items-center gap-3">
+          <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">
+            {currentDay.title}
+          </h3>
+        </div>
+        <span className="px-3 py-1.5 bg-purple-900/50 rounded-full text-purple-200 text-base font-medium w-fit">
+          Day {currentDay.dayNumber}
+        </span>
+      </div>
+    </div>
 
-                {currentDay.motivationalQuote && (
-                  <div className="flex items-start gap-2 mt-4 text-purple-300 italic">
-                    <Sparkles className="w-5 h-5 flex-shrink-0 mt-1" />
-                    <p className="text-base leading-relaxed">{currentDay.motivationalQuote}</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex sm:flex-col items-center sm:items-end gap-3 justify-between sm:justify-start">
-                <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl shadow-lg shadow-yellow-500/30">
-                  <Zap className="w-6 h-6 text-white" />
-                  <span className="text-white font-bold text-xl">+{totalXpEarned} XP</span>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <p className="text-purple-200 text-base font-medium">
-                    {completedTasks}/{totalTasks} Tasks
-                  </p>
-                  <button
-                    onClick={() => setShowStatsModal(true)}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-purple-900/50 border border-purple-500/30 rounded-lg text-purple-200 text-sm hover:bg-purple-800/50 transition-all"
-                  >
-                    <TrendingUp className="w-4 h-4" />
-                    <span>Stats</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+    <div className="flex sm:flex-col items-center sm:items-end gap-3 justify-between sm:justify-start">
+      <div className="flex flex-col items-end gap-2">
+        <p className="text-purple-200 text-base font-medium">
+          {completedTasks}/{totalTasks} Tasks
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
 
 
           {/* Progress Bar */}
@@ -1047,16 +1077,23 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
 
             {/* Tasks */}
             {/* Tasks - One at a Time */}
+{/* Tasks - One at a Time */}
 {canAccessDay && currentDay.tasks.length > 0 && (
   <div className="mb-6">
-    {/* Task Counter */}
-    <div className="flex items-center justify-between mb-4">
+    {/* Task Counter - SMALLER */}
+    <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-900/40 backdrop-blur-sm rounded-full border border-purple-500/30">
+        <Target className="w-4 h-4 text-purple-300" />
+        <span className="text-white font-semibold text-sm">
+          Task {currentTaskIndex + 1}/{currentDay.tasks.length}
+        </span>
+      </div>
       
       <div className="flex gap-2">
         <button
           onClick={() => setCurrentTaskIndex(Math.max(0, currentTaskIndex - 1))}
           disabled={currentTaskIndex === 0}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-900/50 border border-purple-500/30 rounded-lg text-white font-semibold hover:bg-purple-800/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 bg-purple-900/50 border border-purple-500/30 rounded-lg text-white font-semibold hover:bg-purple-800/50 hover:scale-105 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <ChevronLeft className="w-5 h-5" />
           Previous
@@ -1064,7 +1101,7 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
         <button
           onClick={() => setCurrentTaskIndex(Math.min(currentDay.tasks.length - 1, currentTaskIndex + 1))}
           disabled={currentTaskIndex === currentDay.tasks.length - 1}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-900/50 border border-purple-500/30 rounded-lg text-white font-semibold hover:bg-purple-800/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 bg-purple-900/50 border border-purple-500/30 rounded-lg text-white font-semibold hover:bg-purple-800/50 hover:scale-105 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
         >
           Next
           <ChevronRight className="w-5 h-5" />
@@ -1072,7 +1109,7 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
       </div>
     </div>
 
-    {/* Single Task Display */}
+    {/* SPOTLIGHT TASK DISPLAY */}
 {(() => {
   const taskObj = currentDay.tasks[currentTaskIndex];
   const index = currentTaskIndex;
@@ -1081,175 +1118,203 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
   const displayTime = isTimerActive ? timerSeconds : taskTime;
 
   return (
-    <div
-      onMouseEnter={() => setHoveredTask(index)}
-      onMouseLeave={() => setHoveredTask(null)}
-      className={`relative group p-4 sm:p-5 rounded-xl border-2 transition-all duration-300 ${
-        taskObj.done
-          ? "bg-gradient-to-r from-green-900/30 to-emerald-900/30 border-green-500/50 shadow-lg shadow-green-500/20"
-          : "bg-purple-900/30 border-purple-500/30 hover:border-purple-400/50 hover:bg-purple-800/30"
-      } hover:scale-[1.01] hover:shadow-xl`}
-    >
+    <div className="relative">
+      {/* Spotlight glow effect */}
+      <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-purple-500/20 blur-2xl rounded-3xl animate-pulse" />
       
+      <div
+        onMouseEnter={() => setHoveredTask(index)}
+        onMouseLeave={() => setHoveredTask(null)}
+        className={`relative group p-6 sm:p-8 rounded-2xl border-3 transition-all duration-500 ${
+          taskObj.done
+            ? "bg-gradient-to-br from-green-900/50 to-emerald-900/50 border-green-400/70 shadow-2xl shadow-green-500/40"
+            : "bg-gradient-to-br from-purple-900/60 via-indigo-900/50 to-purple-900/60 border-purple-400/60 hover:border-pink-400/70 shadow-2xl shadow-purple-500/30 hover:shadow-pink-500/40"
+        }`}
+      >
+        {/* Animated border shimmer */}
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-      {/* Hover Preview */}
-      {hoveredTask === index && !taskObj.done && (
-        <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-purple-800/95 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap shadow-xl z-40">
-          Click AI Coach for personalized support →
+
+        {/* Task Header with Scrollable Text */}
+        <div className="flex items-start gap-4 mb-6">
+          <button
+  onClick={(e) => {
+    e.stopPropagation();
+    handleTaskToggle(currentDay.date, index);
+  }}
+  className={`min-w-[28px] w-7 h-7 rounded-md flex items-center justify-center transition-all flex-shrink-0 border-2 ${
+    taskObj.done
+      ? "bg-green-500 border-green-400"
+      : "bg-transparent border-purple-400 hover:border-purple-300"
+  }`}
+>
+  {taskObj.done && <Check className="w-5 h-5 text-white" />}
+</button>
+          
+          <div className="flex-1 min-w-0">
+            {/* SCROLLABLE TASK TEXT */}
+            <div className="max-h-32 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-purple-500 scrollbar-track-purple-900/20">
+              <p
+                className={`font-bold text-white text-xl sm:text-2xl leading-relaxed transition-all break-words ${
+                  taskObj.done ? "line-through opacity-60" : ""
+                }`}
+              >
+                {taskObj.task}
+              </p>
+            </div>
+            
+            {/* Task spotlight badge */}
+            {!taskObj.done && (
+              <div className="flex items-center gap-2 mt-3">
+                <div className="flex items-center gap-1 px-3 py-1.5 bg-yellow-500/20 border border-yellow-400/50 rounded-full animate-pulse">
+                  <Sparkles className="w-4 h-4 text-yellow-300" />
+                  <span className="text-yellow-200 text-sm font-bold">Current Focus</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      )}
 
-      {/* Task Header */}
-      <div className="flex items-start gap-3 mb-4">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleTaskToggle(currentDay.date, index);
-          }}
-          className={`min-w-[40px] w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${
-            taskObj.done
-              ? "bg-gradient-to-br from-green-500 to-emerald-500 shadow-lg shadow-green-500/50"
-              : "bg-purple-900/50 border-2 border-purple-500/50 hover:border-purple-400"
-          }`}
-        >
-          {taskObj.done && <Check className="w-6 h-6 text-white" />}
-        </button>
-        
-        <div className="flex-1 min-w-0">
-          <p
-            className={`font-semibold text-white text-base leading-relaxed transition-all break-words ${
-              taskObj.done ? "line-through opacity-60" : ""
-            }`}
-          >
-            {taskObj.task}
-          </p>
-        </div>
-      </div>
-
-      {/* NEW: Action Buttons Row (10th Idea!) */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        <button
-          onClick={(e) => {
-  e.stopPropagation();
-  handleGetLiveSupport(taskObj, index);
-}}
-          disabled={loadingLiveSupport}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 rounded-lg text-white text-sm font-bold shadow-lg shadow-blue-500/30 hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loadingLiveSupport ? (
-            <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              Loading...
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-4 h-4" />
-              🤖 AI Coach
-            </>
-          )}
-        </button>
-
-        {!taskObj.done && (
+        {/* AI COACH AS MAJOR BUTTON */}
+        <div className="mb-5">
           <button
             onClick={(e) => {
               e.stopPropagation();
-              handleStartTimer(index);
+              handleGetLiveSupport(taskObj, index);
             }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-bold ${
-              isTimerActive
-                ? "bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border border-orange-500/50"
-                : "bg-purple-900/50 text-purple-300 hover:bg-purple-800/50 border border-purple-500/30"
-            }`}
+            disabled={loadingLiveSupport}
+            className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 hover:from-blue-500 hover:via-cyan-500 hover:to-blue-500 rounded-2xl text-white text-xl font-black shadow-2xl shadow-blue-500/60 hover:shadow-blue-500/80 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
+            style={{
+              backgroundSize: '200% 100%',
+              animation: 'gradient-shift 3s ease infinite'
+            }}
           >
-            {isTimerActive ? (
-              <>
-                <Pause className="w-4 h-4" />
-                Pause
-              </>
-            ) : (
-              <>
-                <Clock className="w-4 h-4" />
-                Timer
-              </>
-            )}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
+            <span className="relative z-10 flex items-center gap-3">
+              {loadingLiveSupport ? (
+                <>
+                  <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Loading AI Coach...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-6 h-6" />
+                  Start your task now!
+                  <Sparkles className="w-6 h-6" />
+                </>
+              )}
+            </span>
           </button>
-        )}
-        
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setExpandedTaskNote(expandedTaskNote === index ? null : index);
-          }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-purple-900/50 text-purple-300 hover:bg-purple-800/50 rounded-lg transition-all text-sm font-bold border border-purple-500/30"
-        >
-          <MessageCircle className="w-4 h-4" />
-          Note
-        </button>
-      </div>
-
-      {/* Task Meta Info */}
-      <div className="flex flex-wrap items-center gap-2 mb-3">
-        {taskObj.difficulty && (
-          <span className={`px-3 py-1.5 rounded-full text-xs font-bold text-white bg-gradient-to-r ${getDifficultyColor(taskObj.difficulty)}`}>
-            {taskObj.difficulty}
-          </span>
-        )}
-        
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-800/50 rounded-lg">
-          <Zap className="w-4 h-4 text-yellow-400" />
-          <span className="text-white font-bold text-sm">
-            {Math.round(currentDay.xpPerTask * getDifficultyXPMultiplier(taskObj.difficulty))} XP
-          </span>
         </div>
 
-        {displayTime > 0 && (
-          <div className="flex items-center gap-2 text-purple-300 text-sm">
-            <Clock className="w-4 h-4" />
-            <span>{formatTime(displayTime)}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Task Notes Display */}
-      {taskObj.notes && (
-        <div className="mt-3 p-3 bg-purple-950/30 rounded-lg border border-purple-700/30">
-          <p className="text-purple-200 text-sm leading-relaxed">{taskObj.notes}</p>
-        </div>
-      )}
-
-      {/* Add Note Section */}
-      {expandedTaskNote === index && (
-        <div className="mt-3" onClick={(e) => e.stopPropagation()}>
-          <textarea
-            value={taskNotes[index] || taskObj.notes || ''}
-            onChange={(e) => setTaskNotes({ ...taskNotes, [index]: e.target.value })}
-            placeholder="Add reflection, learnings, or notes..."
-            className="w-full px-4 py-3 bg-purple-950/50 border border-purple-500/30 rounded-lg text-white text-sm placeholder-purple-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 resize-none"
-            rows={3}
-          />
-          <div className="flex gap-2 mt-3">
+        {/* Secondary Action Buttons */}
+        <div className="flex flex-wrap gap-3 mb-5">
+          {!taskObj.done && (
             <button
-              onClick={() => handleAddNote(index)}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-semibold transition-colors text-white"
-            >
-              Save Note
-            </button>
-            <button
-              onClick={() => {
-                setExpandedTaskNote(null);
-                setTaskNotes(prev => {
-                  const newNotes = {...prev};
-                  delete newNotes[index];
-                  return newNotes;
-                });
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStartTimer(index);
               }}
-              className="px-4 py-2 bg-purple-900/50 hover:bg-purple-800/50 rounded-lg text-sm font-semibold transition-colors text-white"
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all text-sm font-bold shadow-lg hover:scale-105 ${
+                isTimerActive
+                  ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-orange-500/50 animate-pulse"
+                  : "bg-purple-900/60 text-purple-200 hover:bg-purple-800/60 border-2 border-purple-500/40 shadow-purple-500/30"
+              }`}
             >
-              Cancel
+              {isTimerActive ? (
+                <>
+                  <Pause className="w-4 h-4" />
+                  Pause Timer
+                </>
+              ) : (
+                <>
+                  <Clock className="w-4 h-4" />
+                  Start Timer
+                </>
+              )}
             </button>
-          </div>
+          )}
+          
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpandedTaskNote(expandedTaskNote === index ? null : index);
+            }}
+            className="flex items-center gap-2 px-5 py-2.5 bg-purple-900/60 text-purple-200 hover:bg-purple-800/60 rounded-xl transition-all text-sm font-bold border-2 border-purple-500/40 shadow-lg shadow-purple-500/30 hover:scale-105"
+          >
+            <MessageCircle className="w-4 h-4" />
+            Add Note
+          </button>
         </div>
-         )}
+
+        {/* Task Meta Info */}
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          {taskObj.difficulty && (
+            <span className={`px-4 py-2 rounded-full text-sm font-black text-white bg-gradient-to-r ${getDifficultyColor(taskObj.difficulty)} shadow-lg`}>
+              {taskObj.difficulty.toUpperCase()}
+            </span>
+          )}
+          
+          <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-400/40 rounded-full shadow-lg">
+            <Zap className="w-5 h-5 text-yellow-300" />
+            <span className="text-white font-black text-base">
+              {Math.round(currentDay.xpPerTask * getDifficultyXPMultiplier(taskObj.difficulty))} XP
+            </span>
+          </div>
+
+          {displayTime > 0 && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-purple-800/50 border border-purple-500/40 rounded-full shadow-lg">
+              <Clock className="w-5 h-5 text-purple-300" />
+              <span className="text-white font-bold text-base">{formatTime(displayTime)}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Task Notes Display - SCROLLABLE */}
+        {taskObj.notes && (
+          <div className="mt-4 p-4 bg-purple-950/50 border-2 border-purple-600/40 rounded-xl shadow-inner max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-purple-500 scrollbar-track-purple-900/20">
+            <div className="flex items-start gap-2 mb-2">
+              <MessageCircle className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
+              <span className="text-purple-300 font-bold text-sm">Your Notes:</span>
+            </div>
+            <p className="text-purple-100 text-base leading-relaxed pl-7">{taskObj.notes}</p>
+          </div>
+        )}
+
+        {/* Add Note Section */}
+        {expandedTaskNote === index && (
+          <div className="mt-4 p-4 bg-purple-950/50 border-2 border-purple-500/40 rounded-xl" onClick={(e) => e.stopPropagation()}>
+            <textarea
+              value={taskNotes[index] || taskObj.notes || ''}
+              onChange={(e) => setTaskNotes({ ...taskNotes, [index]: e.target.value })}
+              placeholder="Add reflection, learnings, or notes..."
+              className="w-full px-4 py-3 bg-purple-900/50 border-2 border-purple-500/40 rounded-lg text-white text-base placeholder-purple-300 focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-400/30 resize-none"
+              rows={4}
+            />
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => handleAddNote(index)}
+                className="flex-1 px-5 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-lg text-base font-bold transition-all text-white shadow-lg hover:scale-105"
+              >
+                Save Note
+              </button>
+              <button
+                onClick={() => {
+                  setExpandedTaskNote(null);
+                  setTaskNotes(prev => {
+                    const newNotes = {...prev};
+                    delete newNotes[index];
+                    return newNotes;
+                  });
+                }}
+                className="flex-1 px-5 py-3 bg-purple-900/60 hover:bg-purple-800/60 rounded-lg text-base font-bold transition-all text-white border-2 border-purple-500/40 hover:scale-105"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 })()}

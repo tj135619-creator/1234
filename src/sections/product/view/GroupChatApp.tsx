@@ -57,6 +57,10 @@ const currentGroup = {
   activeMembers: activeMembers || 8
 };
 
+
+const [messages, setMessages] = useState([]);
+const [newMessage, setNewMessage] = useState('');
+
 const [view, setView] = useState('home');
 const [showActionModal, setShowActionModal] = useState(false);
 const [showFloatingMenu, setShowFloatingMenu] = useState(false);
@@ -107,7 +111,28 @@ useEffect(() => {
 // Load check-ins from Firebase
 
 
-
+// Load chat messages from Firebase
+useEffect(() => {
+  if (!currentUser?.uid) return;
+  
+  const messagesRef = collection(db, 'messages');
+  const q = query(
+    messagesRef,
+    where('groupId', '==', currentGroup.id),
+    orderBy('timestamp', 'asc')
+  );
+  
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const messagesData = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      timestamp: doc.data().timestamp?.toMillis()
+    }));
+    setMessages(messagesData);
+  });
+  
+  return () => unsubscribe();
+}, [currentUser?.uid, currentGroup.id]);
 
 
 
@@ -150,6 +175,41 @@ useEffect(() => {
 
   return () => unsubscribe();
 }, []);
+
+
+// Load chat messages from Firebase
+useEffect(() => {
+  if (!currentUser?.uid) return;
+  
+  const messagesRef = collection(db, 'messages');
+  const q = query(
+    messagesRef,
+    where('groupId', '==', currentGroup.id),
+    orderBy('timestamp', 'asc')
+  );
+  
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const messagesData = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        timestamp: data.timestamp?.toMillis() || Date.now()
+      };
+    });
+    setMessages(messagesData);
+    
+    // Auto scroll to bottom when new messages arrive
+    setTimeout(() => {
+      const messagesContainer = document.querySelector('.overflow-y-auto');
+      if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+    }, 100);
+  });
+  
+  return () => unsubscribe();
+}, [currentUser?.uid, currentGroup.id]);
 
 
 // Calculate stats
@@ -196,6 +256,71 @@ return weekData;
 const weeklyChartData = getWeeklyData();
 const maxWeeklyActions = Math.max(...weeklyChartData.map(d => d.actions), 1);
 
+
+// Chat message handlers
+const sendMessage = async () => {
+  if (!newMessage.trim()) return;
+
+  try {
+    const message = {
+      groupId: currentGroup.id,
+      userId: currentUser.uid,
+      userName: userProfile?.name || currentUser.displayName || 'User',
+      userPhotoURL: currentUser.photoURL || null,
+      text: newMessage,
+      timestamp: serverTimestamp(),
+      reactions: {}
+    };
+
+    await addDoc(collection(db, 'messages'), message);
+    setNewMessage('');
+    
+    // Scroll to bottom after sending
+    setTimeout(() => {
+      const messagesContainer = document.querySelector('.overflow-y-auto');
+      if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+    }, 100);
+  } catch (error) {
+    console.error('Error sending message:', error);
+    showNotification('❌ Failed to send message');
+  }
+};
+
+const addMessageReaction = async (messageId, emoji) => {
+  try {
+    const message = messages.find(m => m.id === messageId);
+    if (!message) return;
+    
+    const reactions = { ...message.reactions };
+    const reactionKey = `${emoji}_${currentUser.uid}`;
+    
+    if (reactions[reactionKey]) {
+      delete reactions[reactionKey];
+    } else {
+      reactions[reactionKey] = {
+        emoji,
+        userId: currentUser.uid,
+        userName: userProfile?.name || currentUser.displayName || 'User'
+      };
+    }
+    
+    const messageRef = doc(db, 'messages', messageId);
+    await updateDoc(messageRef, { reactions });
+  } catch (error) {
+    console.error('Error adding reaction:', error);
+  }
+};
+
+const deleteMessage = async (messageId) => {
+  try {
+    await deleteDoc(doc(db, 'messages', messageId));
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    showNotification('❌ Failed to delete message');
+  }
+};
 
 
 // Handlers
@@ -715,19 +840,154 @@ className="px-3 py-1 bg-purple-800/40 rounded-full border border-purple-700/30 h
 
 {/* CHAT VIEW */}
 {view === 'chat' && (
-<div className="space-y-4">
+<div className="flex flex-col h-[calc(100vh-240px)]">
 <h2 className="text-2xl font-bold text-purple-100 mb-4">Group Chat</h2>
 
-<div className="bg-gradient-to-br from-purple-900/50 to-indigo-900/50 backdrop-blur-md rounded-3xl border-2 border-purple-500/30 shadow-2xl p-6 min-h-[400px]">
-<div className="text-center py-16">
+<div className="flex-1 bg-gradient-to-br from-purple-900/50 to-indigo-900/50 backdrop-blur-md rounded-3xl border-2 border-purple-500/30 shadow-2xl overflow-hidden flex flex-col">
+{/* Messages Container */}
+<div className="flex-1 overflow-y-auto p-4 space-y-4">
+{messages.length === 0 ? (
+<div className="flex items-center justify-center h-full">
+<div className="text-center">
 <MessageCircle className="w-20 h-20 text-purple-500/50 mx-auto mb-4" />
-<p className="text-purple-300 text-lg mb-2">Chat coming soon!</p>
-<p className="text-purple-400">Connect with your group members here.</p>
+<p className="text-purple-300 text-lg mb-2">No messages yet</p>
+<p className="text-purple-400">Start the conversation!</p>
+</div>
+</div>
+) : (
+messages.map((message, index) => {
+const isOwnMessage = message.userId === currentUser.uid;
+const showAvatar = index === 0 || messages[index - 1].userId !== message.userId;
+
+return (
+<div key={message.id} className={`flex gap-3 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
+{/* Avatar */}
+<div className="flex-shrink-0">
+{showAvatar ? (
+<div className="w-10 h-10 rounded-full bg-purple-700 flex items-center justify-center border-2 border-purple-400">
+<User className="w-5 h-5" />
+</div>
+) : (
+<div className="w-10 h-10" />
+)}
+</div>
+
+{/* Message Content */}
+<div className={`flex-1 max-w-[70%] ${isOwnMessage ? 'items-end' : 'items-start'} flex flex-col`}>
+{showAvatar && (
+<div className={`flex items-center gap-2 mb-1 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
+<p className="text-sm font-semibold text-purple-200">{message.userName}</p>
+<p className="text-xs text-purple-400">{formatTimeAgo(message.timestamp)}</p>
+</div>
+)}
+
+<div className={`relative group ${isOwnMessage ? 'items-end' : 'items-start'} flex flex-col`}>
+<div className={`px-4 py-3 rounded-2xl ${
+isOwnMessage
+? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-tr-sm'
+: 'bg-purple-950/60 text-white rounded-tl-sm'
+}`}>
+<p className="text-sm whitespace-pre-wrap break-words">{message.text}</p>
+</div>
+
+{/* Message Actions */}
+<div className={`absolute top-0 ${isOwnMessage ? 'left-0 -translate-x-full' : 'right-0 translate-x-full'} opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 px-2`}>
+<button
+onClick={() => addMessageReaction(message.id, '👍')}
+className="p-1.5 bg-purple-800/60 hover:bg-purple-700/60 rounded-full transition-all"
+title="Like"
+>
+<ThumbsUp className="w-4 h-4" />
+</button>
+<button
+onClick={() => addMessageReaction(message.id, '❤️')}
+className="p-1.5 bg-purple-800/60 hover:bg-purple-700/60 rounded-full transition-all"
+title="Love"
+>
+<Heart className="w-4 h-4" />
+</button>
+<button
+onClick={() => addMessageReaction(message.id, '🔥')}
+className="p-1.5 bg-purple-800/60 hover:bg-purple-700/60 rounded-full transition-all"
+title="Fire"
+>
+<Flame className="w-4 h-4" />
+</button>
+{isOwnMessage && (
+<button
+onClick={() => deleteMessage(message.id)}
+className="p-1.5 bg-red-800/60 hover:bg-red-700/60 rounded-full transition-all"
+title="Delete"
+>
+<Trash2 className="w-4 h-4" />
+</button>
+)}
+</div>
+
+{/* Reactions */}
+{message.reactions && Object.keys(message.reactions).length > 0 && (
+<div className={`flex items-center gap-1 mt-1 flex-wrap ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+{Object.entries(
+Object.values(message.reactions).reduce((acc, reaction) => {
+acc[reaction.emoji] = (acc[reaction.emoji] || 0) + 1;
+return acc;
+}, {})
+).map(([emoji, count]) => (
+<button
+key={emoji}
+onClick={() => addMessageReaction(message.id, emoji)}
+className="px-2 py-0.5 bg-purple-800/40 rounded-full border border-purple-700/30 hover:border-purple-500/50 transition-all text-xs flex items-center gap-1"
+>
+<span>{emoji}</span>
+<span className="text-purple-300">{count}</span>
+</button>
+))}
+</div>
+)}
+</div>
+</div>
+</div>
+);
+})
+)}
+</div>
+
+{/* Message Input */}
+<div className="p-4 border-t-2 border-purple-500/20 bg-purple-950/30">
+<div className="flex items-end gap-3">
+<div className="flex-1">
+<textarea
+value={newMessage}
+onChange={(e) => setNewMessage(e.target.value)}
+onKeyDown={(e) => {
+if (e.key === 'Enter' && !e.shiftKey) {
+e.preventDefault();
+sendMessage();
+}
+}}
+placeholder="Type a message..."
+rows={1}
+className="w-full px-4 py-3 bg-purple-950/50 border-2 border-purple-500/30 rounded-2xl text-white placeholder-purple-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 resize-none max-h-32"
+style={{ minHeight: '44px' }}
+/>
+</div>
+<button
+onClick={sendMessage}
+disabled={!newMessage.trim()}
+className="px-5 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-2xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl flex items-center gap-2"
+>
+<Send className="w-5 h-5" />
+</button>
+</div>
+<p className="text-xs text-purple-400 mt-2 text-center">
+Press Enter to send • Shift + Enter for new line
+</p>
 </div>
 </div>
 </div>
 )}
 </div>
+
 
 {/* FLOATING ACTION BUTTON */}
 <div className="fixed bottom-6 right-6 z-50">

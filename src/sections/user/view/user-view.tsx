@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { auth, db } from '../../../firebase.js'; // ← Add db here
 import { onAuthStateChanged } from 'firebase/auth'; // ← Remove collection from here
-import { doc, updateDoc, collection, getDocs } from 'firebase/firestore'; // ← Add this line
+import { doc, updateDoc, collection, getDocs   } from 'firebase/firestore'; // ← Add this line
 import GoogleSignIn from './GoogleSignIn';
 import ActionSchedulerPage from './ActionSchedulerPage'; // Adjust path as needed
 import { Bell } from "lucide-react";
@@ -353,10 +353,10 @@ const QuizSubpage = ({ lesson, onNext }) => {
 };
 
 // Update renderSubpage function to include quiz
-function renderSubpage(lesson, tasks, toggleTask, journalEntry, setJournalEntry, onNext, onComplete, onBackToTimeline, type) {
+function renderSubpage(lesson, tasks, toggleTask, journalEntry, setJournalEntry, onNext, onComplete, onBackToTimeline, type, loadUserData) {
   const subpages = {
     intro: <IntroSubpage lesson={lesson} onNext={onNext} />,
-    chaku: <ChakuSubpage lesson={lesson} currentDayNumber={selectedDayNumber} onNext={onNext} />,
+    chaku: <ChakuSubpage lesson={lesson} currentDayNumber={selectedDayNumber} onNext={onNext} loadUserData={loadUserData} />,
     //motivation: <MotivationSubpage lesson={lesson} onNext={onNext} />,
     //lesson: <LessonSubpage lesson={lesson} onNext={onNext} />,
     //quiz: <QuizSubpage lesson={lesson} onNext={onNext} />,
@@ -672,7 +672,7 @@ return (
 </div>
 </header>
 <main className="flex items-center justify-center p-4 min-h-[calc(100vh-180px)]">
-{renderSubpage(selectedLesson, tasks, toggleTask, journalEntry, setJournalEntry, handleNextSubpage, handleCompleteLesson, () => setCurrentView('timeline'), subpageTypes[currentSubpage])}
+{renderSubpage(selectedLesson, tasks, toggleTask, journalEntry, setJournalEntry, handleNextSubpage, handleCompleteLesson, () => setCurrentView('timeline'), subpageTypes[currentSubpage], loadUserData)}
 </main>
 </motion.div>
 );
@@ -789,14 +789,7 @@ return (
 
       {/* Right: Streak & Sign Out */}
       <div className="flex items-center gap-6">
-        {/* Streak */}
-        <div className="flex items-center gap-2">
-          <Flame className="w-5 h-5 text-orange-400" />
-          <div>
-            <p className="text-xs text-slate-400">Streak</p>
-            <p className="text-xl font-bold text-white">{userStats.streak} days</p>
-          </div>
-        </div>
+        
 
         {/* Sign Out Button */}
         <button 
@@ -814,7 +807,7 @@ return (
 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
 <StatsCard icon={<Trophy className="w-6 h-6 text-yellow-400" />} value={`${userStats.completedLessons}/${userStats.totalLessons}`} label="Lessons completed" color="purple" />
-<StatsCard icon={<Zap className="w-6 h-6 text-yellow-400" />} value={userStats.xpEarned} label="Experience points" color="blue" />
+
 <StatsCard icon={<Flame className="w-6 h-6 text-orange-400" />} value={userStats.streak} label="Days in a row" color="green" />
 <StatsCard icon={<Clock className="w-6 h-6 text-blue-400" />} value={userStats.timeInvested} label="Invested" color="pink" />
 </div>
@@ -1469,10 +1462,11 @@ const DAY_NAVIGATORS = [Day1Navigator, Day2Navigator, Day3Navigator, Day4Navigat
 
 // ASSUMPTION: The component that renders ChakuSubpage now passes a
 // prop like 'currentDayNumber' based on the timeline index (index + 1).
-const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext }) => {
+const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData }) => {
 
   // We use the passed prop directly. Fallback to 1 if it's missing (though it shouldn't be).
   const dayNumber = currentDayNumber || 1; 
+  const [showCelebration, setShowCelebration] = useState(false);
 
   // --- Map Day Number to Navigator with Fallback Logic ---
   
@@ -1484,6 +1478,8 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext }) => {
     Day4Navigator
   ];
 
+
+  
   // The number of available navigators (4)
   const availableNavigatorsCount = DAY_NAVIGATORS_LIST.length; 
   
@@ -1504,9 +1500,62 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext }) => {
   // Get the correct navigator. This will be Day4Navigator for Day 4, Day 5, etc.
   const CurrentNavigator = DAY_NAVIGATORS_LIST[navigatorIndex];
 
-  const handleRouterComplete = () => {
-    onNext();
-  };
+const handleRouterComplete = async () => {
+  console.log('🎯 Router Complete Called!');
+  console.log('📅 User Data:', userData);
+  console.log('👤 Current User:', auth.currentUser?.uid);
+  
+  // Mark the current day's lesson as complete in Firestore
+  if (auth.currentUser && userData?.day) {
+    try {
+      // Find the social_skills document
+      const socialSkillsDocRef = doc(db, 'users', auth.currentUser.uid, 'datedcourses', 'social_skills');
+      const socialSkillsDoc = await getDoc(socialSkillsDocRef);
+      
+      if (socialSkillsDoc.exists()) {
+        const courseData = socialSkillsDoc.data();
+        console.log('📖 Course data:', courseData);
+        
+        // Update the specific day in task_overview.days
+        const updatedDays = courseData.task_overview?.days?.map(day => {
+          console.log('🔍 Checking day:', day.day, 'vs', userData.day);
+          if (day.day === userData.day) {
+            console.log('✅ Found matching day! Marking complete');
+            // ADD the completed field since it doesn't exist
+            return { ...day, completed: true };
+          }
+          return day;
+        }) || [];
+        
+        console.log('📝 Updated days:', updatedDays);
+        
+        // Update Firestore with the new days array
+        await updateDoc(socialSkillsDocRef, {
+          'task_overview.days': updatedDays
+        });
+        
+        console.log('✅ Day marked as complete in Firestore');
+      } else {
+        console.log('⚠️ social_skills document not found');
+      }
+    } catch (error) {
+      console.error('❌ Error marking lesson complete:', error);
+    }
+  } else {
+    console.log('⚠️ Missing auth or userData.day');
+  }
+  
+  setShowCelebration(true);
+};
+
+const handleCelebrationComplete = async () => {
+  setShowCelebration(false);
+  // Reload user data to reflect completion status
+  if (loadUserData) {
+    await loadUserData();
+  }
+  onNext(); // This will move to 'reflection' subpage
+};
 
   // If the calculated index led to an invalid navigator
   if (!CurrentNavigator) {
@@ -1526,6 +1575,143 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext }) => {
       </div>
     );
   }
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+
+
+  // Celebration Page
+if (showCelebration) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }}
+      className="w-full min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4"
+    >
+      <div className="max-w-4xl w-full text-center">
+        {/* Fireworks/Confetti Effect */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          {[...Array(50)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-3 h-3 rounded-full"
+              style={{
+                background: ['#fbbf24', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7'][i % 5],
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`
+              }}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{
+                scale: [0, 1, 0],
+                opacity: [0, 1, 0],
+                x: [0, (Math.random() - 0.5) * 200],
+                y: [0, (Math.random() - 0.5) * 200]
+              }}
+              transition={{
+                duration: 2,
+                delay: i * 0.02,
+                repeat: Infinity,
+                repeatDelay: 3
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Trophy Animation */}
+        <motion.div
+          initial={{ scale: 0, rotate: -180 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", duration: 1, bounce: 0.5 }}
+          className="mb-8"
+        >
+          <div className="w-32 h-32 mx-auto bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-2xl shadow-yellow-500/50">
+            <Trophy className="w-16 h-16 text-white" />
+          </div>
+        </motion.div>
+
+        {/* Main Message */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-yellow-200 via-orange-200 to-pink-200 bg-clip-text text-transparent mb-4">
+            Day {dayNumber} Complete! 🎉
+          </h1>
+          <p className="text-xl md:text-2xl text-purple-200 mb-8">
+            You've crushed today's lesson!
+          </p>
+        </motion.div>
+
+        {/* Stats */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5 }}
+          className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-12"
+        >
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+            <Zap className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
+            <p className="text-3xl font-bold text-white">+{userData?.xp || 100}</p>
+            <p className="text-purple-200 text-sm">XP Earned</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+            <Flame className="w-8 h-8 text-orange-400 mx-auto mb-2" />
+            <p className="text-3xl font-bold text-white">{dayNumber}</p>
+            <p className="text-purple-200 text-sm">Day Streak</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+            <Star className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+            <p className="text-3xl font-bold text-white">100%</p>
+            <p className="text-purple-200 text-sm">Completed</p>
+          </div>
+        </motion.div>
+
+        {/* Motivational Quote */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 backdrop-blur-sm rounded-2xl p-8 border border-purple-400/30 mb-8 max-w-2xl mx-auto"
+        >
+          <Sparkles className="w-8 h-8 text-yellow-400 mx-auto mb-4" />
+          <p className="text-xl text-purple-100 italic mb-2">
+            "Every day you don't give up is a day you win."
+          </p>
+          <p className="text-purple-300 text-sm">Keep going. You're building something incredible.</p>
+        </motion.div>
+
+        {/* CTA Button */}
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.9 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleCelebrationComplete}
+          className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-xl px-12 py-5 rounded-2xl shadow-2xl shadow-green-500/50 transition-all"
+        >
+          Continue Journey <ArrowRight className="inline ml-3 w-6 h-6" />
+        </motion.button>
+
+        {/* Skip Option */}
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.1 }}
+          onClick={handleCelebrationComplete}
+          className="mt-6 text-purple-300 hover:text-white transition-colors text-sm"
+        >
+          Skip celebration →
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+}
+
 
   // --- Standard Render ---
 
@@ -1552,6 +1738,7 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext }) => {
 
       {/* Render the day-specific navigator */}
       <CurrentNavigator 
+        key={dayNumber}
         lessonContent={userData} // Pass all data for the navigator to use
         onCompleteNavigator={handleRouterComplete} 
       />

@@ -9,6 +9,10 @@ const YouAreNotAlone = ({ onNext }) => {
   const [count2, setCount2] = useState(0);
   const [count3, setCount3] = useState(0);
 
+
+ 
+
+
   useEffect(() => {
     const timer1 = setInterval(() => {
       setCount1(prev => prev < 61 ? prev + 1 : 61);
@@ -29,6 +33,8 @@ const YouAreNotAlone = ({ onNext }) => {
 
   return (
     <div className="space-y-6 md:space-y-8">
+
+      <div id="page-top-anchor" style={{ height: "1px", visibility: "hidden" }} />
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-purple-800/40 backdrop-blur-sm rounded-full border border-purple-500/30">
           <Users className="w-5 h-5 text-purple-300" />
@@ -114,6 +120,7 @@ const RealTransformations = ({ onNext }) => {
 
   return (
     <div className="space-y-6 md:space-y-8">
+      <div id="INNERpage-top-anchor" style={{ height: "1px", visibility: "hidden" }} />
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-purple-800/40 backdrop-blur-sm rounded-full border border-purple-500/30">
           <TrendingUp className="w-5 h-5 text-purple-300" />
@@ -194,6 +201,7 @@ const ScienceOfSmallWins = ({ onNext }) => {
 
   return (
     <div className="space-y-6 md:space-y-8">
+      <div id="INNERpage-top-anchor" style={{ height: "1px", visibility: "hidden" }} />
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-purple-800/40 backdrop-blur-sm rounded-full border border-purple-500/30">
           <Brain className="w-5 h-5 text-purple-300" />
@@ -340,6 +348,7 @@ const YourRealisticPath = ({ onNext }) => {
 
   return (
     <div className="space-y-6 md:space-y-8">
+      <div id="INNERpage-top-anchor" style={{ height: "1px", visibility: "hidden" }} />
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-purple-800/40 backdrop-blur-sm rounded-full border border-purple-500/30">
           <Calendar className="w-5 h-5 text-purple-300" />
@@ -452,6 +461,7 @@ const FailureIsData = ({ onNext }) => {
 
   return (
     <div className="space-y-6 md:space-y-8">
+      <div id="INNERpage-top-anchor" style={{ height: "1px", visibility: "hidden" }} />
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-purple-800/40 backdrop-blur-sm rounded-full border border-purple-500/30">
           <Target className="w-5 h-5 text-purple-300" />
@@ -570,6 +580,7 @@ const EmotionsAsCompass = ({ onNext }) => {
 
   return (
     <div className="space-y-6 md:space-y-8">
+      <div id="INNERpage-top-anchor" style={{ height: "1px", visibility: "hidden" }} />
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-purple-800/40 backdrop-blur-sm rounded-full border border-purple-500/30">
           <Heart className="w-5 h-5 text-purple-300" />
@@ -668,6 +679,7 @@ const PermissionSlipFinale = ({ onComplete }) => {
 
   return (
     <div className="space-y-6 md:space-y-8">
+      <div id="INNERpage-top-anchor" style={{ height: "1px", visibility: "hidden" }} />
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-purple-800/40 backdrop-blur-sm rounded-full border border-purple-500/30">
           <Award className="w-5 h-5 text-purple-300" />
@@ -817,6 +829,24 @@ const PermissionSlipFinale = ({ onComplete }) => {
 export default function SocialJourneyFlow({ onComplete }) {
   const [currentStep, setCurrentStep] = useState(0);
 
+
+  const scrollToTop = () => {
+    const anchor = document.getElementById('INNERpage-top-anchor');
+    if (anchor) {
+      anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Use it in useEffect
+  useEffect(() => {
+    scrollToTop();
+    setTimeout(scrollToTop, 10);
+    setTimeout(scrollToTop, 50);
+    setTimeout(scrollToTop, 100);
+  }, [currentStep]);
+
+
   const steps = [
     { component: YouAreNotAlone, name: "You're Not Alone" },
     { component: RealTransformations, name: "Real Transformations" },
@@ -829,12 +859,50 @@ export default function SocialJourneyFlow({ onComplete }) {
 
   const CurrentStepComponent = steps[currentStep].component;
 
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
+
+  // Modified handleNext function
+ const handleNextWithScroll = (currentStep, setCurrentStep, stepsLength) => {
+  if (currentStep < stepsLength - 1) {
+    // Update the step
+    setCurrentStep(currentStep + 1);
+    
+    // Scroll to top immediately
+    scrollToTop();
+    
+    // Scroll again after a short delay to catch any delayed renders
+    setTimeout(scrollToTop, 10);
+    setTimeout(scrollToTop, 50);
+    setTimeout(scrollToTop, 100);
+  }
+};
+
+// Modified handleBack function
+ const handleBackWithScroll = (currentStep, setCurrentStep) => {
+  if (currentStep > 0) {
+    // Update the step
+    setCurrentStep(currentStep - 1);
+    
+    // Scroll to top immediately
+    scrollToTop();
+    
+    // Scroll again after a short delay to catch any delayed renders
+    setTimeout(scrollToTop, 10);
+    setTimeout(scrollToTop, 50);
+    setTimeout(scrollToTop, 100);
+  }
+};
+
+
+
+const handleNext = () => {
+  if (currentStep < steps.length - 1) {
+    setCurrentStep(currentStep + 1);
+  }
+};
+
+
+
+
 
  // --- MODIFIED handleComplete function ---
   const handleComplete = () => {
@@ -875,9 +943,11 @@ export default function SocialJourneyFlow({ onComplete }) {
         {currentStep > 0 && (
           <button
             onClick={() => {
-              setCurrentStep(currentStep - 1);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
+  setCurrentStep(currentStep - 1);
+  scrollToTop();
+  setTimeout(scrollToTop, 10);
+  setTimeout(scrollToTop, 50);
+}}
             className="mt-6 px-6 py-3 bg-purple-900/50 hover:bg-purple-800/50 rounded-xl border border-purple-500/30 transition-all text-sm font-medium"
           >
             ← Back

@@ -90,38 +90,110 @@ export default function AnxietyReduction10X( {onComplete }) {
   
   const [showEmergency, setShowEmergency] = useState(false);
   const [emergencyTimer, setEmergencyTimer] = useState(60);
+  const userId = 'B7MZs55jCnOu6aA8ZHRH1Dqvblw1';
 
-  // Utility: API calls with mock fallback
+
+  // FIXED apiCall function - place this INSIDE your component
 const apiCall = async (endpoint, method = 'GET', body = null) => {
-    // For anxiety chat endpoint
-    if (endpoint === '/api/ai/chat') {
-      try {
-        const response = await fetch('https://one23-u2ck.onrender.com/anxiety-chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer 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'
-          },
-          body: JSON.stringify({
-            user_id: userId,
-            conversation_id: conversationId, // Now accessible!
-            ...body
-          })
-        });
+  // For anxiety chat endpoint
+  if (endpoint === '/api/ai/chat') {
+    try {
+      console.log('🔵 Making API call with:', {
+        user_id: userId,
+        conversation_id: conversationId,
+        ...body
+      });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+      const response = await fetch('https://one23-u2ck.onrender.com/anxiety-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer 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'
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          conversation_id: conversationId,
+          ...body
+        })
+      });
 
-        return await response.json();
-      } catch (error) {
-        console.error('API Error:', error);
-        return null;
+      console.log('📡 Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Error response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
+
+      const data = await response.json();
+      console.log('✅ Success response:', data);
+      return data;
+    } catch (error) {
+      console.error('🔥 API Error:', error);
+      // Return a fallback response instead of null
+      return {
+        response: "I'm here to support you. Take a deep breath - you've got this.",
+        suggestions: null
+      };
     }
-    
-    return null;
+  }
+  
+  return null;
+};
+
+
+
+
+
+
+// FIXED sendChatMessage function
+const sendChatMessage = async () => {
+  if (!chatInput.trim() || chatLoading) return;
+  
+  const userMessage = {
+    role: 'user',
+    content: chatInput,
+    timestamp: Date.now()
   };
+  
+  setChatMessages(prev => [...prev, userMessage]);
+  const currentInput = chatInput;
+  setChatInput('');
+  setChatLoading(true);
+  
+  console.log('💬 Sending chat message:', currentInput);
+  
+  const response = await apiCall('/api/ai/chat', 'POST', {
+    message_type: 'user_message',
+    context: {
+      task: selectedTask,
+      user_state: context,
+      user_input: currentInput,
+      chat_history: chatMessages
+    }
+  });
+  
+  setChatLoading(false);
+  
+  if (response && response.response) {
+    const aiMessage = {
+      role: 'assistant',
+      content: response.response,
+      timestamp: Date.now()
+    };
+    setChatMessages(prev => [...prev, aiMessage]);
+  } else {
+    // Fallback response
+    const aiMessage = {
+      role: 'assistant',
+      content: "I understand you're feeling anxious. That's completely normal. Let's work through this together.",
+      timestamp: Date.now()
+    };
+    setChatMessages(prev => [...prev, aiMessage]);
+  }
+};
+
+
 
   // Add these helper functions BEFORE the useEffect (around line 235)
 const getLessonType = (lessonTitle) => {
@@ -143,7 +215,7 @@ const getLessonLocation = (lessonTitle) => {
 
   
   // HARDCODED USER ID FOR TESTING
-const userId = 'B7MZs55jCnOu6aA8ZHRH1Dqvblw1';
+
 const datedCourseId = 'social_skills'; // Replace with actual course ID
 // Fetch tasks from Firestore on mount
 useEffect(() => {
@@ -436,42 +508,7 @@ useEffect(() => {
   };
   
   // Send chat message
-  const sendChatMessage = async () => {
-    if (!chatInput.trim() || chatLoading) return;
-    
-    const userMessage = {
-      role: 'user',
-      content: chatInput,
-      timestamp: Date.now()
-    };
-    
-    setChatMessages(prev => [...prev, userMessage]);
-    setChatInput('');
-    setChatLoading(true);
-    
-    const response = await apiCall('/api/ai/chat', 'POST', {
-      conversation_id: conversationId,
-      message_type: 'user_message',
-      context: {
-        task: selectedTask,
-        user_state: context,
-        user_input: chatInput,
-        chat_history: chatMessages
-      }
-    });
-    
-    setChatLoading(false);
-    
-    if (response) {
-      const aiMessage = {
-        role: 'assistant',
-        content: response.response,
-        timestamp: Date.now()
-      };
-      setChatMessages(prev => [...prev, aiMessage]);
-    }
-  };
-  
+
   // Get progress percentage
   const getProgressPercentage = () => {
     const pages = ['task-selection', 'buddy-reassurance', 'context-assessment', 'exercise-flow', 'reflection', 'complete'];
@@ -513,7 +550,8 @@ useEffect(() => {
   
   // Main render
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 to-pink-600 relative overflow-x-hidden">
+    <div className="min-h-screen text-white bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 relative overflow-x-hidden">
+      <div id="page-top-anchor" style={{ height: "1px", visibility: "hidden" }} />
       {/* Animated background */}
       <div className="absolute inset-0 opacity-30">
         <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500/30 rounded-full mix-blend-multiply filter blur-xl animate-blob"></div>

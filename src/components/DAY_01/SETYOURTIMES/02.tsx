@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, updateDoc , getDoc } from 'firebase/firestore';
 import { db } from './firebase.js'; // or wherever your Firebase config is
 import {ArrowRight,   // ✅ Added
   ArrowLeft , Clock, Coffee, Moon, Sun, Sunrise, CheckCircle, Target, Users, Brain, Heart, MessageCircle, Eye, Award, Plus, X, Play, Star, Sparkles, Trophy, Flame, Edit2, Calendar } from 'lucide-react';
@@ -46,6 +46,7 @@ import {ArrowRight,   // ✅ Added
 
   return (
     <div className="bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl rounded-2xl p-6 border-2 border-white/30 mb-4 animate-slideDown">
+      <div id="page-top-anchor" style={{ height: "1px", visibility: "hidden" }} />
       <div className="text-center mb-4">
         <h3 className="text-xl font-bold text-white mb-1">Set Time</h3>
         <p className="text-white/70 text-sm">Click to select {mode === 'hours' ? 'hour' : 'minute'}</p>
@@ -232,15 +233,16 @@ useEffect(() => {
   }
 
   const path = `users/${userId}/datedcourses/social_skills`;
-  console.log('📄 Listening to Firestore path:', path);
+  console.log('📄 Fetching Firestore path ONCE:', path);
 
   const datedCourseDocRef = doc(db, 'users', userId, 'datedcourses', 'social_skills');
-  console.log('📘 Document reference created:', datedCourseDocRef);
 
-  const unsubscribe = onSnapshot(
-    datedCourseDocRef,
-    (docSnap) => {
-      console.log('📡 Snapshot triggered.');
+  // ✅ USE getDoc() INSTEAD OF onSnapshot() - Fetches ONCE, no continuous listening
+  const fetchTasks = async () => {
+    try {
+      const docSnap = await getDoc(datedCourseDocRef);
+      
+      console.log('📡 Data fetched (one-time).');
       console.log('➡️ Document exists:', docSnap.exists());
 
       if (!docSnap.exists()) {
@@ -291,20 +293,18 @@ useEffect(() => {
       console.log(`✅ Processed ${day1Tasks.length} tasks from Day 1.`);
       setTasks(day1Tasks);
       console.log('🧭 Updated state with Day 1 tasks:', day1Tasks);
-    },
-    (error) => {
-      console.error('🔥 Firestore snapshot error:', error);
+      
+    } catch (error) {
+      console.error('🔥 Firestore fetch error:', error);
     }
-  );
-
-  console.log('👂 Firestore listener attached.');
-
-  return () => {
-    console.log('🧹 Cleaning up Firestore listener.');
-    unsubscribe();
   };
-}, [userId]);
 
+  fetchTasks();
+
+  console.log('👂 One-time fetch initiated.');
+
+  // ✅ No cleanup needed since we're not using onSnapshot
+}, [userId]);
 
 
 
@@ -810,8 +810,6 @@ useEffect(() => {
   };
 
  const renderPlanning = () => {
-
-  
   const completedCount = tasks.filter(t => t.done).length;
   const level = Math.floor(xp / 200) + 1;
   const xpInLevel = xp % 200;
@@ -824,12 +822,34 @@ useEffect(() => {
     icon: task.icon || CheckCircle,
     duration: task.duration || 10,
     xp: task.xp || 50,
-    displayName: task.task?.replace(/\*\*/g, '') || task.name || 'Unnamed Task'
+    displayName: task.task?.replace(/\*\*/g, '') || task.title || 'Unnamed Task',
+    description: task.description || task.task?.replace(/\*\*/g, '') || task.title || 'No description available'
   }));
 
+  // ✅ ADD THIS SAFETY CHECK
+  if (displayTasks.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="text-white text-xl mb-4">Loading tasks...</div>
+          <div className="animate-spin w-12 h-12 border-4 border-white/20 border-t-white rounded-full mx-auto" />
+        </div>
+      </div>
+    );
+  }
+
   const currentTask = displayTasks[currentTaskIndex];
+  
+  // ✅ ADD THIS CHECK TOO
+  if (!currentTask) {
+    setCurrentTaskIndex(0);
+    return null;
+  }
+  
   const isLastTask = currentTaskIndex === displayTasks.length - 1;
   const TaskIcon = currentTask?.icon || CheckCircle;
+  
+  // ... rest of the function
 
   // Task Introduction Page
   if (planningPhase === 'intro') {
@@ -867,8 +887,11 @@ useEffect(() => {
             </div>
 
             <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-4">
-              {currentTask.displayName}
-            </h2>
+  {currentTask.displayName}
+</h2>
+<p className="text-white/90 text-center text-base mb-6 px-4">
+  {currentTask.description || currentTask.displayName}
+</p>
 
             <div className="flex items-center justify-center gap-6 mb-6">
               <div className="text-center">
@@ -886,8 +909,8 @@ useEffect(() => {
             </div>
 
             <p className="text-white/80 text-center text-lg leading-relaxed">
-              {currentTask.displayName}
-            </p>
+  {currentTask.description || currentTask.displayName}
+</p>
           </div>
 
           {/* Navigation Buttons */}
@@ -939,6 +962,7 @@ useEffect(() => {
           <div className="text-center mb-6">
             <h3 className="text-2xl font-bold text-white mb-2">When will you do this?</h3>
             <p className="text-white/70">Choose the best time for: {currentTask.displayName}</p>
+            <p className="text-white/60 text-sm mt-2 px-4">{currentTask.description || currentTask.displayName}</p>
           </div>
 
           {/* Clock Picker */}
@@ -1050,9 +1074,10 @@ useEffect(() => {
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-white text-base sm:text-lg">{task.displayName}</h3>
-                    <div className="text-xs sm:text-sm text-white/70">{task.duration} minutes • +{task.xp} XP</div>
-                  </div>
+  <h3 className="font-bold text-white text-base sm:text-lg">{task.displayName}</h3>
+  <p className="text-white/70 text-xs sm:text-sm mb-1">{task.description || task.displayName}</p>
+  <div className="text-xs sm:text-sm text-white/60">{task.duration} minutes • +{task.xp} XP</div>
+</div>
 
                   <button
                     onClick={() => {
@@ -1240,7 +1265,7 @@ useEffect(() => {
                       <TaskIcon className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-bold text-white text-sm sm:text-base md:text-lg">{task.name}</div>
+                      <div className="font-bold text-white text-sm sm:text-base md:text-lg">{task.title}</div>
                       <div className="text-xs sm:text-sm text-white/70">{task.duration} minutes • +{task.xp} XP</div>
                     </div>
                     {task.completed ? (
@@ -1322,7 +1347,7 @@ useEffect(() => {
   className="flex-1 px-6 sm:px-8 py-3 sm:py-4 bg-white/20 text-white rounded-xl sm:rounded-2xl font-bold text-sm sm:text-base border-2 border-white/30 hover:bg-white/30 transition-all flex items-center justify-center gap-2"
 >
   <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
-  Plan Tomorrow
+  Next
 </button>
 
           </div>
@@ -1332,7 +1357,7 @@ useEffect(() => {
   };
 
   return (
-  <div className="min-h-screen bg-gradient-to-br from-purple-600 to-pink-600 relative overflow-x-hidden">
+  <div className="min-h-screen text-white bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 relative overflow-x-hidden">
     {/* Background overlay pattern */}
     <div className="absolute inset-0 opacity-30 pointer-events-none">
       <div

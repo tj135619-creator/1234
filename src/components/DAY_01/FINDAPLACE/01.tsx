@@ -513,13 +513,14 @@ const generateFallbackLocations = (userInterests) => {
 };
 
   const handleEditLocation = (location) => {
+  console.log('🖊️ Editing location:', location);
   setEditingId(location.id);
   setEditingData({
-    name: location.name,
-    reason: location.reason,
+    name: location.name || '',
+    reason: location.reason || '',
     comfortScore: location.comfortScore || 85,
     conversationPotential: location.conversationPotential || 80,
-    tips: location.tips || []
+    tips: Array.isArray(location.tips) ? location.tips : [] // ✅ Ensure it's always an array
   });
 };
 
@@ -652,6 +653,7 @@ const handleRemoveTip = (index) => {
 
   return (
     <div className="min-h-screen relative text-white bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950">
+      <div id="page-top-anchor" style={{ height: "1px", visibility: "hidden" }} />
   {/* Transparent Background Gradient */}
   <div className="absolute inset-0 bg-transparent z-0" />
 
@@ -930,16 +932,16 @@ const handleRemoveTip = (index) => {
           /* VIEW MODE */
           <>
             {/* Location Name */}
-            <div className="flex flex-wrap items-center gap-3 mb-4">
-              <MapPin className="w-6 h-6 md:w-7 md:h-7 text-purple-400 flex-shrink-0" />
-              <h3 className="text-xl md:text-2xl font-bold text-purple-100 flex-1">{location.name}</h3>
-              <button 
-                onClick={() => handleEditLocation(location)} 
-                className="p-2 text-purple-400 hover:bg-purple-800/40 rounded-xl transition-all border border-purple-500/30"
-              >
-                <Edit2 className="w-4 h-4 md:w-5 md:h-5" />
-              </button>
-            </div>
+<div className="flex flex-wrap items-center gap-3 mb-4">
+  <button 
+    onClick={() => handleEditLocation(location)} 
+    className="p-2 md:p-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-all border-2 border-purple-400 shadow-lg hover:shadow-purple-500/50"
+  >
+    <Edit2 className="w-5 h-5" />
+  </button>
+  <MapPin className="w-6 h-6 md:w-7 md:h-7 text-purple-400 flex-shrink-0" />
+  <h3 className="text-xl md:text-2xl font-bold text-purple-100 flex-1">{location.name}</h3>
+</div>
             
             {/* AI Reasoning */}
             <div className="bg-purple-950/40 backdrop-blur-sm rounded-2xl p-4 md:p-5 mb-6 border-2 border-purple-500/30">
@@ -979,7 +981,7 @@ const handleRemoveTip = (index) => {
                 Conversation Starters
               </h4>
               <div className="space-y-2">
-                {location.tips && location.tips.map((tip, tipIdx) => (
+                {(location.tips || []).map((tip, tipIdx) => (
                   <div key={tipIdx} className="flex items-start gap-3">
                     <div className="w-2 h-2 rounded-full bg-indigo-400 mt-2 flex-shrink-0"></div>
                     <span className="text-sm md:text-base text-purple-200">{tip}</span>

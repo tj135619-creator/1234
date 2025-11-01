@@ -5,6 +5,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { getAuth } from "firebase/auth";
 import {  auth } from "../firebase"; 
+import { doc, getDoc } from "firebase/firestore";
 
 interface DayPlan {
   id: number;
@@ -89,18 +90,17 @@ useEffect(() => {
 
   const fetchTasks = async () => {
     try {
-      const datedCoursesRef = collection(db, `users/${currentUser}/datedcourses`);
-      const snapshot = await getDocs(datedCoursesRef);
+      // ============ LOOK SPECIFICALLY AT social_skills DOCUMENT ============
+      const socialSkillsDocRef = doc(db, `users/${currentUser}/datedcourses/social_skills`);
+      const socialSkillsDoc = await getDoc(socialSkillsDocRef);
 
-      if (snapshot.empty) {
+      if (!socialSkillsDoc.exists()) {
+        console.log("No social_skills document found");
         setLoading(false);
         return;
       }
 
-      // Get first course document
-      const firstDoc = snapshot.docs[0];
-      const courseData = firstDoc.data();
-
+      const courseData = socialSkillsDoc.data();
       console.log("📚 Course data:", courseData);
 
       // ============ READ FROM task_overview.days ============
@@ -112,7 +112,6 @@ useEffect(() => {
 
       const days = courseData.task_overview.days;
       console.log("✅ Found", days.length, "days");
-
       // Calculate today's date for status determination
       const today = new Date();
       today.setHours(0, 0, 0, 0);
