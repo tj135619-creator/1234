@@ -17,75 +17,75 @@ import { Button } from "@/components/ui/button";
 const detailedFeatures = [
   {
     icon: Brain,
-    title: "AI-Powered Daily Missions",
+    title: "Micro-Missions You Can Actually Do",
     description:
-      "Every day, our AI creates personalized challenges based on Dale Carnegie's principles. Start with simple tasks like 'smile at 3 people' and progress to 'lead a team discussion.'",
+      "Start with actions so small they feel manageable—like 'make eye contact with one person today.' Our AI creates daily steps based on where you actually are, not where you think you should be.",
     benefits: [
-      "Personalized to your skill level",
+      "Matched to your comfort level",
       "Based on proven psychology",
-      "Gradual confidence building",
+      "Build confidence gradually",
     ],
     gradient: "from-blue-500 to-blue-600",
   },
   {
     icon: TrendingUp,
-    title: "Interactive Progress Map",
+    title: "See Your Progress (Privately)",
     description:
-      "Unlock skill nodes on a game-like map as you complete missions. Watch your social skills tree grow with visual progress tracking and achievement milestones.",
+      "Track your journey on a visual map that only you can see. Each completed mission unlocks the next small step—watch your path unfold without anyone watching or judging.",
     benefits: [
-      "Visual progress tracking",
-      "Unlock new skill areas",
-      "Gamified learning path",
+      "Private progress tracking",
+      "Unlock skills at your pace",
+      "No comparisons to others",
     ],
     gradient: "from-purple-500 to-purple-600",
   },
   {
     icon: MessageCircle,
-    title: "Real-Time AI Coaching",
+    title: "Practice Without Real-World Risk",
     description:
-      "Get live support when you need it most. Practice conversations, get feedback on your approach, and build confidence before important social interactions.",
-    benefits: ["Role-play practice", "Instant feedback", "Confidence building"],
+      "Talk to our AI when you need help. Practice what to say, get feedback in private, and build confidence before trying anything in real life. No pressure. No audience.",
+    benefits: ["Safe practice space", "Instant private feedback", "Zero social risk"],
     gradient: "from-indigo-500 to-indigo-600",
   },
   {
     icon: Trophy,
-    title: "Achievement & Streak System",
+    title: "Track Wins You Actually Care About",
     description:
-      "Maintain daily streaks, earn badges, and celebrate milestones. Turn social skills development into an engaging game with rewards for consistency.",
+      "Celebrate your streaks and milestones privately. This isn't about leaderboards—it's about noticing you're showing up for yourself, even when it's hard.",
     benefits: [
-      "Daily streak motivation",
-      "Achievement badges",
-      "Progress celebrations",
+      "Personal streak tracking",
+      "Private achievements",
+      "Progress just for you",
     ],
     gradient: "from-violet-500 to-violet-600",
   },
   {
     icon: Target,
-    title: "Goal-Driven Learning",
+    title: "Your Goals, Your Timeline",
     description:
-      "Set your personal social goals and receive customized lesson plans. Whether it's networking, dating confidence, or leadership skills - we adapt to your needs.",
+      "Tell us what you're working toward—maybe it's just having one person to talk to. We'll adapt the lessons to match your life, not some generic social skills playbook.",
     benefits: [
-      "Personalized learning paths",
-      "Custom goal setting",
-      "Adaptive content",
+      "Personalized for your reality",
+      "Set goals that feel real",
+      "Content adapts to you",
     ],
     gradient: "from-emerald-500 to-emerald-600",
   },
   {
     icon: Users,
-    title: "Community Challenges",
+    title: "Connect When You're Ready (Optional)",
     description:
-      "Join 5-day challenges with other learners, share progress, and get supportive feedback. Build accountability through community connection.",
-    benefits: ["Group accountability", "Peer support", "Shared experiences"],
+      "When you feel ready, join others who started exactly where you are. Share progress if you want, stay private if you don't. No forced participation. No awkward icebreakers.",
+    benefits: ["Join only when ready", "Optional peer support", "People who understand"],
     gradient: "from-orange-500 to-orange-600",
   },
 ];
 
 const successStats = [
   { number: "1", label: "Book" },
-  { number: "30+", label: "actionable techniques" },
-  { number: "10-15", label: "Minutes per day" },
-  { number: "94%", label: "Users report improvement" },
+  { number: "Small", label: "daily steps" },
+  { number: "10", label: "Minutes daily" },
+  { number: "Real", label: "Progress possible" },
 ];
 
 export default function ThankYouPage() {
@@ -161,10 +161,10 @@ export default function ThankYouPage() {
                   size={64}
                 />
                 <h2 className="text-4xl font-bold text-white mb-4">
-                  Welcome to GoalGrid!
+                  You're In. Take a Breath.
                 </h2>
                 <p className="text-green-200 text-xl">
-                  Your social skills journey starts now
+                  You just took a step that matters. Here's what happens next.
                 </p>
               </div>
 
@@ -195,11 +195,10 @@ export default function ThankYouPage() {
               transition={{ duration: 0.8, delay: 0.3 }}
             >
               <h3 className="text-3xl font-bold text-white mb-4">
-                What's Coming Next?
+                Here's What Happens Next
               </h3>
               <p className="text-slate-300 text-lg mb-8">
-                You're about to set your first social skills goal and receive
-                your personalized learning path
+                You'll see your first small mission. Read it. Try it when (or if) you feel ready. No timers. No pressure. Just you deciding your own pace.
               </p>
 
               <Button
@@ -207,7 +206,7 @@ export default function ThankYouPage() {
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-lg"
                 data-testid="button-next-step"
               >
-                <span className="mr-2">Set Your First Goal</span>
+                <span className="mr-2">See Your First Mission</span>
                 <ArrowRight size={20} />
               </Button>
             </motion.div>
@@ -220,7 +219,7 @@ export default function ThankYouPage() {
               transition={{ duration: 0.8, delay: 0.5 }}
             >
               <h3 className="text-3xl font-bold text-white mb-8 text-center">
-                Your Complete Social Skills Toolkit
+                What You'll Find Inside
               </h3>
 
               <div className="grid gap-8">
@@ -286,12 +285,10 @@ export default function ThankYouPage() {
                 ))}
               </div>
               <blockquote className="text-white font-medium text-lg mb-4">
-                "I went from avoiding eye contact to confidently leading
-                meetings at work. GoalGrid broke down social skills into
-                achievable daily steps that actually work."
+                "I've been isolated for years. GoalGrid didn't magically fix everything, but it gave me something I didn't have before—a starting point that didn't feel impossible or fake."
               </blockquote>
               <cite className="text-slate-400">
-                – Sarah M., Product Manager
+                – Someone who started where you are
               </cite>
             </motion.div>
 
@@ -303,8 +300,7 @@ export default function ThankYouPage() {
               transition={{ duration: 0.8, delay: 0.9 }}
             >
               <p className="text-slate-300 text-lg mb-6">
-                Ready to transform your social life? Let's set your first goal
-                and create your personalized journey.
+                Everything you do here is private. You can go slow, take breaks, or pause anytime. This is your journey, at your speed.
               </p>
 
               <Button
@@ -312,7 +308,7 @@ export default function ThankYouPage() {
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-lg"
                 data-testid="button-final-cta"
               >
-                <span className="mr-2">Start Your Journey Now</span>
+                <span className="mr-2">Take a Look Around</span>
                 <ArrowRight size={20} />
               </Button>
             </motion.div>

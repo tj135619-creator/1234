@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +31,7 @@ export default function SignupForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   const form = useForm<SignupFormData>({
@@ -65,7 +65,7 @@ export default function SignupForm() {
           description: "Google signup successful! Redirecting...",
         });
         // Redirect to thank you page immediately
-        setLocation("/thank-you");
+        navigate("/thankyou");;
       }
     } catch (error: any) {
       const errorMessage = "Google signup failed. Please try again.";
@@ -106,7 +106,7 @@ export default function SignupForm() {
         });
         
         // Redirect to thank you page immediately
-        setLocation("/thank-you");
+        navigate("/thankyou");;
       }
     } catch (error) {
       console.error("Email signup unexpected error:", error);

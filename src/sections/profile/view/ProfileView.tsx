@@ -4,6 +4,9 @@ import { auth } from '../../../firebase';
 import { socialSkillsServices } from './firebase-services';
 import GoogleSignIn from '../../../components/auth/GoogleSignIn';
 import SocialOnboardingQuiz from './SocialOnboardingQuiz';
+import { OnboardingExplanation } from 'src/onboarding/reusableonboarding';
+import ReactDOM from 'react-dom';
+
 
 
 import {
@@ -25,6 +28,7 @@ import {
   Star,
   MessageCircle,
   Users,
+  User,
   Heart,
   Sparkles,
   ArrowRight,
@@ -412,6 +416,7 @@ const [user, setUser] = useState(null); // ADD THIS
   const [totalXp, setTotalXp] = useState(0);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [totalActions, setTotalActions] = useState(0);
+  const [showOnboardingOverlay, setShowOnboardingOverlay] = useState(true)
 
 // Listen for auth state changes
 // Listen for auth state changes
@@ -745,6 +750,7 @@ if (loading) {
 
 // 5. FINALLY: Show the dashboard
 return (
+  
  <div style={{ 
     minHeight: '100vh',
     color: '#fff',
@@ -757,6 +763,10 @@ return (
     WebkitBackdropFilter: 'blur(25px)', // Safari
     boxShadow: 'inset 0 0 150px rgba(255,255,255,0.05)'
 }}>
+ 
+ 
+    
+
     <ParticleBackground />
     {showConfetti && <Confetti />}
 
@@ -802,7 +812,8 @@ return (
             </span>
           </div>
         
-    
+
+          
           
           <h1 style={{
             fontSize: '2.5rem',
@@ -814,10 +825,11 @@ return (
             margin: 0,
             marginBottom: '0.5rem',
             textShadow: '0 0 6px #b164ff',
+            
           }}>
             Social Growth Journey
           </h1>
-          <p style={{ fontSize: '0.875rem', color: '#b164ff', margin: '0.25rem 0 0 0', textShadow: '0 0 4px #8a3cbc' }}>
+          <p  style={{ fontSize: '0.875rem', color: '#b164ff', margin: '0.25rem 0 0 0', textShadow: '0 0 4px #8a3cbc' }}>
             Track your transformation and unlock your potential
           </p>
         </div>
@@ -874,6 +886,51 @@ return (
         </GlassCard>
       )}
 
+      {showOnboardingOverlay && ReactDOM.createPortal(
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-fade-in">
+    <div className="bg-gradient-to-br from-purple-900/95 to-indigo-900/95 backdrop-blur-xl p-6 md:p-8 rounded-3xl border-2 border-purple-500/50 shadow-2xl max-w-md w-full animate-scale-in">
+      <div className="text-center mb-6">
+        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-xl">
+          <User className="w-8 h-8 text-white" />
+        </div>
+        <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">Welcome to Your Profile! ✨</h2>
+        <p className="text-purple-200 text-sm md:text-base">Showcase your journey and track your progress</p>
+      </div>
+      <div className="space-y-4 mb-6">
+        <div className="flex items-start gap-3 p-4 bg-purple-950/50 rounded-xl border border-purple-500/30">
+          <Target className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-bold text-white text-sm mb-1">Track Your Goals</h3>
+            <p className="text-purple-300 text-xs">Monitor your progress and celebrate milestones</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-3 p-4 bg-purple-950/50 rounded-xl border border-purple-500/30">
+          <Activity className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-bold text-white text-sm mb-1">View Your Stats</h3>
+            <p className="text-purple-300 text-xs">See your activity, achievements, and growth over time</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-3 p-4 bg-purple-950/50 rounded-xl border border-purple-500/30">
+          <Star className="w-5 h-5 text-pink-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-bold text-white text-sm mb-1">Customize Your Space</h3>
+            <p className="text-purple-300 text-xs">Personalize your profile and make it uniquely yours</p>
+          </div>
+        </div>
+      </div>
+      <button
+        onClick={() => setShowOnboardingOverlay(false)}
+        className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl font-bold text-white transition-all shadow-xl"
+      >
+        Explore My Profile! 🚀
+      </button>
+    </div>
+  </div>,
+  document.body
+)}
+
+
       {/* SECTION 1: CURRENT VS FUTURE SELF */}
       {traits.length > 0 && (
         <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
@@ -922,7 +979,7 @@ return (
               </div>
 
               <div>
-                <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#e0d7f0' }}>
+                <h3  id="profileHeader" style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#e0d7f0' }}>
                   <TrendingUp style={{ width: 20, height: 20, color: '#b164ff' }} />
                   Your Skills Today
                 </h3>

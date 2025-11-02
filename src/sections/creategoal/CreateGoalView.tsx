@@ -19,7 +19,7 @@ import AvatarChooser from "./avator";
 
 export default function CreateGoalView() {
   const [showGoalPlanner, setShowGoalPlanner] = useState(false);
-  const [showQuiz, setShowQuiz] = useState(false); // NEW STATE
+  const [showQuiz, setShowQuiz] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -32,7 +32,6 @@ export default function CreateGoalView() {
   const handleConfirm = async () => {
   if (!selectedAvatar) return;
 
-  // Save to localStorage / do any local side-effects first
   try {
     localStorage.setItem('selectedAvatar', JSON.stringify(selectedAvatar));
     console.log('Selected avatar saved:', selectedAvatar);
@@ -40,13 +39,9 @@ export default function CreateGoalView() {
     console.error('Failed to save avatar:', e);
   }
 
-  // Close modal locally
   setShowModal(false);
 
-  // Give a micro delay so the modal state update can start (optional)
-  // but not required — calling onComplete immediately is fine.
   if (typeof onComplete === 'function') {
-    // small timeout avoids race with unmount in some setups
     setTimeout(() => {
       onComplete();
     }, 50);
@@ -54,7 +49,6 @@ export default function CreateGoalView() {
 };
 
 
-  // Listen to Firebase auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -70,7 +64,6 @@ export default function CreateGoalView() {
     return () => unsubscribe();
   }, []);
 
-  // CHECK IF GOAL IS ALREADY COMPLETE - Redirect to root if already done
   useEffect(() => {
     if (!authLoading) {
       if (onboardingStatus?.goalCreated) {
@@ -82,26 +75,19 @@ export default function CreateGoalView() {
     }
   }, [authLoading, onboardingStatus, navigate]);
 
-  // --- Typewriter effect for AI card ---
-
-
-  
-
-  // Handle clicking "Start Your Journey"
   const handleStartJourney = () => {
   if (!currentUser) {
     navigate("/sign-in");
     return;
   }
-  setShowAvatarChooser(true); // 👈 show avatar chooser first
+  setShowAvatarChooser(true);
 };
 
 
-  // Callback when quiz is completed
   const handleAvatarSelected = () => {
   console.log("🎨 Avatar selected, moving to quiz...");
   setShowAvatarChooser(false);
-  setShowQuiz(true); // ✅ just go to quiz, don’t redirect yet
+  setShowQuiz(true);
 };
 
 
@@ -133,7 +119,6 @@ export default function CreateGoalView() {
     }
   };
 
-  // Show loading while checking auth AND onboarding status
   if (authLoading || checkingStatus) {
     return (
       <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
@@ -145,8 +130,6 @@ export default function CreateGoalView() {
     );
   }
 
-  // Show quiz if triggered
-  // Show quiz if triggered
   if (showAvatarChooser) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 flex items-center justify-center">
@@ -174,7 +157,6 @@ if (showQuiz) {
 };
 
 
-  // Show Goal Planner View (optional, you can trigger it after quiz if needed)
   if (showGoalPlanner) {
     return <GoalPlannerMain onClose={handleGoalPlannerClose} />;
   }
@@ -192,23 +174,19 @@ if (showQuiz) {
         >
           <Badge className="mb-4 bg-blue-500/20 text-blue-200 border border-blue-500/30 rounded-xl px-3 py-1">
             <Sparkles className="w-3 h-3 mr-1" />
-            AI-Powered Social Skills Coaching
+            For People Starting From Zero
           </Badge>
 
           <h1 className="text-5xl md:text-7xl font-black text-white leading-tight">
-            Transform Your
+            You Don't Need to
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 block">
-              Social Skills
+              Figure This Out
             </span>
-            with AI Coaching
+            Alone
           </h1>
 
           <p className="text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Get a personalized action plan based on proven principles from
-            <span className="font-semibold text-white">
-              {" "} "How to Win Friends and Influence People"
-            </span>{" "}
-            — powered by intelligent AI conversations.
+            Get small, practical steps based on what actually works for people who feel behind socially. No pressure. No judgment. Just a clear starting point.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -219,7 +197,7 @@ if (showQuiz) {
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-lg px-8 py-6 font-semibold rounded-2xl shadow-xl transition-all duration-200 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="button-start-journey"
             >
-              Start Your Journey
+              See How It Works
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
 
@@ -229,7 +207,7 @@ if (showQuiz) {
               className="text-lg px-8 py-6 rounded-2xl border-white/20 text-white bg-white/5 hover:bg-white/10 backdrop-blur-sm"
               data-testid="button-learn-more"
             >
-              Learn More
+              I'm Not Sure Yet
             </Button>
           </div>
         </motion.div>
@@ -245,11 +223,10 @@ if (showQuiz) {
             transition={{ duration: 0.8, delay: 0.2 }}
           >
             <h2 className="text-4xl font-bold text-white mb-4">
-              Why Our AI Approach Works
+              What Makes This Different
             </h2>
             <p className="text-xl text-slate-300 max-w-2xl mx-auto">
-              Traditional courses tell you what to do. We create a personalized
-              plan based on your specific goals and current situation.
+              Most advice assumes you're already halfway there. We start where you actually are—even if that's completely alone.
             </p>
           </motion.div>
 
@@ -257,25 +234,25 @@ if (showQuiz) {
             {[
               {
                 icon: Target,
-                title: "Personalized Goal Setting",
+                title: "Goals That Feel Real",
                 description:
-                  "Our AI analyzes your specific challenges and creates SMART goals tailored to your social skills journey. No generic advice.",
+                  "Tell us where you're actually at—maybe you just want one person to text. Our AI creates steps based on your reality, not some ideal version of you.",
                 gradient: "from-blue-500 to-blue-600",
                 delay: 0.3,
               },
               {
                 icon: Users,
-                title: "Avatar-Guided Coaching",
+                title: "Choose How You Want Support",
                 description:
-                  "Choose from three unique AI personalities that match your learning style — visionary, analytical, or resilient approaches.",
+                  "Pick an AI guide that matches how you think. Whether you need gentle encouragement, logical steps, or just someone who gets it—you choose.",
                 gradient: "from-purple-500 to-purple-600",
                 delay: 0.4,
               },
               {
                 icon: BookOpen,
-                title: "Carnegie Principles",
+                title: "Based on What Actually Works",
                 description:
-                  'Every plan is built on time-tested principles from the classic "How to Win Friends and Influence People" methodology.',
+                  'Our approach uses proven social psychology—not trendy hacks or fake confidence tricks. Just techniques that have helped millions of people, adapted for your situation.',
                 gradient: "from-indigo-500 to-indigo-600",
                 delay: 0.5,
               },
@@ -321,11 +298,10 @@ if (showQuiz) {
           transition={{ duration: 0.8, delay: 0.8 }}
         >
           <h2 className="text-4xl font-bold text-white">
-            Ready to 10x Your Social Confidence?
+            Ready to Take the First Step?
           </h2>
           <p className="text-xl text-slate-300">
-            Join thousands who have transformed their social skills with our
-            AI-powered approach.
+            You're not alone in feeling this way. And you don't have to stay stuck here.
           </p>
 
           <Button
@@ -335,7 +311,7 @@ if (showQuiz) {
             className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-lg px-12 py-6 font-semibold rounded-2xl shadow-xl transition-all duration-200 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
             data-testid="button-get-started-cta"
           >
-            Get Started Free
+            Show Me the First Step
             <Sparkles className="w-5 h-5 ml-2" />
           </Button>
         </motion.div>

@@ -9,6 +9,10 @@ import { useNavigate } from 'react-router-dom';
 import CommunityStories from './Communitystories';
 // ADD THIS:
 import { ActionGroupFeed } from './ActionGroupFeed';
+
+import { OnboardingExplanation } from 'src/onboarding/reusableonboarding';
+
+
 // ============================================
 // FIREBASE IMPORTS (Replace with actual Firebase SDK in production)
 // ============================================
@@ -406,6 +410,9 @@ const [newPostData, setNewPostData] = useState({
 });
 const [showCommentInput, setShowCommentInput] = useState(null); // postId or null
 const [newComment, setNewComment] = useState('');
+
+// ONBOARDING FLOATING BOX
+const [showOnboardingOverlay, setShowOnboardingOverlay] = useState(true);
   
   // ============================================
   // FIREBASE INITIALIZATION
@@ -1473,7 +1480,7 @@ const loadChallengeTemplates = async () => {
               <span className="text-xs md:text-sm font-medium text-purple-200">Social Skills Mastery Platform</span>
             </div>
             
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-3 md:mb-4 bg-gradient-to-r from-purple-200 via-pink-200 to-purple-300 bg-clip-text text-transparent px-4">
+            <h1  id="productHeader"  className="text-3xl md:text-5xl lg:text-6xl font-bold mb-3 md:mb-4 bg-gradient-to-r from-purple-200 via-pink-200 to-purple-300 bg-clip-text text-transparent px-4">
               Purple Learning Hub
             </h1>
             
@@ -2127,6 +2134,8 @@ onClick={() => {
       'border-purple-500/30'
     }`}
   >
+
+    
                     {/* Challenge Header */}
                     <div className="flex items-start gap-3 md:gap-4 mb-4">
                       <div className="text-4xl md:text-5xl flex-shrink-0">{challenge.icon}</div>
@@ -2259,6 +2268,8 @@ onClick={() => {
             </div>
           </div>
         )}
+
+
 
         {/* Community Challenges Section */}
         {challenges.filter(c => c.challengeType === 'community').length > 0 && (
@@ -2701,6 +2712,53 @@ onClick={() => {
           )}
 
         </div>
+
+       {showOnboardingOverlay && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
+    <div className="bg-gradient-to-br from-purple-900/95 to-indigo-900/95 backdrop-blur-xl p-6 md:p-8 rounded-3xl border-2 border-purple-500/50 shadow-2xl max-w-md w-full animate-scale-in">
+      <div className="text-center mb-6">
+        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-xl">
+          <Users className="w-8 h-8 text-white" />
+        </div>
+        <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">Welcome to Community! 🌟</h2>
+        <p className="text-purple-200 text-sm md:text-base">Connect, share, and grow together with fellow achievers</p>
+      </div>
+
+      <div className="space-y-4 mb-6">
+        <div className="flex items-start gap-3 p-4 bg-purple-950/50 rounded-xl border border-purple-500/30">
+          <MessageCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-bold text-white text-sm mb-1">Share Your Journey</h3>
+            <p className="text-purple-300 text-xs">Post updates, wins, and inspire others with your progress</p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 p-4 bg-purple-950/50 rounded-xl border border-purple-500/30">
+          <Users className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-bold text-white text-sm mb-1">See Community Activity</h3>
+            <p className="text-purple-300 text-xs">Discover what others are achieving and stay motivated</p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 p-4 bg-purple-950/50 rounded-xl border border-purple-500/30">
+          <Heart className="w-5 h-5 text-pink-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-bold text-white text-sm mb-1">Support & Celebrate</h3>
+            <p className="text-purple-300 text-xs">React, comment, and celebrate wins together as a community</p>
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={() => setShowOnboardingOverlay(false)}
+        className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl font-bold text-white transition-all shadow-xl"
+      >
+        Let's Connect! 🤝
+      </button>
+    </div>
+  </div>
+)}
 
         
         {showPostModal && (

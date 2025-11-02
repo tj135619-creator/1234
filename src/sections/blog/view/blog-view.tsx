@@ -1,3 +1,5 @@
+
+
 import { useState, useEffect, useMemo } from 'react';
 import { Sparkles, Trophy, Flame, TrendingUp, Calendar, Target, Award, CheckCircle, Star, Plus, Trash2, Edit3, BarChart3, Zap, Heart, MessageCircle, Users, Gift, LogOut, User, Loader2, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 
@@ -5,6 +7,11 @@ import { Sparkles, Trophy, Flame, TrendingUp, Calendar, Target, Award, CheckCirc
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
+
+
+import { useSearchParams } from 'react-router-dom';
+
+
 
 // ============================================================================
 // FIREBASE CONFIGURATION
@@ -216,6 +223,7 @@ export default function SocialSkillsTracker() {
   const [showAllAchievements, setShowAllAchievements] = useState(false);
   const [dailyGoal, setDailyGoal] = useState(3);
   const [showQuickActions, setShowQuickActions] = useState(false);
+const [showOnboardingOverlay, setShowOnboardingOverlay] = useState(true);
 
   // ============================================================================
   // COMPUTED VALUES
@@ -467,16 +475,16 @@ export default function SocialSkillsTracker() {
   // LOADING STATE
   // ============================================================================
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 text-white flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-16 h-16 text-purple-400 animate-spin mx-auto mb-4" />
-          <p className="text-xl text-purple-200">Loading...</p>
-        </div>
+  if (loading ) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 text-white flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="w-16 h-16 text-purple-400 animate-spin mx-auto mb-4" />
+        <p className="text-xl text-purple-200">Loading...</p>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // ============================================================================
   // SIGN IN PAGE - ALIGNED WITH OVERVIEW STYLE
@@ -543,13 +551,66 @@ export default function SocialSkillsTracker() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 text-white pb-20">
+       
+        {/* ONBOARDING FLOATING BOX */}
+    {showOnboardingOverlay && (
+      <div className="fixed bottom-6 right-6 z-[100] animate-slide-in-right">
+        <div className="bg-gradient-to-br from-purple-900/95 to-indigo-900/95 backdrop-blur-xl p-5 md:p-6 rounded-2xl border-2 border-purple-500/50 shadow-2xl max-w-sm w-full relative">
+          {/* Close button */}
+          <button
+            onClick={() => setShowOnboardingOverlay(false)}
+            className="absolute top-3 right-3 p-1.5 hover:bg-purple-800/50 rounded-lg transition-all"
+          >
+            <svg className="w-5 h-5 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          <div className="mb-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-white">Quick Guide 💡</h3>
+            </div>
+            <p className="text-purple-200 text-sm">Learn how to use Action Tracker</p>
+          </div>
+
+          <div className="space-y-3 mb-4">
+            <div className="flex items-start gap-2 text-sm">
+              <Target className="w-4 h-4 text-purple-400 flex-shrink-0 mt-0.5" />
+              <p className="text-purple-300">Log actions to earn XP and level up</p>
+            </div>
+
+            <div className="flex items-start gap-2 text-sm">
+              <Flame className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
+              <p className="text-purple-300">Build daily streaks for consistency</p>
+            </div>
+
+            <div className="flex items-start gap-2 text-sm">
+              <Trophy className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <p className="text-purple-300">Unlock achievements as you progress</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowOnboardingOverlay(false)}
+            className="w-full px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl font-semibold text-white text-sm transition-all shadow-lg"
+          >
+            Got it! 🚀
+          </button>
+        </div>
+      </div>
+    )}
+
       
       {/* HEADER - ALIGNED WITH OVERVIEW STYLE */}
       <div className="sticky top-0 z-50 bg-gradient-to-r from-purple-900/95 via-purple-800/95 to-indigo-900/95 backdrop-blur-md border-b-2 border-purple-500/30 shadow-2xl">
         <div className="px-4 md:px-6 lg:px-10 py-3 md:py-4">
           <div className="flex items-center justify-between gap-3">
+            
             {/* User Info */}
-            <div className="flex items-center gap-2 md:gap-3">
+            <div  className="flex items-center gap-2 md:gap-3">
               {user?.photoURL ? (
                 <img src={user.photoURL} alt="Profile" className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-purple-400 shadow-lg" />
               ) : (
@@ -558,7 +619,7 @@ export default function SocialSkillsTracker() {
                 </div>
               )}
               <div className="hidden sm:block">
-                <p className="text-sm md:text-base font-bold text-purple-100">{user?.displayName || 'User'}</p>
+                <p id="blogHeader" className="text-sm md:text-base font-bold text-purple-100">{user?.displayName || 'User'}</p>
                 <p className="text-xs text-purple-300">Level {Math.floor(stats.totalXP / 100) + 1}</p>
               </div>
             </div>
@@ -1069,6 +1130,56 @@ export default function SocialSkillsTracker() {
           </div>
         )}
       </div>
+
+      {/* ONBOARDING OVERLAY */}
+{showOnboardingOverlay && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
+    <div className="bg-gradient-to-br from-purple-900/95 to-indigo-900/95 backdrop-blur-xl p-6 md:p-8 rounded-3xl border-2 border-purple-500/50 shadow-2xl max-w-md w-full animate-scale-in">
+      <div className="text-center mb-6">
+        <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-xl">
+          <Sparkles className="w-8 h-8 text-white" />
+        </div>
+        <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">Welcome to Action Tracker! 🎉</h2>
+        <p className="text-purple-200 text-sm md:text-base">Track your social skills journey and watch yourself grow</p>
+      </div>
+
+      <div className="space-y-4 mb-6">
+        <div className="flex items-start gap-3 p-4 bg-purple-950/50 rounded-xl border border-purple-500/30">
+          <Target className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-bold text-white text-sm mb-1">Log Your Actions</h3>
+            <p className="text-purple-300 text-xs">Track every social interaction and earn XP</p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 p-4 bg-purple-950/50 rounded-xl border border-purple-500/30">
+          <Flame className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-bold text-white text-sm mb-1">Build Streaks</h3>
+            <p className="text-purple-300 text-xs">Stay consistent and watch your streak grow</p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 p-4 bg-purple-950/50 rounded-xl border border-purple-500/30">
+          <Trophy className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-bold text-white text-sm mb-1">Unlock Achievements</h3>
+            <p className="text-purple-300 text-xs">Complete challenges and earn badges</p>
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={() => setShowOnboardingOverlay(false)}
+        className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl font-bold text-white transition-all shadow-xl"
+      >
+        Get Started! 🚀
+      </button>
+    </div>
+  </div>
+)}
+
+
 
       <style>{`
         @keyframes slide-up {

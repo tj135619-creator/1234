@@ -1,16 +1,78 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import SignupForm from "./signupform";
-import FeaturePreview from "./featurespreview";
+import SignupForm from "@/components/signup-form";
+import FeaturePreview from "@/components/feature-preview";
 import { Swords } from "lucide-react";
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '../../../firebase';
+import { useNavigate } from 'react-router-dom';
+import { getStoredAuth } from '@/utils/auth';
 
 export default function SignupPage() {
+  const [user, loading] = useAuthState(auth);
   const [isLoading, setIsLoading] = useState(false);
+  const [justSignedUp, setJustSignedUp] = useState(false);
+  const navigate = useNavigate();
 
-  if (isLoading) {
+  // Redirect if already logged in
+  useEffect(() => {
+    const storedAuth = getStoredAuth();
+    
+    if (user || storedAuth) {
+      console.log('✅ User already authenticated, redirecting...');
+      
+      // Check if this is a new signup (user just created)
+      if (justSignedUp) {
+        console.log('🎉 New signup detected, redirecting to thank you page...');
+        setTimeout(() => {
+          navigate('/thankyou');
+        }, 1000);
+      } else {
+        // Existing user, redirect to dashboard
+        console.log('📊 Existing user, redirecting to dashboard...');
+        setTimeout(() => {
+          navigate('/');
+        }, 1000);
+      }
+    }
+  }, [user, navigate, justSignedUp]);
+
+  // Listen for signup success
+  useEffect(() => {
+    const handleSignupSuccess = () => {
+      console.log('✅ Signup success event received');
+      setJustSignedUp(true);
+    };
+
+    window.addEventListener('signupSuccess', handleSignupSuccess);
+    return () => window.removeEventListener('signupSuccess', handleSignupSuccess);
+  }, []);
+
+  // Show loading while checking auth
+  if (loading || isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-lg">Loading...</div>
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="text-white text-lg">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is logged in, show redirect message
+  if (user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="text-6xl mb-4">✅</div>
+          <h2 className="text-2xl font-bold mb-2">
+            {justSignedUp ? 'Welcome to GoalGrid!' : 'Already Logged In!'}
+          </h2>
+          <p className="text-purple-200">
+            {justSignedUp ? 'Setting up your account...' : 'Redirecting you to dashboard...'}
+          </p>
+        </div>
       </div>
     );
   }
@@ -69,6 +131,7 @@ export default function SignupPage() {
               >
                 Already have an account? 
                 <button 
+                  onClick={() => navigate('/signin')}
                   className="text-blue-400 hover:text-blue-300 transition-colors font-medium ml-1"
                   data-testid="link-signin"
                 >
