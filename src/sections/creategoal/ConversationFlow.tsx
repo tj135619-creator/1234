@@ -218,10 +218,8 @@ const avatarConfig = avatar ? AVATAR_PERSONALITIES[avatar.name] : AVATAR_PERSONA
 // Remove the import line completely
 
 // Replace the apiKeys line with:
-const apiKeys = [
-  "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",
-  "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"
-];
+const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+
 
 // TOAST NOTIFICATION
 const showToast = (message: string, type: 'success' | 'error' = 'success') => {

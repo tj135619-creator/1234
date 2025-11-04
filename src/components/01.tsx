@@ -604,6 +604,8 @@ const handleTaskClick = (taskObj: Task, taskIndex: number) => {
   setShowTaskModal(true);
 };
 
+const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+
 const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
   try {
     setLoadingLiveSupport(true);
@@ -612,7 +614,7 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer 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'
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         task_name: taskObj.task,

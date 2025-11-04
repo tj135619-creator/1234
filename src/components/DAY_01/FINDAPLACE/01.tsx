@@ -220,7 +220,7 @@ const [isLoadingAI, setIsLoadingAI] = useState(false);
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer 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` // ✅ Add auth header
+        'Authorization': `Bearer ${import.meta.env.VITE_GROQ_API_KEY}` // ✅ Add auth header
       },
       body: JSON.stringify({
         user_id: userId,
@@ -331,7 +331,7 @@ const [isLoadingAI, setIsLoadingAI] = useState(false);
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer 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` // ✅ ADD THIS: Include auth token
+        'Authorization': `Bearer ${import.meta.env.VITE_GROQ_API_KEY}` // ✅ ADD THIS: Include auth token
       },
       body: JSON.stringify(payload)
     });
@@ -626,20 +626,19 @@ const handleRemoveTip = (index) => {
     // --- Backend trigger ---
     console.log("🌐 Sending modify-tasks-with-locations request...");
     const response = await fetch(
-      "https://one23-u2ck.onrender.com/modify-tasks-with-locations",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization:
-            "Bearer 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",
-        },
-        body: JSON.stringify({
-          user_id: uid,
-          course_id: "social_skills",
-        }),
-      }
-    );
+  "https://one23-u2ck.onrender.com/modify-tasks-with-locations",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`, // ✅ Use backticks ` not quotes "
+    },
+    body: JSON.stringify({
+      user_id: uid,
+      course_id: "social_skills",
+    }),
+  }
+);
 
     console.log("🌐 Response status:", response.status);
     const result = await response.json();
