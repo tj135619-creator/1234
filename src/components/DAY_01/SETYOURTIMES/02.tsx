@@ -3,6 +3,7 @@ import { doc, onSnapshot, setDoc, updateDoc , getDoc } from 'firebase/firestore'
 import { db } from './firebase.js'; // or wherever your Firebase config is
 import {ArrowRight,   // ✅ Added
   ArrowLeft , Clock, Coffee, Moon, Sun, Sunrise, CheckCircle, Target, Users, Brain, Heart, MessageCircle, Eye, Award, Plus, X, Play, Star, Sparkles, Trophy, Flame, Edit2, Calendar } from 'lucide-react';
+import { auth } from './firebase.js';
 
   export  const InlineAnalogClock = ({ value, onChange, onConfirm, onCancel }) => {
   const [hours, minutes] = (value || '09:00').split(':').map(Number);
@@ -215,7 +216,7 @@ export default function SetYourTimes02({ onComplete }) {
   const [streak, setStreak] = useState(1);
   
   
-  const userId = 'B7MZs55jCnOu6aA8ZHRH1Dqvblw1'; // From your Firestore screenshot
+  const userId = auth.currentUser?.uid;// From your Firestore screenshot
   const datedCourseId = 'social_skills'; 
 
   // Update for nested collection

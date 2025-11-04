@@ -7,6 +7,8 @@ import { getFirestore, doc, setDoc, updateDoc, serverTimestamp } from "firebase/
 import { getAuth } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 
+import FirstSteps from "src/components/FirstSteps";
+
 
 // FIREBASE CONFIG (YOUR ORIGINAL)
 const firebaseConfig = {
@@ -198,11 +200,13 @@ const [currentStep, setCurrentStep] = useState(0);
 const [planPreview, setPlanPreview] = useState<any>(null);
 const [isTyping, setIsTyping] = useState(false);
 const [typingText, setTypingText] = useState("");
+const [showmicroactions, setShowmicroactions] = useState(false);
 
 const textareaRef = useRef<HTMLTextAreaElement>(null);
 const [localLoading, setLocalLoading] = useState(false);
 const [successfulDays, setSuccessfulDays] = useState(0);
 const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
 
 const navigate = useNavigate();
 const auth = getAuth();
@@ -215,8 +219,8 @@ const avatarConfig = avatar ? AVATAR_PERSONALITIES[avatar.name] : AVATAR_PERSONA
 
 // Replace the apiKeys line with:
 const apiKeys = [
-  "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",
-  "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"
+  "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",
+  "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"
 ];
 
 // TOAST NOTIFICATION
@@ -342,112 +346,113 @@ console.error("❌ Error marking plan as created:", error);
 }
 };
 
+// Replace your handleGeneratePlan function (around lines 353-467) with this:
+
 const handleGeneratePlan = async () => {
-console.log("🚀 Starting 5-day task overview generation...");
-setIsGeneratingPlan(true);
-setCurrentStep(0);
+  console.log("🚀 Starting 5-day task overview generation...");
+  setIsGeneratingPlan(true);
+  setCurrentStep(0);
 
-try {
-const userMessages = messages.filter((m) => m.role === "user");
-const userAnswers = Object.values(answers);
-const goalName =
-(userMessages[0]?.content && userMessages[0].content.trim()) ||
-(userAnswers[0] && userAnswers[0].toString().trim()) ||
-"social skills";
+  try {
+    const userMessages = messages.filter((m) => m.role === "user");
+    const userAnswers = Object.values(answers);
+    const goalName =
+      (userMessages[0]?.content && userMessages[0].content.trim()) ||
+      (userAnswers[0] && userAnswers[0].toString().trim()) ||
+      "social skills";
 
-const joinDate = new Date().toISOString().split('T')[0];
-const apiKey = apiKeys[Math.floor(Math.random() * apiKeys.length)];
+    const joinDate = new Date().toISOString().split('T')[0];
+    const apiKey = apiKeys[Math.floor(Math.random() * apiKeys.length)];
 
-const payload = {
-user_id: userId,
-goal_name: goalName,
-user_answers: userAnswers,
-join_date: joinDate,
+    const payload = {
+      user_id: userId,
+      goal_name: goalName,
+      user_answers: userAnswers,
+      join_date: joinDate,
+    };
+
+    // Simulate step-by-step progress
+    const progressInterval = setInterval(() => {
+      setCurrentStep(prev => {
+        if (prev < GENERATION_STEPS.length) return prev + 1;
+        return prev;
+      });
+    }, 1200);
+
+    const resp = await fetch(
+      "https://one23-u2ck.onrender.com/create-task-overview",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    clearInterval(progressInterval);
+
+    let data: any;
+    try {
+      data = await resp.json();
+    } catch (jsonErr) {
+      const rawText = await resp.text();
+      console.error("❌ Invalid JSON response:", rawText);
+      throw new Error(`Failed due to invalid JSON: ${jsonErr}`);
+    }
+
+    if (!resp.ok) {
+      console.error("❌ Server error:", data);
+      throw new Error(data.error || "Failed to generate task overview");
+    }
+
+    if (!data.success || !data.overview) {
+      console.error("❌ Invalid response structure:", data);
+      throw new Error("Task overview data missing or malformed");
+    }
+
+    console.log("✅ Task overview received:", data.overview);
+
+    // Save to Firebase
+    const courseId = "social_skills";
+    const userPlanRef = doc(firestore, "users", userId, "datedcourses", courseId);
+
+    await setDoc(userPlanRef, {
+      task_overview: data.overview,
+      goal_name: goalName,
+      user_id: userId,
+      course_id: courseId,
+      generated_at: serverTimestamp(),
+      created_at: serverTimestamp(),
+    });
+
+    console.log("✅ 5-day task overview saved to Firebase");
+
+    setSuccessfulDays(5);
+    setCurrentStep(GENERATION_STEPS.length);
+    await markPlanAsCreated();
+
+    // Show plan preview
+    setPlanPreview({
+      days: data.overview.days || [
+        { day: 1, title: "Build Foundation", task: "Start with 15min daily practice" },
+        { day: 2, title: "Gain Momentum", task: "Increase to 30min, track progress" },
+        { day: 3, title: "Push Boundaries", task: "Try one challenging scenario" },
+        { day: 4, title: "Reflect & Adjust", task: "Review what's working" },
+        { day: 5, title: "Commit Long-term", task: "Set up sustainable routine" },
+      ]
+    });
+
+    showToast("🎉 Your 5-day plan is ready!", "success");
+
+  } catch (err: any) {
+    console.error("🔥 handleGeneratePlan error:", err);
+    showToast(`⚠️ Plan generation failed: ${err.message}`, "error");
+  } finally {
+    setIsGeneratingPlan(false);
+  }
 };
-
-// Simulate step-by-step progress
-const progressInterval = setInterval(() => {
-setCurrentStep(prev => {
-if (prev < GENERATION_STEPS.length) return prev + 1;
-return prev;
-});
-}, 1200);
-
-const resp = await fetch(
-"https://one23-u2ck.onrender.com/create-task-overview",
-{
-method: "POST",
-headers: {
-"Content-Type": "application/json",
-Authorization: `Bearer ${apiKey}`,
-},
-body: JSON.stringify(payload),
-}
-);
-
-clearInterval(progressInterval);
-
-let data: any;
-try {
-data = await resp.json();
-} catch (jsonErr) {
-const rawText = await resp.text();
-console.error("❌ Invalid JSON response:", rawText);
-throw new Error(`Failed due to invalid JSON: ${jsonErr}`);
-}
-
-if (!resp.ok) {
-console.error("❌ Server error:", data);
-throw new Error(data.error || "Failed to generate task overview");
-}
-
-if (!data.success || !data.overview) {
-console.error("❌ Invalid response structure:", data);
-throw new Error("Task overview data missing or malformed");
-}
-
-console.log("✅ Task overview received:", data.overview);
-
-// Save to Firebase
-const courseId = "social_skills"; // Force it to always save as 'social_skills'
-const userPlanRef = doc(firestore, "users", userId, "datedcourses", courseId);
-
-await setDoc(userPlanRef, {
-task_overview: data.overview,
-goal_name: goalName,
-user_id: userId,
-course_id: courseId,
-generated_at: serverTimestamp(),
-created_at: serverTimestamp(),
-});
-
-console.log("✅ 5-day task overview saved to Firebase");
-
-setSuccessfulDays(5);
-setCurrentStep(GENERATION_STEPS.length);
-await markPlanAsCreated();
-
-// Show plan preview
-setPlanPreview({
-days: data.overview.days || [
-{ day: 1, title: "Build Foundation", task: "Start with 15min daily practice" },
-{ day: 2, title: "Gain Momentum", task: "Increase to 30min, track progress" },
-{ day: 3, title: "Push Boundaries", task: "Try one challenging scenario" },
-{ day: 4, title: "Reflect & Adjust", task: "Review what's working" },
-{ day: 5, title: "Commit Long-term", task: "Set up sustainable routine" },
-]
-});
-
-showToast("🎉 Your 5-day plan is ready!", "success");
-
-} catch (err: any) {
-console.error("🔥 handleGeneratePlan error:", err);
-showToast(`⚠️ Plan generation failed: ${err.message}`, "error");
-} finally {
-setIsGeneratingPlan(false);
-}
-};
-
 
 
 const latestAIMessage = isTyping ? typingText : messages.filter(m => m.role === "assistant").pop()?.content;
@@ -722,6 +727,10 @@ I'm Ready to Start (Take Your Time)
   </div>
 )}
 
+{/* 🔑 INSERTION POINT 2: RENDER MICRO-ACTIONS COMPONENT */}
+
+
+
 
 {/* PLAN PREVIEW - 3D ELEVATED MODAL */}
 {planPreview && !isGeneratingPlan && (
@@ -759,9 +768,12 @@ className="flex-1 px-6 py-3 bg-purple-800/50 border-2 border-purple-500/30 text-
 Adjust Plan
 </button>
 <button
-onClick={() => navigate("/")}
-className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white font-semibold rounded-lg hover:from-purple-500 hover:to-fuchsia-500 transition-all shadow-lg hover:shadow-xl">
-Start Day 1 🚀
+  onClick={() => {
+    setPlanPreview(null);
+    setShowmicroactions(true);
+  }}
+  className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white font-semibold rounded-lg hover:from-purple-500 hover:to-fuchsia-500 transition-all shadow-lg hover:shadow-xl">
+  Continue 🚀
 </button>
 </div>
 </div>
@@ -771,6 +783,16 @@ Start Day 1 🚀
 </div>
 </div>
 </div>
+
+{/* YOUR CUSTOM COMPONENT */}
+{showmicroactions && (
+  <FirstSteps 
+    onComplete={() => {
+      setShowmicroactions(false);
+      navigate("/user");
+    }}
+  />
+)}
 
 {/* GENERATE PLAN BUTTON - 3D FLOATING */}
 {/* GENERATE PLAN BUTTON - 3D FLOATING TOP */}

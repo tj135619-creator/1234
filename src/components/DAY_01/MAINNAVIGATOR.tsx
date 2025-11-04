@@ -1,12 +1,14 @@
 import { useState, forwardRef, useImperativeHandle, useRef, useEffect } from "react";
+import ReactDOM from "react-dom";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { db, auth } from "./firebase";
 import FindAPlace01 from "src/components/DAY_01/FINDAPLACE/01";
 import SetYourTimes02 from "src/components/DAY_01/SETYOURTIMES/02";
 import HelpWithAnxiety03 from "src/components/DAY_01/HELPWITHTHEIRANXIETY/03";
 import YouAreNotAlone from "src/components/DAY_01/YOUARENOTALONE/youarenotalone";
-// Import all skill components
-import EyeContactTrainer from "src/components/DAY_01/SKELETAL COMPONENTS/01";
+
+// Skills
+
 import OpenBodyLanguage from "src/components/DAY_01/SKELETAL COMPONENTS/01";
 import SmileWarmUp from "src/components/DAY_01/SKELETAL COMPONENTS/02";
 import VoiceToneControl from "src/components/DAY_01/SKELETAL COMPONENTS/03";
@@ -15,139 +17,133 @@ import ActiveListening from "src/components/DAY_01/SKELETAL COMPONENTS/05";
 import GenuineAppreciation from "src/components/DAY_01/SKELETAL COMPONENTS/06";
 import HandleSilence from "src/components/DAY_01/SKELETAL COMPONENTS/07";
 
+// === Utility wrapper to make all child pages full-screen ===
+
+const FullScreenWrapper = ({ children }) => (
+  <div
+    style={{
+      width: "100vw",
+      height: "100vh",
+      display: "flex",
+      alignItems: "flex-start",
+      justifyContent: "center",
+      background: "black",
+      color: "white",
+      overflowY: "auto",
+      overflowX: "hidden",
+    }}
+  >
+    {children}
+  </div>
+);
+
+
+
 const Day1Navigator = forwardRef(({ onCompleteNavigator }, ref) => {
   const [pageIndex, setPageIndex] = useState(0);
-  const [showSpotlight, setShowSpotlight] = useState(true);
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const scrollContainerRef = useRef(null);
   const hasLoadedInitialProgress = useRef(false);
 
-  // ✅ LOAD SAVED PROGRESS ON MOUNT
+  // ===== LOAD SAVED PROGRESS =====
   useEffect(() => {
     const loadProgress = async () => {
       if (!auth.currentUser) {
-        console.warn("⚠️ No user logged in, starting from page 0");
         setIsLoadingProgress(false);
         hasLoadedInitialProgress.current = true;
         return;
       }
-
       const uid = auth.currentUser.uid;
-      
       try {
-        const progressDocRef = doc(db, "users", uid, "progress", "day1_navigator");
-        const progressSnap = await getDoc(progressDocRef);
-
-        if (progressSnap.exists()) {
-          const savedPageIndex = progressSnap.data().pageIndex || 0;
-          console.log("✅ Loaded saved progress: Page", savedPageIndex);
-          setPageIndex(savedPageIndex);
-        } else {
-          console.log("ℹ️ No saved progress found, starting fresh");
+        const refDoc = doc(db, "users", uid, "progress", "day1_navigator");
+        const snap = await getDoc(refDoc);
+        if (snap.exists()) {
+          const idx = snap.data().pageIndex || 0;
+          setPageIndex(idx);
         }
-      } catch (error) {
-        console.error("🔥 Error loading progress:", error);
+      } catch (e) {
+        console.error("Error loading progress:", e);
       } finally {
         setIsLoadingProgress(false);
         hasLoadedInitialProgress.current = true;
       }
     };
-
     loadProgress();
   }, []);
 
-  // ✅ SAVE PROGRESS WHENEVER pageIndex CHANGES
+  // ===== SAVE PROGRESS =====
   useEffect(() => {
     const saveProgress = async () => {
-      if (!auth.currentUser) return;
-      if (!hasLoadedInitialProgress.current) return;
-
+      if (!auth.currentUser || !hasLoadedInitialProgress.current) return;
       const uid = auth.currentUser.uid;
-
       try {
-        const progressDocRef = doc(db, "users", uid, "progress", "day1_navigator");
-        await setDoc(progressDocRef, {
-          pageIndex,
-          lastUpdated: new Date().toISOString(),
-          course: "social_skills",
-          day: 1
-        }, { merge: true });
-
-        console.log("💾 Progress saved: Page", pageIndex);
-      } catch (error) {
-        console.error("🔥 Error saving progress:", error);
+        const refDoc = doc(db, "users", uid, "progress", "day1_navigator");
+        await setDoc(
+          refDoc,
+          {
+            pageIndex,
+            lastUpdated: new Date().toISOString(),
+            course: "social_skills",
+            day: 1,
+          },
+          { merge: true }
+        );
+      } catch (e) {
+        console.error("Error saving progress:", e);
       }
     };
-
     saveProgress();
   }, [pageIndex]);
 
-  // Disable parent page scroll when component mounts
+  // ===== FULL SCREEN HIJACK =====
   useEffect(() => {
-    const originalBodyOverflow = document.body.style.overflow;
-    const originalHtmlOverflow = document.documentElement.style.overflow;
-    
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-    
+    const original = {
+      bodyOverflow: document.body.style.overflow,
+      htmlOverflow: document.documentElement.style.overflow,
+      appDisplay: "",
+    };
+    const appRoot = document.getElementById("root");
+    if (appRoot) {
+      original.appDisplay = appRoot.style.display;
+      appRoot.style.display = "none";
+    }
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
     return () => {
-      document.body.style.overflow = originalBodyOverflow;
-      document.documentElement.style.overflow = originalHtmlOverflow;
+      if (appRoot) appRoot.style.display = original.appDisplay || "";
+      document.body.style.overflow = original.bodyOverflow;
+      document.documentElement.style.overflow = original.htmlOverflow;
     };
   }, []);
 
-  // Scroll to top when page changes
+  // ===== SCROLL TO TOP WHEN PAGE CHANGES =====
   useEffect(() => {
     const scrollToTop = () => {
-      const anchor = document.getElementById('page-top-anchor');
-      if (anchor) {
-        anchor.scrollIntoView({ behavior: 'instant', block: 'start' });
-      }
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTop = 0;
-      }
+      if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0;
       window.scrollTo(0, 0);
     };
-
-    scrollToTop();
     requestAnimationFrame(scrollToTop);
   }, [pageIndex]);
 
-  const nextPage = () => {
-    setPageIndex((prev) => Math.min(prev + 1, pages.length - 1));
-  };
-
-  const prevPage = () => {
-    setPageIndex((prev) => Math.max(prev - 1, 0));
-  };
-
-  const handleComplete = () => {
-    console.log("✅ Day1Navigator complete - all pages finished");
-    if (onCompleteNavigator) onCompleteNavigator();
-    else console.log("⚠️ onCompleteNavigator is undefined!");
-  };
-
+  const nextPage = () => setPageIndex((p) => Math.min(p + 1, pages.length - 1));
+  const handleComplete = () => onCompleteNavigator?.();
   const handleQuit = () => {
-    if (window.confirm("Your progress has been saved. Come back anytime to continue!")) {
-      if (onCompleteNavigator) onCompleteNavigator();
-    }
+    if (window.confirm("Your progress is saved. Exit?")) onCompleteNavigator?.();
   };
 
-  // All pages in order - intro pages followed by all skill pages
   const pages = [
-    <YouAreNotAlone key="youarenotalone" onComplete={nextPage} />,
-    <FindAPlace01 key="find" onComplete={nextPage} />,
-    <SetYourTimes02 key="times" onComplete={nextPage} />,
-    <HelpWithAnxiety03 key="anxiety" onComplete={nextPage} />,
-    // All skill pages integrated here
-    <EyeContactTrainer key="eye-contact" onNext={nextPage} />,
-    <OpenBodyLanguage key="body-language" onNext={nextPage} />,
-    <SmileWarmUp key="smile" onNext={nextPage} />,
-    <VoiceToneControl key="voice" onNext={nextPage} />,
-    <ApproachOpener key="approach" onNext={nextPage} />,
-    <ActiveListening key="listening" onNext={nextPage} />,
-    <GenuineAppreciation key="appreciation" onNext={nextPage} />,
-    <HandleSilence key="silence" onNext={handleComplete} />, // Last page calls handleComplete
+    <FullScreenWrapper key="youarenotalone"><YouAreNotAlone onComplete={nextPage} /></FullScreenWrapper>,
+    <FullScreenWrapper key="find"><FindAPlace01 onComplete={nextPage} /></FullScreenWrapper>,
+    <FullScreenWrapper key="times"><SetYourTimes02 onComplete={nextPage} /></FullScreenWrapper>,
+    <FullScreenWrapper key="anxiety"><HelpWithAnxiety03 onComplete={nextPage} /></FullScreenWrapper>,
+    <FullScreenWrapper key="body"><OpenBodyLanguage onNext={nextPage} /></FullScreenWrapper>,
+    <FullScreenWrapper key="smile"><SmileWarmUp onNext={nextPage} /></FullScreenWrapper>,
+    <FullScreenWrapper key="voice"><VoiceToneControl onNext={nextPage} /></FullScreenWrapper>,
+    <FullScreenWrapper key="approach"><ApproachOpener onNext={nextPage} /></FullScreenWrapper>,
+    <FullScreenWrapper key="listen"><ActiveListening onNext={nextPage} /></FullScreenWrapper>,
+    <FullScreenWrapper key="appreciation"><GenuineAppreciation onNext={nextPage} /></FullScreenWrapper>,
+    <FullScreenWrapper key="silence"><HandleSilence onNext={handleComplete} /></FullScreenWrapper>,
   ];
 
   const pageNames = [
@@ -162,7 +158,7 @@ const Day1Navigator = forwardRef(({ onCompleteNavigator }, ref) => {
     "Approach Opener",
     "Active Listening",
     "Genuine Appreciation",
-    "Handling Silence"
+    "Handling Silence",
   ];
 
   useImperativeHandle(ref, () => ({
@@ -170,45 +166,42 @@ const Day1Navigator = forwardRef(({ onCompleteNavigator }, ref) => {
     isLastPage: pageIndex === pages.length - 1,
   }));
 
-  // ✅ LOADING SCREEN
   if (isLoadingProgress) {
-    return (
+    return ReactDOM.createPortal(
       <div
         style={{
           position: "fixed",
           inset: 0,
-          width: "100vw",
-          height: "100vh",
-          background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)",
-          overflow: "hidden",
-          zIndex: 999999,
+          background: "linear-gradient(135deg,#1e1b4b,#312e81)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          gap: "20px",
+          zIndex: 9999999,
         }}
       >
-        <div style={{
-          width: "60px",
-          height: "60px",
-          border: "4px solid rgba(168, 85, 247, 0.3)",
-          borderTop: "4px solid #a855f7",
-          borderRadius: "50%",
-          animation: "spin 1s linear infinite",
-        }} />
-        <p style={{ color: "white", fontSize: "18px", fontWeight: "600" }}>Loading your progress...</p>
+        <div
+          style={{
+            width: "60px",
+            height: "60px",
+            border: "4px solid rgba(168,85,247,0.3)",
+            borderTop: "4px solid #a855f7",
+            borderRadius: "50%",
+            animation: "spin 1s linear infinite",
+          }}
+        />
+        <p style={{ color: "white", marginTop: "20px", fontWeight: "600" }}>
+          Loading your progress...
+        </p>
         <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
+          @keyframes spin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
         `}</style>
-      </div>
+      </div>,
+      document.body
     );
   }
 
-  return (
+  const overlay = (
     <div
       style={{
         position: "fixed",
@@ -216,14 +209,14 @@ const Day1Navigator = forwardRef(({ onCompleteNavigator }, ref) => {
         width: "100vw",
         height: "100vh",
         background: "black",
+        zIndex: 9999999,
         overflow: "hidden",
-        zIndex: 999999,
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
       }}
     >
-      {/* Top Navigation Bar */}
+      {/* Top bar */}
       <div
         style={{
           position: "fixed",
@@ -232,123 +225,42 @@ const Day1Navigator = forwardRef(({ onCompleteNavigator }, ref) => {
           right: "20px",
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center",
-          zIndex: 1000002,
+          zIndex: 10000000,
         }}
       >
-        {/* Left side buttons */}
         <div style={{ display: "flex", gap: "12px" }}>
-          {/* Quit Button */}
           <button
-            onClick={handleQuit}
-            style={{
-              padding: "12px 24px",
-              background: "rgba(255,255,255,0.1)",
-              color: "white",
-              borderRadius: "8px",
-              cursor: "pointer",
-              border: "1px solid rgba(255,255,255,0.2)",
-              backdropFilter: "blur(6px)",
-              fontSize: "14px",
-              fontWeight: "600",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              transition: "all 0.3s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.2)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.1)";
-            }}
-          >
-            ✕ Save & Quit
-          </button>
+  onClick={handleQuit}
+  style={{
+    padding: "6px 12px",
+    background: "rgba(255,255,255,0.08)",
+    color: "white",
+    borderRadius: "6px",
+    border: "1px solid rgba(255,255,255,0.15)",
+    fontSize: "12px",
+    fontWeight: "500",
+    cursor: "pointer",
+  }}
+>
+  ✕ Quit
+</button>
 
-          {/* Next Step Button */}
-          <button
-            onClick={nextPage}
-            disabled={pageIndex === pages.length - 1}
-            style={{
-              padding: "12px 24px",
-              background: pageIndex === pages.length - 1 ? "rgba(168, 85, 247, 0.3)" : "rgba(168, 85, 247, 0.8)",
-              color: "white",
-              borderRadius: "8px",
-              cursor: pageIndex === pages.length - 1 ? "not-allowed" : "pointer",
-              border: "1px solid rgba(168, 85, 247, 0.4)",
-              backdropFilter: "blur(6px)",
-              fontSize: "14px",
-              fontWeight: "600",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              transition: "all 0.3s ease",
-              opacity: pageIndex === pages.length - 1 ? 0.5 : 1,
-            }}
-            onMouseEnter={(e) => {
-              if (pageIndex !== pages.length - 1) {
-                e.currentTarget.style.background = "rgba(168, 85, 247, 1)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (pageIndex !== pages.length - 1) {
-                e.currentTarget.style.background = "rgba(168, 85, 247, 0.8)";
-              }
-            }}
-          >
-            Next Step →
-          </button>
-        </div>
-
-        {/* Progress Indicator - Right side */}
-        <div
-          style={{
-            padding: "12px 24px",
-            background: "rgba(168, 85, 247, 0.2)",
-            color: "white",
-            borderRadius: "8px",
-            border: "1px solid rgba(168, 85, 247, 0.4)",
-            backdropFilter: "blur(6px)",
-            fontSize: "14px",
-            fontWeight: "600",
-          }}
-        >
-          Step {pageIndex + 1} of {pages.length}
         </div>
       </div>
 
-      {/* Main Content Area */}
+      {/* Fullscreen page content */}
       <div
+        ref={scrollContainerRef}
         style={{
           position: "absolute",
           inset: 0,
-          backgroundColor: "rgba(0,0,0,0.85)",
-          zIndex: 1000000,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
           overflow: "hidden",
         }}
       >
-        <div
-          ref={scrollContainerRef}
-          style={{
-            width: "100%",
-            height: "100%",
-            overflowY: "auto",
-            overflowX: "hidden",
-            backgroundColor: "transparent",
-            padding: "80px 20px 20px 20px", // Extra top padding for nav bar
-            boxSizing: "border-box",
-          }}
-        >
-          <div id="page-top-anchor" />
-          {pages[pageIndex]}
-        </div>
+        {pages[pageIndex]}
       </div>
 
-      {/* Bottom Progress Bar */}
+      {/* Progress bar */}
       <div
         style={{
           position: "fixed",
@@ -356,42 +268,42 @@ const Day1Navigator = forwardRef(({ onCompleteNavigator }, ref) => {
           left: 0,
           right: 0,
           height: "4px",
-          background: "rgba(75, 85, 99, 0.5)",
-          zIndex: 1000001,
+          background: "rgba(75,85,99,0.5)",
         }}
       >
         <div
           style={{
             height: "100%",
-            background: "linear-gradient(90deg, #a855f7, #ec4899)",
+            background: "linear-gradient(90deg,#a855f7,#ec4899)",
             width: `${((pageIndex + 1) / pages.length) * 100}%`,
             transition: "width 0.3s ease",
           }}
         />
       </div>
 
-      {/* Current Page Name Indicator */}
+      {/* Page name */}
       <div
         style={{
           position: "fixed",
           bottom: "20px",
           left: "50%",
           transform: "translateX(-50%)",
+          background: "rgba(0,0,0,0.6)",
+          color: "white",
           padding: "8px 16px",
-          background: "rgba(0, 0, 0, 0.6)",
-          backdropFilter: "blur(8px)",
           borderRadius: "20px",
-          border: "1px solid rgba(168, 85, 247, 0.3)",
-          color: "rgba(255, 255, 255, 0.9)",
           fontSize: "12px",
-          fontWeight: "500",
-          zIndex: 1000001,
+          border: "1px solid rgba(168,85,247,0.3)",
+          backdropFilter: "blur(8px)",
         }}
       >
         {pageNames[pageIndex]}
       </div>
     </div>
   );
+
+  const portalTarget = document.getElementById("navigator-root") || document.body;
+  return ReactDOM.createPortal(overlay, portalTarget);
 });
 
 export default Day1Navigator;

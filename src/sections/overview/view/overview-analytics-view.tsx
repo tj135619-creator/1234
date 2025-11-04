@@ -174,8 +174,40 @@ useEffect(() => {
   };
 
   const handleStartLesson = (lesson) => {
-    console.log('Starting lesson:', lesson);
+  console.log('📥 ========== RECEIVED in handleStartLesson ==========');
+  console.log('Full lesson object:', JSON.stringify(lesson, null, 2));
+  console.log('lesson.dayNumber:', lesson.dayNumber);
+  console.log('lesson.day:', lesson.day);
+  console.log('lesson.index:', lesson.index);
+  
+  // Use the explicit dayNumber that was passed
+  const dayNumber = lesson.dayNumber || lesson.day || (lesson.index + 1) || 1;
+  const lessonIndex = parseInt(dayNumber) - 1;
+  
+  console.log('✅ Calculated dayNumber:', dayNumber);
+  console.log('✅ Calculated lessonIndex:', lessonIndex);
+  
+  const dataToStore = {
+    lessonIndex: lessonIndex,
+    dayNumber: dayNumber,
+    timestamp: Date.now()
   };
+  
+  console.log('💾 Storing in sessionStorage:', dataToStore);
+  sessionStorage.setItem('autoOpenLesson', JSON.stringify(dataToStore));
+  
+  // Verify it was stored
+  const stored = sessionStorage.getItem('autoOpenLesson');
+  console.log('✅ Verified stored data:', stored);
+  
+  // Alert before redirect
+  alert(`Redirecting to Day ${dayNumber} (Index: ${lessonIndex})\n\nCheck console logs now!`);
+  
+  setTimeout(() => {
+    console.log('🚀 Navigating to /user...');
+    window.location.href = `/user`;
+  }, 3000);
+};
 
   if (isHubOpen) {
     return (

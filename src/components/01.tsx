@@ -383,7 +383,7 @@ const transformTaskOverview = (days: any[]): Lesson[] => {
       dayNumber: day.day,
       unlocked: prevDayComplete,
       motivationalQuote: `Day ${day.day} - ${day.title}`,
-      summary: `Today's focus: ${day.title}`,
+      summary: day.summary,
       xpPerTask: 20,
       tasks: tasksArray
     };
@@ -612,7 +612,7 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer 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'
+        'Authorization': 'Bearer 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'
       },
       body: JSON.stringify({
         task_name: taskObj.task,
@@ -907,12 +907,13 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
   });
 
   return (
-    <div className="relative min-h-screen h-full bg-transparent p-3 sm:p-4 md:p-6 lg:p-8">
+    <div className="relative min-h-screen h-full bg-transparent p-2 sm:p-3 md:p-4">
+
        {showOnboarding && <OnboardingOverlay onDismiss={handleDismissOnboarding} />}
 
       
 
-      <div className="mx-auto w-full">
+        <div className="w-full">
         {showConfetti && <Confetti recycle={false} numberOfPieces={500} />}
 
         {/* Header */}
@@ -920,13 +921,13 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="text-center mb-6 md:mb-8"
+          className="text-center mb-3 md:mb-4"
         >
           <motion.div 
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
-            className="inline-flex items-center gap-2 md:gap-3 mb-4 md:mb-6 px-5 md:px-6 py-2.5 md:py-3 bg-gradient-to-r from-purple-600/40 to-pink-600/40 backdrop-blur-md rounded-full border-2 border-purple-400/50 shadow-2xl shadow-purple-500/30"
+            className="inline-flex items-center gap-2 md:gap-3 mb-2 md:mb-3 px-4 md:px-5 py-2 md:py-2.5 bg-gradient-to-r from-purple-600/40 to-pink-600/40 backdrop-blur-md rounded-full border-2 border-purple-400/50 shadow-2xl shadow-purple-500/30"
           >
             <Sparkles className="w-5 md:w-6 h-5 md:h-6 text-yellow-300 animate-pulse" />
             <span className="text-base md:text-lg font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
@@ -951,7 +952,7 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7 }}
-            className="text-base md:text-lg text-purple-300 w-full mx-auto mb-6 md:mb-8 px-4"
+            className="text-base md:text-lg text-purple-300 w-full mx-auto mb-3 md:mb-4 px-4"
           >
             Check off your daily tasks and keep making progress!
           </motion.p>
@@ -1001,68 +1002,61 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
             )}
           </div>
 
-          <div className="p-5 sm:p-6">
+          <div className="p-3 sm:p-4">
             {/* Summary */}
-            {currentDay.summary && (
-              <div className="mb-5 p-4 bg-purple-950/30 border border-purple-500/20 rounded-xl">
-                <div className="flex items-start gap-3">
-                  <Lightbulb className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-purple-200 text-base leading-relaxed">{currentDay.summary}</p>
-                </div>
-              </div>
-            )}
+            
 
             {/* Day Navigation */}
             <div className="flex items-center justify-between mb-5 gap-2 sm:gap-3">
-              <button
-                onClick={() => handleDayChange(currentDayIndex - 1)}
-                disabled={currentDayIndex === 0}
-                className="flex items-center justify-center gap-2 min-w-[48px] h-12 px-3 sm:px-4 bg-purple-900/50 border border-purple-500/30 rounded-xl text-white text-base font-semibold hover:bg-purple-800/50 hover:border-purple-400/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="w-6 h-6" />
-                <span className="hidden sm:inline">Previous</span>
-              </button>
+  <button
+    onClick={() => handleDayChange(currentDayIndex - 1)}
+    disabled={currentDayIndex === 0}
+    className="flex items-center justify-center gap-1 min-w-[36px] h-9 px-2 bg-purple-900/50 border border-purple-500/30 rounded-lg text-white text-sm font-semibold hover:bg-purple-800/50 hover:border-purple-400/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+  >
+    <ChevronLeft className="w-4 h-4" />
+    <span className="hidden lg:inline">Prev</span>
+  </button>
 
-              <div className="flex gap-2 sm:gap-3 overflow-x-auto flex-1 max-w-none px-1 scrollbar-hide">
-                {dayTasks.map((day, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleDayChange(idx)}
-                    disabled={!day.unlocked}
-                    className={`relative flex-shrink-0 transition-all ${
-                      idx === currentDayIndex
-                        ? "w-12 h-12"
-                        : "w-9 h-9"
-                    }`}
-                  >
-                    {idx === currentDayIndex ? (
-                      <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg shadow-purple-500/50 flex items-center justify-center">
-                        <span className="text-white font-bold text-base">{day.dayNumber}</span>
-                      </div>
-                    ) : (
-                      <div className={`w-full h-full rounded-full transition-all ${
-                        day.unlocked
-                          ? "bg-purple-500/50 hover:bg-purple-400/70 hover:scale-125 cursor-pointer"
-                          : "bg-purple-900/30 cursor-not-allowed"
-                      }`}>
-                        {!day.unlocked && (
-                          <Lock className="w-4 h-4 text-purple-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                        )}
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
+  <div className="flex gap-2 sm:gap-3 overflow-x-auto flex-1 max-w-none px-1 scrollbar-hide">
+    {dayTasks.map((day, idx) => (
+      <button
+        key={idx}
+        onClick={() => handleDayChange(idx)}
+        disabled={!day.unlocked}
+        className={`relative flex-shrink-0 transition-all ${
+          idx === currentDayIndex
+            ? "w-12 h-12"
+            : "w-9 h-9"
+        }`}
+      >
+        {idx === currentDayIndex ? (
+          <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg shadow-purple-500/50 flex items-center justify-center">
+            <span className="text-white font-bold text-base">{day.dayNumber}</span>
+          </div>
+        ) : (
+          <div className={`w-full h-full rounded-full transition-all ${
+            day.unlocked
+              ? "bg-purple-500/50 hover:bg-purple-400/70 hover:scale-125 cursor-pointer"
+              : "bg-purple-900/30 cursor-not-allowed"
+          }`}>
+            {!day.unlocked && (
+              <Lock className="w-4 h-4 text-purple-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+            )}
+          </div>
+        )}
+      </button>
+    ))}
+  </div>
 
-              <button
-                onClick={() => handleDayChange(currentDayIndex + 1)}
-                disabled={currentDayIndex === dayTasks.length - 1 || !dayTasks[currentDayIndex + 1]?.unlocked}
-                className="flex items-center justify-center gap-2 min-w-[48px] h-12 px-3 sm:px-4 bg-purple-900/50 border border-purple-500/30 rounded-xl text-white text-base font-semibold hover:bg-purple-800/50 hover:border-purple-400/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <span className="hidden sm:inline">Next</span>
-                <ChevronRight className="w-6 h-6" />
-              </button>
-            </div>
+  <button
+    onClick={() => handleDayChange(currentDayIndex + 1)}
+    disabled={currentDayIndex === dayTasks.length - 1 || !dayTasks[currentDayIndex + 1]?.unlocked}
+    className="flex items-center justify-center gap-1 min-w-[36px] h-9 px-2 bg-purple-900/50 border border-purple-500/30 rounded-lg text-white text-sm font-semibold hover:bg-purple-800/50 hover:border-purple-400/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+  >
+    <span className="hidden lg:inline">Next</span>
+    <ChevronRight className="w-4 h-4" />
+  </button>
+</div>
 
             {/* Locked Day Message */}
             {!canAccessDay && (
@@ -1093,18 +1087,18 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
         <button
           onClick={() => setCurrentTaskIndex(Math.max(0, currentTaskIndex - 1))}
           disabled={currentTaskIndex === 0}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-900/50 border border-purple-500/30 rounded-lg text-white font-semibold hover:bg-purple-800/50 hover:scale-105 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          className="flex items-center gap-1 px-2 py-1.5 bg-purple-900/50 border border-purple-500/30 rounded-lg text-white text-sm font-semibold hover:bg-purple-800/50 hover:scale-105 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          <ChevronLeft className="w-5 h-5" />
-          Previous
+          <ChevronLeft className="w-4 h-4" />
+          <span className="hidden sm:inline">Prev</span>
         </button>
         <button
           onClick={() => setCurrentTaskIndex(Math.min(currentDay.tasks.length - 1, currentTaskIndex + 1))}
           disabled={currentTaskIndex === currentDay.tasks.length - 1}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-900/50 border border-purple-500/30 rounded-lg text-white font-semibold hover:bg-purple-800/50 hover:scale-105 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          className="flex items-center gap-1 px-2 py-1.5 bg-purple-900/50 border border-purple-500/30 rounded-lg text-white text-sm font-semibold hover:bg-purple-800/50 hover:scale-105 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          Next
-          <ChevronRight className="w-5 h-5" />
+          <span className="hidden sm:inline">Next</span>
+          <ChevronRight className="w-4 h-4" />
         </button>
       </div>
     </div>
@@ -1153,15 +1147,16 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
           
           <div className="flex-1 min-w-0">
             {/* SCROLLABLE TASK TEXT */}
-            <div className="max-h-32 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-purple-500 scrollbar-track-purple-900/20">
-              <p
-                className={`font-bold text-white text-xl sm:text-2xl leading-relaxed transition-all break-words ${
-                  taskObj.done ? "line-through opacity-60" : ""
-                }`}
-              >
-                {taskObj.task}
-              </p>
-            </div>
+  {/* SCROLLABLE TASK TEXT */}
+  <div className="max-h-32 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-purple-500 scrollbar-track-purple-900/20">
+    <p
+      className={`font-semibold text-white text-base sm:text-lg leading-relaxed transition-all break-words ${
+        taskObj.done ? "line-through opacity-60" : ""
+      }`}
+    >
+      {taskObj.task}
+    </p>
+  </div>
             
             {/* Task spotlight badge */}
             {!taskObj.done && (
@@ -1177,75 +1172,11 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
 
         {/* AI COACH AS MAJOR BUTTON */}
         <div className="mb-5">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleGetLiveSupport(taskObj, index);
-            }}
-            disabled={loadingLiveSupport}
-            className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 hover:from-blue-500 hover:via-cyan-500 hover:to-blue-500 rounded-2xl text-white text-xl font-black shadow-2xl shadow-blue-500/60 hover:shadow-blue-500/80 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
-            style={{
-              backgroundSize: '200% 100%',
-              animation: 'gradient-shift 3s ease infinite'
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
-            <span className="relative z-10 flex items-center gap-3">
-              {loadingLiveSupport ? (
-                <>
-                  <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Loading AI Coach...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-6 h-6" />
-                  Start your task now!
-                  <Sparkles className="w-6 h-6" />
-                </>
-              )}
-            </span>
-          </button>
+          
         </div>
 
         {/* Secondary Action Buttons */}
-        <div className="flex flex-wrap gap-3 mb-5">
-          {!taskObj.done && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleStartTimer(index);
-              }}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all text-sm font-bold shadow-lg hover:scale-105 ${
-                isTimerActive
-                  ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-orange-500/50 animate-pulse"
-                  : "bg-purple-900/60 text-purple-200 hover:bg-purple-800/60 border-2 border-purple-500/40 shadow-purple-500/30"
-              }`}
-            >
-              {isTimerActive ? (
-                <>
-                  <Pause className="w-4 h-4" />
-                  Pause Timer
-                </>
-              ) : (
-                <>
-                  <Clock className="w-4 h-4" />
-                  Start Timer
-                </>
-              )}
-            </button>
-          )}
-          
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setExpandedTaskNote(expandedTaskNote === index ? null : index);
-            }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-purple-900/60 text-purple-200 hover:bg-purple-800/60 rounded-xl transition-all text-sm font-bold border-2 border-purple-500/40 shadow-lg shadow-purple-500/30 hover:scale-105"
-          >
-            <MessageCircle className="w-4 h-4" />
-            Add Note
-          </button>
-        </div>
+        
 
         {/* Task Meta Info */}
         <div className="flex flex-wrap items-center gap-3 mb-4">
@@ -1314,6 +1245,35 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
             </div>
           </div>
         )}
+
+        <button
+  onClick={(e) => {
+    e.stopPropagation();
+    handleGetLiveSupport(taskObj, index);
+  }}
+  disabled={loadingLiveSupport}
+  className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-gradient-to-r from-pink-600 via-purple-600 to-pink-600 hover:from-pink-500 hover:via-purple-500 hover:to-pink-500 rounded-2xl text-white text-xl font-black shadow-2xl shadow-purple-500/60 hover:shadow-purple-500/80 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
+  style={{
+    backgroundSize: '200% 100%',
+    animation: 'gradient-shift 3s ease infinite'
+  }}
+>
+  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
+  <span className="relative z-10 flex items-center gap-3">
+    {loadingLiveSupport ? (
+      <>
+        <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+        Loading AI Coach...
+      </>
+    ) : (
+      <>
+        <Sparkles className="w-6 h-6" />
+        Start your task now!
+        <Sparkles className="w-6 h-6" />
+      </>
+    )}
+  </span>
+</button>
       </div>
     </div>
   );
@@ -1324,21 +1284,9 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
             {/* Actions */}
             {canAccessDay && (
               <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
-                <button
-                  onClick={() => setOpenRegenDialog(true)}
-                  className="flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-bold text-white text-base shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 hover:scale-105 transition-all"
-                >
-                  <Sparkles className="w-6 h-6" />
-                  AI Regenerate
-                </button>
+               
 
-                <button
-                  onClick={handleResetDay}
-                  className="flex items-center justify-center gap-2 px-6 py-3.5 bg-purple-900/50 border border-purple-500/30 rounded-xl font-bold text-white text-base hover:bg-purple-800/50 hover:border-purple-400/50 transition-all"
-                >
-                  <RotateCcw className="w-6 h-6" />
-                  Reset Day
-                </button>
+                
 
                 {isAllCompleted && (
                   <div className="flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl font-bold text-white text-base shadow-lg shadow-yellow-500/30 animate-pulse">

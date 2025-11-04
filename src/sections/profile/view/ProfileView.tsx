@@ -633,6 +633,11 @@ const handleOnboardingComplete = async (profileData) => {
     await socialSkillsServices.onboarding.saveOnboardingResults(user.uid, profileData);
     setShowOnboarding(false);
     await loadAllData();
+    
+    // Redirect to dashboard after 5 seconds
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 5000);
   } catch (error) {
     console.error('Error completing onboarding:', error);
     alert('Failed to save your profile. Please try again.');

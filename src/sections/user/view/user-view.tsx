@@ -1,4 +1,5 @@
 import { useState, useEffect , useRef  } from 'react';
+import ReactDOM from "react-dom";
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen, Sparkles, Trophy, CheckCircle, Lock, Play, ChevronRight,
@@ -13,6 +14,7 @@ import { doc, updateDoc, collection, getDocs   } from 'firebase/firestore'; // �
 import GoogleSignIn from './GoogleSignIn';
 import ActionSchedulerPage from './ActionSchedulerPage'; // Adjust path as needed
 import { Bell } from "lucide-react";
+import FirstLessonPrompt from './betweenpage';
 
 
 import {getDoc } from "firebase/firestore";
@@ -54,6 +56,8 @@ const [userConcern, setUserConcern] = useState('');
 const [aiConversation, setAiConversation] = useState([]);
 const [isHubOpen, setIsHubOpen] = useState(false);
 const [isAiThinking, setIsAiThinking] = useState(false);
+const [day1Complete, setDay1Complete] = useState(false);
+
 const [selectedDayNumber, setSelectedDayNumber] = useState(1);
 const [loadingProgress, setLoadingProgress] = useState(0);
 const [userStats, setUserStats] = useState({
@@ -66,12 +70,113 @@ timeInvested: '0h'
 
 const subpageTypes = [ 'intro','chaku',  'reflection', 'complete'];
 
+
 const ROUTER_COMPONENTS: React.FC<NavigatorProps>[] = [
   /*Day1Navigator as React.FC<NavigatorProps>, */
   /*Day2Navigator as React.FC<NavigatorProps>, */
   /* Day3Navigator as React.FC<NavigatorProps>, */
   Day4Navigator as React.FC<NavigatorProps>,
 ]
+
+useEffect(() => {
+  let cancelled = false;
+  let syncTimeout = null;
+
+  // CRITICAL: Skip all sync operations if we're in a lesson
+  if (currentView === 'lesson') {
+    console.log('â¸ï¸ Skipping checkDay1 - in lesson');
+    return;
+  }
+
+  const syncLessonCompletionFromFirestore = async () => {
+    try {
+      // CRITICAL: Double-check we're not in a lesson before syncing
+      if (currentView === 'lesson') {
+        console.log('â¸ï¸ Skipping sync - lesson in progress');
+        return;
+      }
+
+      const user = auth.currentUser;
+      if (!user) {
+        console.warn("syncLessonCompletion: no auth user");
+        return;
+      }
+
+      // Read the datedcourses/social_skills doc
+      const ref = doc(db, "users", user.uid, "datedcourses", "social_skills");
+      const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        console.warn("syncLessonCompletion: social_skills doc not found");
+        return;
+      }
+
+      const data = snap.data();
+      const days = Array.isArray(data?.task_overview?.days) ? data.task_overview.days : [];
+
+      console.debug("syncLessonCompletion: days from firestore:", days);
+
+      // If lessons not loaded yet, don't overwrite -- wait until lessons exist
+      setLessons(prevLessons => {
+        // If prevLessons is empty, just return it (we'll re-run when lessons load)
+        if (!Array.isArray(prevLessons) || prevLessons.length === 0) return prevLessons;
+
+        // CRITICAL: One more check before updating state
+        if (currentView === 'lesson') {
+          console.log('â¸ï¸ Aborting lesson update - user in lesson view');
+          return prevLessons;
+        }
+
+        // Map each lesson to include completed flag from `days`
+        const mapped = prevLessons.map((lesson, idx) => {
+          // day numbering might be 1-based; try idx+1 and lesson.day if present
+          const dayNum = (lesson.day != null) ? Number(lesson.day) : idx + 1;
+          const dayRecord = days.find(d => Number(d.day) === dayNum);
+          const completed = !!dayRecord?.completed;
+
+          // only mutate if changed to avoid re-renders
+          if (lesson.completed === completed) return lesson;
+          return { ...lesson, completed };
+        });
+
+        if (!cancelled) {
+          console.debug("syncLessonCompletion: updated lessons ->", mapped);
+        }
+        return mapped;
+      });
+
+      // Also set the day1Complete boolean for any UI branches
+      const day1 = days.find(d => Number(d.day) === 1);
+      if (!cancelled && currentView !== 'lesson') {
+        setDay1Complete(!!day1?.completed);
+      }
+
+    } catch (err) {
+      console.error("syncLessonCompletion: error", err);
+    }
+  };
+
+  // Delay initial sync by 2 seconds to let navigation settle after redirect
+  syncTimeout = setTimeout(() => {
+    if (currentView !== 'lesson' && !cancelled) {
+      console.log('ðŸ"„ Running delayed initial sync');
+      syncLessonCompletionFromFirestore();
+    }
+  }, 2000);
+
+  // Re-run periodically every 15 seconds
+  const interval = setInterval(() => {
+    if (!cancelled) {
+      syncLessonCompletionFromFirestore();
+    }
+  }, 15000);
+
+  return () => {
+    cancelled = true;
+    clearTimeout(syncTimeout);
+    clearInterval(interval);
+  };
+}, [currentView]); // currentView as dependency
+
 //                                                                                                                      ↑ ADD THIS// Add Quiz Subpage Component
 const QuizSubpage = ({ lesson, onNext }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -375,6 +480,74 @@ function renderSubpage(lesson, tasks, toggleTask, journalEntry, setJournalEntry,
   return subpages[type];
 }
 
+const handleSelectLesson = (lesson, index) => {
+  console.log('ðŸŽ¯ handleSelectLesson called:', { lesson, index });
+  
+  setSelectedLesson(lesson); 
+  setCurrentSubpage(0);
+  setSelectedDayNumber(index + 1); 
+  
+  // Use setTimeout to ensure state updates before view change
+  setTimeout(() => {
+    setCurrentView('lesson');
+    console.log('âœ… View set to lesson');
+  }, 50);
+};
+
+
+useEffect(() => {
+  const checkDay1 = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const ref = doc(db, "users", user.uid, "datedcourses", "social_skills");
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return;
+
+      const data = snap.data();
+      const days = Array.isArray(data?.task_overview?.days)
+        ? data.task_overview.days
+        : [];
+
+      const d1 = days.find(d => Number(d.day) === 1);
+      const isComplete = d1?.completed === true;
+
+      setDay1Complete(isComplete);
+    } catch (err) {
+      console.error("Error checking Day 1 status:", err);
+    }
+  };
+
+  checkDay1();
+}, []);
+
+// Auto-open lesson from dashboard
+// Auto-open lesson from dashboard
+useEffect(() => {
+  // Skip if already in lesson view
+  if (currentView === 'lesson') {
+    console.log('⏸️ Skipping auto-open - already in lesson');
+    return;
+  }
+
+  // Check URL params
+  const params = new URLSearchParams(window.location.search);
+  const lessonIndex = params.get('openLesson');
+  
+  if (lessonIndex !== null && lessons.length > 0) {
+    const index = parseInt(lessonIndex);
+    const lesson = lessons[index];
+    
+    if (lesson) {
+      console.log('🔗 Auto-opening from URL:', lesson);
+      handleSelectLesson(lesson, index);
+      // Clean up URL
+      window.history.replaceState({}, '', '/user');
+    }
+  }
+}, [lessons, currentView]);
+
 
 // Auth state listener
 // Auth state listener
@@ -393,6 +566,86 @@ useEffect(() => {
 
   return () => unsubscribe();
 }, []); // Remove loadUserData() call from here - DON'T CALL IT TWICE!
+
+// Auto-open lesson from dashboard
+useEffect(() => {
+  // Skip if already in lesson view
+  if (currentView === 'lesson') {
+    console.log('â¸ï¸ Skipping auto-open - already in lesson');
+    return;
+  }
+
+  // Check sessionStorage first (from dashboard redirect)
+  const storedLesson = sessionStorage.getItem('autoOpenLesson');
+  if (storedLesson && lessons.length > 0) {
+    try {
+      const { lessonIndex, dayNumber } = JSON.parse(storedLesson);
+      const lesson = lessons[lessonIndex];
+      
+      if (lesson) {
+        console.log('ðŸ"— Auto-opening from sessionStorage:', lesson, 'Day:', dayNumber);
+        
+        // Clear the storage immediately to prevent re-opening
+        sessionStorage.removeItem('autoOpenLesson');
+        
+        // Small delay to ensure state is ready
+        setTimeout(() => {
+          handleSelectLesson(lesson, lessonIndex);
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Error parsing stored lesson:', error);
+      sessionStorage.removeItem('autoOpenLesson');
+    }
+    return; // Exit early - don't check URL params
+  }
+
+  // Check URL params as fallback
+  const params = new URLSearchParams(window.location.search);
+  const lessonIndex = params.get('openLesson');
+  
+  if (lessonIndex !== null && lessons.length > 0) {
+    const index = parseInt(lessonIndex);
+    const lesson = lessons[index];
+    
+    if (lesson) {
+      console.log('ðŸ"— Auto-opening from URL:', lesson);
+      handleSelectLesson(lesson, index);
+      // Clean up URL
+      window.history.replaceState({}, '', '/user');
+    }
+  }
+}, [lessons, currentView]);
+
+
+useEffect(() => {
+  // SKIP if in lesson view
+  if (currentView === 'lesson') {
+    console.log('⏸️ Skipping lesson completion check - in lesson');
+    return;
+  }
+
+  const updateLessonCompletion = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+
+    const ref = doc(db, "users", user.uid, "datedcourses", "social_skills");
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+
+    const days = snap.data()?.task_overview?.days || [];
+    setLessons(prev =>
+      prev.map((lesson, i) => {
+        const d = days.find(day => Number(day.day) === i + 1);
+        return { ...lesson, completed: !!d?.completed };
+      })
+    );
+  };
+
+  updateLessonCompletion();
+}, [currentView]); // <-- ADD DEPENDENCY
+
 
 const loadUserData = async () => {
 try {
@@ -438,18 +691,7 @@ console.error('❌ Sign out error:', error);
 }
 };
 
-const handleSelectLesson = (lesson, index) => {
-//if (index > 0 && !lessons[index - 1].completed) {
-//console.log('🔒 Lesson locked');
-//return;
-//}
-setSelectedLesson(lesson); 
-  setCurrentSubpage(0);
-  // SET THE NEW STATE VARIABLE
-  setSelectedDayNumber(index + 1); 
 
-  setCurrentView('lesson');
-};
 
 // Add this helper function at the top of your component
 const saveCurrentProgress = async (lessonId, subpageIndex) => {
@@ -679,16 +921,18 @@ return (
 }
 
 // Timeline view
+// Timeline view
 return (
-<TimelineView
-user={user}
-lessons={lessons}
-userStats={userStats}
-handleSelectLesson={handleSelectLesson}
-handleSignOut={handleSignOut}
-isHubOpen={isHubOpen}
-setIsHubOpen={setIsHubOpen}
-/>
+  <TimelineView
+    user={user}
+    lessons={lessons}
+    userStats={userStats}
+    handleSelectLesson={handleSelectLesson}
+    handleSignOut={handleSignOut}
+    isHubOpen={isHubOpen}
+    setIsHubOpen={setIsHubOpen}
+    currentView={currentView}  // ← ADD THIS LINE
+  />
 );
 }
 
@@ -755,17 +999,54 @@ By signing in, you agree to our{' '}
 }
 
 // Timeline View Component
-function TimelineView({ user, lessons, userStats, handleSelectLesson, handleSignOut, isHubOpen, setIsHubOpen}) {
+function TimelineView({ user, lessons, userStats, handleSelectLesson, handleSignOut, isHubOpen, setIsHubOpen, currentView }) {
 
-// 1. 🛑 IMMEDIATE EARLY RETURN FOR THE HUB 🛑
+  const firstLessonCompleted = lessons.length > 0 && lessons[0].completed;
+  const [day1Complete, setDay1Complete] = useState(false);
+
+  useEffect(() => {
+
+  if (currentView === 'lesson') {
+    console.log('⏸️ Skipping checkDay1 - in lesson');
+    return;
+  }
+  
+  const checkDay1 = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const ref = doc(db, "users", user.uid, "datedcourses", "social_skills");
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return;
+
+      const data = snap.data();
+      const days = Array.isArray(data?.task_overview?.days)
+        ? data.task_overview.days
+        : [];
+
+      const d1 = days.find(d => Number(d.day) === 1);
+      const isComplete = d1?.completed === true;
+
+      setDay1Complete(isComplete);
+    } catch (err) {
+      console.error("Error checking Day 1 status:", err);
+    }
+  };
+
+  checkDay1();
+}, []);
+
+
+
+
+
+
+  // 1. 🛑 IMMEDIATE EARLY RETURN FOR THE HUB 🛑
   if (isHubOpen) {
     return (
       <div className="fixed inset-0 z-[1000] overflow-y-auto bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950">
-        
-        {/* The Hub Component */}
         <IRLConnectionsHub onClose={() => setIsHubOpen(false)} />
-        
-        {/* External Close Button */}
         <button
           onClick={() => setIsHubOpen(false)}
           className="absolute top-4 right-4 z-[1001] p-3 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-lg transition-all"
@@ -775,6 +1056,16 @@ function TimelineView({ user, lessons, userStats, handleSelectLesson, handleSign
       </div>
     );
   }
+
+  if (!day1Complete && !firstLessonCompleted && lessons.length > 0) {
+  return (
+    <FirstLessonPrompt
+      user={user}
+      onStartLesson={() => handleSelectLesson(lessons[0], 0)}
+    />
+  );
+}
+
 
 return (
 <motion.div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 text-slate-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -811,6 +1102,9 @@ return (
 <StatsCard icon={<Flame className="w-6 h-6 text-orange-400" />} value={userStats.streak} label="Days in a row" color="green" />
 <StatsCard icon={<Clock className="w-6 h-6 text-blue-400" />} value={userStats.timeInvested} label="Invested" color="pink" />
 </div>
+
+
+
 
 <div className="relative">
 <h2 className="text-3xl font-bold text-white mb-8 text-center flex items-center justify-center gap-3">
@@ -877,10 +1171,19 @@ return (
 </div>
 
 <div className={`w-full md:w-5/12 ${isLeft ? 'md:pr-12' : 'md:pl-12'}`}>
-<motion.div whileHover={!isLocked ? { scale: 1.03, y: -5 } : {}} className={`relative group bg-gradient-to-br ${lesson.completed ? 'from-green-800/40 to-green-900/40 border-green-500/40' : isLocked ? 'from-slate-800/40 to-slate-900/40 border-slate-700/40 opacity-60' : 'from-purple-800/40 to-blue-900/40 border-purple-500/40 hover:border-purple-400/60'} backdrop-blur-sm rounded-2xl border-2 p-6 transition-all cursor-pointer`} onClick={() => !isLocked && handleSelectLesson(lesson, index)}>
+<motion.div 
+  whileHover={!isLocked ? { scale: 1.03, y: -5 } : {}} 
+  className={`relative group bg-gradient-to-br ${lesson.completed ? 'from-green-800/40 to-green-900/40 border-green-500/40' : isLocked ? 'from-slate-800/40 to-slate-900/40 border-slate-700/40 opacity-60' : 'from-purple-800/40 to-blue-900/40 border-purple-500/40 hover:border-purple-400/60'} backdrop-blur-sm rounded-2xl border-2 p-6 transition-all cursor-pointer`} 
+  onClick={() => {
+    if (!isLocked) {
+      console.log('🎯 LessonCard clicked!', { lesson, index, displayDayNumber });
+      handleSelectLesson(lesson, index);
+    }
+  }}
+>
 <div className="absolute -top-3 -right-3">
 <div className={`px-4 py-2 rounded-xl font-bold text-sm ${lesson.completed ? 'bg-green-500 text-white' : isLocked ? 'bg-slate-700 text-slate-400' : 'bg-gradient-to-r from-purple-500 to-blue-500 text-white'}`}>
-Day {index + 1}
+Day {displayDayNumber}
 </div>
 </div>
 
@@ -1463,109 +1766,73 @@ const DAY_NAVIGATORS = [Day1Navigator, Day2Navigator, Day3Navigator, Day4Navigat
 // ASSUMPTION: The component that renders ChakuSubpage now passes a
 // prop like 'currentDayNumber' based on the timeline index (index + 1).
 const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData }) => {
-
-  // We use the passed prop directly. Fallback to 1 if it's missing (though it shouldn't be).
-  const dayNumber = currentDayNumber || 1; 
+  const dayNumber = currentDayNumber || 1;
   const [showCelebration, setShowCelebration] = useState(false);
 
-  // --- Map Day Number to Navigator with Fallback Logic ---
-  
-  // Renamed to avoid shadowing the global constant
-  const DAY_NAVIGATORS_LIST = [ 
-    Day1Navigator, 
-    Day2Navigator, 
-    Day3Navigator, 
-    Day4Navigator
-  ];
+  const DAY_NAVIGATORS_LIST = [Day1Navigator, Day2Navigator, Day3Navigator, Day4Navigator];
+  const availableNavigatorsCount = DAY_NAVIGATORS_LIST.length;
 
-
-  
-  // The number of available navigators (4)
-  const availableNavigatorsCount = DAY_NAVIGATORS_LIST.length; 
-  
   let navigatorIndex;
+  if (dayNumber > availableNavigatorsCount) navigatorIndex = availableNavigatorsCount - 1;
+  else if (dayNumber >= 1) navigatorIndex = dayNumber - 1;
+  else navigatorIndex = 0;
 
-  if (dayNumber > availableNavigatorsCount) {
-    // If Day 5 or later (since Day 4 is the last unique one)
-    // We force the index to the last available one (Day4Navigator at index 3)
-    navigatorIndex = availableNavigatorsCount - 1; // Forces index to 3
-  } else if (dayNumber >= 1) {
-    // For Day 1, Day 2, Day 3, and Day 4
-    navigatorIndex = dayNumber - 1; 
-  } else {
-    // Fallback if dayNumber is 0 or negative (shouldn't happen with the default)
-    navigatorIndex = 0; 
-  }
-
-  // Get the correct navigator. This will be Day4Navigator for Day 4, Day 5, etc.
   const CurrentNavigator = DAY_NAVIGATORS_LIST[navigatorIndex];
 
-const handleRouterComplete = async () => {
-  console.log('🎯 Router Complete Called!');
-  console.log('📅 User Data:', userData);
-  console.log('👤 Current User:', auth.currentUser?.uid);
-  
-  // Mark the current day's lesson as complete in Firestore
-  if (auth.currentUser && userData?.day) {
-    try {
-      // Find the social_skills document
-      const socialSkillsDocRef = doc(db, 'users', auth.currentUser.uid, 'datedcourses', 'social_skills');
-      const socialSkillsDoc = await getDoc(socialSkillsDocRef);
-      
-      if (socialSkillsDoc.exists()) {
-        const courseData = socialSkillsDoc.data();
-        console.log('📖 Course data:', courseData);
-        
-        // Update the specific day in task_overview.days
-        const updatedDays = courseData.task_overview?.days?.map(day => {
-          console.log('🔍 Checking day:', day.day, 'vs', userData.day);
-          if (day.day === userData.day) {
-            console.log('✅ Found matching day! Marking complete');
-            // ADD the completed field since it doesn't exist
-            return { ...day, completed: true };
-          }
-          return day;
-        }) || [];
-        
-        console.log('📝 Updated days:', updatedDays);
-        
-        // Update Firestore with the new days array
-        await updateDoc(socialSkillsDocRef, {
-          'task_overview.days': updatedDays
-        });
-        
-        console.log('✅ Day marked as complete in Firestore');
-      } else {
-        console.log('⚠️ social_skills document not found');
+  const handleRouterComplete = async () => {
+    console.log("🎯 Router Complete Called!");
+    if (auth.currentUser && userData?.day) {
+      try {
+        const ref = doc(db, "users", auth.currentUser.uid, "datedcourses", "social_skills");
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          const data = snap.data();
+          const updatedDays =
+            data.task_overview?.days?.map((d) =>
+              d.day === userData.day ? { ...d, completed: true } : d
+            ) || [];
+          await updateDoc(ref, { "task_overview.days": updatedDays });
+          console.log("✅ Day marked complete");
+        }
+      } catch (e) {
+        console.error("❌ Error updating Firestore:", e);
       }
-    } catch (error) {
-      console.error('❌ Error marking lesson complete:', error);
     }
-  } else {
-    console.log('⚠️ Missing auth or userData.day');
-  }
-  
-  setShowCelebration(true);
-};
+    setShowCelebration(true);
+  };
 
-const handleCelebrationComplete = async () => {
-  setShowCelebration(false);
-  // Reload user data to reflect completion status
-  if (loadUserData) {
-    await loadUserData();
-  }
-  onNext(); // This will move to 'reflection' subpage
-};
+  const handleCelebrationComplete = async () => {
+    setShowCelebration(false);
+    if (loadUserData) await loadUserData();
+    
+    // Redirect to dashboard for Day 1
+    if (dayNumber === 1) {
+      window.location.href = '/profile';
+    } else {
+      onNext();
+    }
+  };
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
 
-  // If the calculated index led to an invalid navigator
+  // 🔒 Lock scroll when navigator is active
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    };
+  }, []);
+
   if (!CurrentNavigator) {
-    // Error block 
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-slate-900 text-white">
         <AlertCircle className="w-16 h-16 text-red-400 mb-4" />
-        <h2 className="text-2xl font-bold mb-4">
-          No Content Available for Day {dayNumber}
-        </h2>
+        <h2 className="text-2xl font-bold mb-4">No Content Available for Day {dayNumber}</h2>
         <button
           onClick={onNext}
           className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl"
@@ -1576,173 +1843,161 @@ const handleCelebrationComplete = async () => {
     );
   }
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-  }, []);
-
-
-  // Celebration Page
-if (showCelebration) {
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }}
-      className="w-full min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4"
-    >
-      <div className="max-w-4xl w-full text-center">
-        {/* Fireworks/Confetti Effect */}
-        <div className="fixed inset-0 pointer-events-none overflow-hidden">
-          {[...Array(50)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-3 h-3 rounded-full"
-              style={{
-                background: ['#fbbf24', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7'][i % 5],
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`
-              }}
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{
-                scale: [0, 1, 0],
-                opacity: [0, 1, 0],
-                x: [0, (Math.random() - 0.5) * 200],
-                y: [0, (Math.random() - 0.5) * 200]
-              }}
-              transition={{
-                duration: 2,
-                delay: i * 0.02,
-                repeat: Infinity,
-                repeatDelay: 3
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Trophy Animation */}
-        <motion.div
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: "spring", duration: 1, bounce: 0.5 }}
-          className="mb-8"
-        >
-          <div className="w-32 h-32 mx-auto bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-2xl shadow-yellow-500/50">
-            <Trophy className="w-16 h-16 text-white" />
+  // 🎉 Celebration Page
+  if (showCelebration) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="w-full min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4"
+      >
+        <div className="max-w-4xl w-full text-center">
+          <div className="fixed inset-0 pointer-events-none overflow-hidden">
+            {[...Array(50)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-3 h-3 rounded-full"
+                style={{
+                  background: ["#fbbf24", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7"][i % 5],
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                }}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{
+                  scale: [0, 1, 0],
+                  opacity: [0, 1, 0],
+                  x: [0, (Math.random() - 0.5) * 200],
+                  y: [0, (Math.random() - 0.5) * 200],
+                }}
+                transition={{
+                  duration: 2,
+                  delay: i * 0.02,
+                  repeat: Infinity,
+                  repeatDelay: 3,
+                }}
+              />
+            ))}
           </div>
-        </motion.div>
 
-        {/* Main Message */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-yellow-200 via-orange-200 to-pink-200 bg-clip-text text-transparent mb-4">
-            Day {dayNumber} Complete! 🎉
-          </h1>
-          <p className="text-xl md:text-2xl text-purple-200 mb-8">
-            You've crushed today's lesson!
-          </p>
-        </motion.div>
-
-        {/* Stats */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5 }}
-          className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-12"
-        >
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-            <Zap className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-            <p className="text-3xl font-bold text-white">+{userData?.xp || 100}</p>
-            <p className="text-purple-200 text-sm">XP Earned</p>
-          </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-            <Flame className="w-8 h-8 text-orange-400 mx-auto mb-2" />
-            <p className="text-3xl font-bold text-white">{dayNumber}</p>
-            <p className="text-purple-200 text-sm">Day Streak</p>
-          </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-            <Star className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-            <p className="text-3xl font-bold text-white">100%</p>
-            <p className="text-purple-200 text-sm">Completed</p>
-          </div>
-        </motion.div>
-
-        {/* Motivational Quote */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
-          className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 backdrop-blur-sm rounded-2xl p-8 border border-purple-400/30 mb-8 max-w-2xl mx-auto"
-        >
-          <Sparkles className="w-8 h-8 text-yellow-400 mx-auto mb-4" />
-          <p className="text-xl text-purple-100 italic mb-2">
-            "Every day you don't give up is a day you win."
-          </p>
-          <p className="text-purple-300 text-sm">Keep going. You're building something incredible.</p>
-        </motion.div>
-
-        {/* CTA Button */}
-        <motion.button
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleCelebrationComplete}
-          className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-xl px-12 py-5 rounded-2xl shadow-2xl shadow-green-500/50 transition-all"
-        >
-          Continue Journey <ArrowRight className="inline ml-3 w-6 h-6" />
-        </motion.button>
-
-        {/* Skip Option */}
-        <motion.button
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.1 }}
-          onClick={handleCelebrationComplete}
-          className="mt-6 text-purple-300 hover:text-white transition-colors text-sm"
-        >
-          Skip celebration →
-        </motion.button>
-      </div>
-    </motion.div>
-  );
-}
-
-
-  // --- Standard Render ---
-
-  return (
-    <div className="w-full min-h-screen bg-slate-900 text-white">
-      {/* Optional: Show which day this is */}
-      <div className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700/50 py-4 px-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold">{dayNumber}</span>
+          <motion.div
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", duration: 1, bounce: 0.5 }}
+            className="mb-8"
+          >
+            <div className="w-32 h-32 mx-auto bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-2xl shadow-yellow-500/50">
+              <Trophy className="w-16 h-16 text-white" />
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-white">
-                Day {dayNumber} Experience
-              </h3>
-              <p className="text-sm text-slate-400">
-                Interactive Journey 
-              </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-yellow-200 via-orange-200 to-pink-200 bg-clip-text text-transparent mb-4">
+              Day {dayNumber} Complete! 🎉
+            </h1>
+            <p className="text-xl md:text-2xl text-purple-200 mb-8">
+              You've crushed today's lesson!
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5 }}
+            className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-12"
+          >
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <Zap className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
+              <p className="text-3xl font-bold text-white">+{userData?.xp || 100}</p>
+              <p className="text-purple-200 text-sm">XP Earned</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <Flame className="w-8 h-8 text-orange-400 mx-auto mb-2" />
+              <p className="text-3xl font-bold text-white">{dayNumber}</p>
+              <p className="text-purple-200 text-sm">Day Streak</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <Star className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+              <p className="text-3xl font-bold text-white">100%</p>
+              <p className="text-purple-200 text-sm">Completed</p>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7 }}
+            className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 backdrop-blur-sm rounded-2xl p-8 border border-purple-400/30 mb-8 max-w-2xl mx-auto"
+          >
+            <Sparkles className="w-8 h-8 text-yellow-400 mx-auto mb-4" />
+            <p className="text-xl text-purple-100 italic mb-2">
+              "Every day you don't give up is a day you win."
+            </p>
+            <p className="text-purple-300 text-sm">
+              Keep going. You're building something incredible.
+            </p>
+          </motion.div>
+
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.9 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleCelebrationComplete}
+            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-xl px-12 py-5 rounded-2xl shadow-2xl shadow-green-500/50 transition-all"
+          >
+            Continue Journey <ArrowRight className="inline ml-3 w-6 h-6" />
+          </motion.button>
+
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.1 }}
+            onClick={handleCelebrationComplete}
+            className="mt-6 text-purple-300 hover:text-white transition-colors text-sm"
+          >
+            Skip celebration →
+          </motion.button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // 🚀 Fullscreen Navigator Render
+  return (
+    <>
+      {/* Background section */}
+      <div className="w-full min-h-screen bg-slate-900 text-white">
+        <div className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700/50 py-4 px-6">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold">{dayNumber}</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Day {dayNumber} Experience</h3>
+                <p className="text-sm text-slate-400">Interactive Journey</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Render the day-specific navigator */}
-      <CurrentNavigator 
-        key={dayNumber}
-        lessonContent={userData} // Pass all data for the navigator to use
-        onCompleteNavigator={handleRouterComplete} 
-      />
-    </div>
+      {/* Force the navigator to mount at document.body */}
+      {typeof window !== "undefined" &&
+        ReactDOM.createPortal(
+          <CurrentNavigator
+            key={dayNumber}
+            lessonContent={userData}
+            onCompleteNavigator={handleRouterComplete}
+          />,
+          document.body
+        )}
+    </>
   );
 };
 

@@ -47,13 +47,11 @@ const AppLayout = () => {
     );
   }, []);
 
-  const mobileWidthStyle: React.CSSProperties = isMobile
-    ? {
-        overflowX: 'hidden',             // clip horizontal overflow
-        width: '100%',                    // use full width
-        maxWidth: 'min(420px, 100vw)',   // cap at 420px or viewport width
-      }
-    : {};
+  const mobileWidthStyle: React.CSSProperties = {
+  overflowX: 'hidden',
+  width: '100%',
+  maxWidth: '100vw',
+};
 
   const contentStyle: React.CSSProperties = isNavHidden
     ? {}

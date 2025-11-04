@@ -10,15 +10,15 @@ const ConnectionsPage = () => {
       {/* Top Navbar */}
       <header className="flex items-center justify-between px-6 py-4 bg-purple-900/50 backdrop-blur-md border-b border-purple-700/40">
         <div className="flex items-center gap-4">
-          <Link to="/dashboard" className="flex items-center gap-2 text-white hover:text-yellow-400 transition-colors">
-            <ArrowLeft className="w-5 h-5" /> Back
-          </Link>
+          <Link to="/dashboard" className="flex items-center gap-1.5 text-white hover:text-yellow-400 transition-colors text-sm">
+  <ArrowLeft className="w-4 h-4" /> Back
+</Link>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Users className="w-6 h-6 text-green-400" />
             Live Action Support
           </h1>
         </div>
-        <div className="text-sm text-purple-300">Level up your social life with actionable steps!</div>
+        
       </header>
 
       {/* Main Page Content */}

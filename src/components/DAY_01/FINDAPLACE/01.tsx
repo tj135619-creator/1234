@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { doc, setDoc, collection } from "firebase/firestore";
+import { doc, setDoc, collection , writeBatch } from "firebase/firestore";
 import { db, auth } from "./firebase"; // adjust path to your firebase config
 import { MapPin, Edit2, Check, X, TrendingUp, Sparkles, ChevronUp, ChevronDown, Target, Heart, Zap, Plus, Trash2 } from 'lucide-react';
 
@@ -220,7 +220,7 @@ const [isLoadingAI, setIsLoadingAI] = useState(false);
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer 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` // ✅ Add auth header
+        'Authorization': `Bearer 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` // ✅ Add auth header
       },
       body: JSON.stringify({
         user_id: userId,
@@ -331,7 +331,7 @@ const [isLoadingAI, setIsLoadingAI] = useState(false);
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer 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` // ✅ ADD THIS: Include auth token
+        'Authorization': `Bearer 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` // ✅ ADD THIS: Include auth token
       },
       body: JSON.stringify(payload)
     });
@@ -588,58 +588,73 @@ const handleRemoveTip = (index) => {
   console.log("👤 User ID:", uid);
 
   try {
-    console.log("💾 Starting sequential location saves...");
-    const locationsRef = collection(db, "users", uid, "locations");
-
-    for (const [i, loc] of locations.entries()) {
-      console.log(`📍 Writing location ${i + 1}/${locations.length}:`, loc);
-      const locDocRef = doc(locationsRef);
-      await setDoc(locDocRef, loc);
-      console.log(`✅ Saved location ${i + 1}`);
-    }
-
-    console.log("✅ All locations saved. Now saving consolidated data...");
+    console.log("💾 Saving locations in batch (lightweight mode)...");
     const userDocRef = doc(db, "users", uid);
+    const locationsRef = collection(userDocRef, "locations");
+
+    // --- batch save simplified locations ---
+    const batch = writeBatch(db);
+    locations.forEach((loc, i) => {
+      const locDocRef = doc(locationsRef);
+      // Only store essential info to avoid payload bloat
+      batch.set(locDocRef, {
+        name: loc.name || `Location ${i + 1}`,
+        id: loc.id || null,
+        address: loc.address || null,
+        lat: loc.lat || null,
+        lng: loc.lng || null,
+      });
+    });
+    await batch.commit();
+    console.log("✅ Lightweight location data saved");
+
+    // --- Save summary data only ---
     await setDoc(
       userDocRef,
       {
-        selected_locations: locations,
+        selected_locations: locations.map((l) => ({
+          name: l.name || "Unknown",
+          id: l.id || null,
+        })),
         locations_confirmed_at: new Date().toISOString(),
-        goal_name: goalName,
+        goal_name: goalName || "social_skills",
       },
       { merge: true }
     );
-    console.log("✅ User document updated with selected locations");
+    console.log("✅ User document updated with lightweight summary");
 
-    console.log("🌐 Sending request to modify tasks with locations...");
-    const response = await fetch("https://one23-u2ck.onrender.com/modify-tasks-with-locations", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization:
-          "Bearer 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",
-      },
-      body: JSON.stringify({
-        user_id: uid,
-        course_id: "social_skills",
-      }),
-    });
+    // --- Backend trigger ---
+    console.log("🌐 Sending modify-tasks-with-locations request...");
+    const response = await fetch(
+      "https://one23-u2ck.onrender.com/modify-tasks-with-locations",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization:
+            "Bearer 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",
+        },
+        body: JSON.stringify({
+          user_id: uid,
+          course_id: "social_skills",
+        }),
+      }
+    );
 
-    console.log("🌐 Response received:", response.status);
+    console.log("🌐 Response status:", response.status);
     const result = await response.json();
     console.log("📦 Server result:", result);
 
-    if (result.success) {
-      alert("Locations saved and tasks updated!");
+    if (response.ok && result.success) {
+      alert("✅ Locations saved and tasks updated!");
       console.log("🎯 Success: tasks updated");
-      onComplete();
+      onComplete?.();
     } else {
-      console.error("❌ Task update failed:", result.error);
-      alert("Failed to update tasks: " + result.error);
+      throw new Error(result.error || "Task update failed");
     }
   } catch (error) {
     console.error("🔥 Error in handleConfirm:", error);
-    alert("Failed to save locations.");
+    alert("Failed to save locations or update tasks.");
   }
 };
 

@@ -878,12 +878,12 @@ const progress = (currentStep / task.steps.length) * 100;
       setCompletionOnboardingStep(prev => prev + 1);
     } else {
       completeCompletionOnboarding();
-      window.location.href = '/user';
+      window.location.href = '/products';
     }
   }}
   className="flex-1 py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold transition-all"
 >
-  {completionOnboardingStep < completionOnboardingSteps.length - 1 ? 'Next' : "Let's Start My First Lesson!"}
+  {completionOnboardingStep < completionOnboardingSteps.length - 1 ? 'Next' : "Go to Community!"}
 </button>
         <button
           onClick={completeCompletionOnboarding}

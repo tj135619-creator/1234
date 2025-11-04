@@ -66,6 +66,47 @@ const PLACEHOLDER_LESSONS = {
     return () => unsubscribe();
   }, [activeDay]); // <-- ADDED activeDay TO DEPENDENCY ARRAY
 
+
+ useEffect(() => {
+    console.log('🔍 ========== AUTO-OPEN CHECK ==========');
+    
+    const autoOpenData = sessionStorage.getItem('autoOpenLesson');
+    console.log('📦 SessionStorage raw data:', autoOpenData);
+    
+    if (autoOpenData && displayLesson) {
+      try {
+        const parsed = JSON.parse(autoOpenData);
+        console.log('📖 Parsed data:', parsed);
+        console.log('📖 Timestamp:', parsed.timestamp);
+        console.log('⏱️ Time elapsed:', Date.now() - parsed.timestamp, 'ms');
+        
+        if (Date.now() - parsed.timestamp < 10000) {
+          console.log('✅ Auto-opening lesson:', displayLesson.title);
+          
+          if (onStartLesson) {
+            const lessonToOpen = {
+              ...displayLesson,
+              dayNumber: currentDayNumber,
+              day: currentDayNumber,
+              index: currentDayNumber - 1
+            };
+            onStartLesson(lessonToOpen);
+          }
+          
+          sessionStorage.removeItem('autoOpenLesson');
+          console.log('🗑️ Cleared sessionStorage');
+        } else {
+          console.warn('⏰ Timestamp expired');
+          sessionStorage.removeItem('autoOpenLesson');
+        }
+      } catch (e) {
+        console.error('❌ Error parsing sessionStorage:', e);
+      }
+    } else {
+      console.log('⚠️ No auto-open data or lesson not loaded yet');
+    }
+  }, [displayLesson, currentDayNumber, onStartLesson]);
+
   useEffect(() => {
     const handleMouseMove = (e) => {
       setMousePosition({
@@ -481,31 +522,56 @@ const displayDayNumber = activeDay || currentDayNumber;
                 </motion.div>
               ) : (
                 <motion.button
-                  onClick={() => onStartLesson && onStartLesson(displayLesson)}
-                  whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(168, 85, 247, 0.3)" }}
-                  whileTap={{ scale: 0.98 }}
-                  className="group relative overflow-hidden bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg shadow-purple-500/30"
-                >
-                  <span className="relative z-10 flex items-center gap-3">
-                    {isLessonInProgress ? (
-                      <>
-                        <Play className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                        Continue Lesson
-                      </>
-                    ) : (
-                      <>
-                        Start Today's Lesson
-                        <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                      </>
-                    )}
-                  </span>
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-purple-500 to-blue-500"
-                    initial={{ x: '-100%' }}
-                    whileHover={{ x: 0 }}
-                    transition={{ duration: 0.3 }}
-                  />
-                </motion.button>
+  onClick={() => {
+    console.log('🎯 ========== BUTTON CLICKED ==========');
+    console.log('1️⃣ activeDay prop:', activeDay);
+    console.log('2️⃣ displayDayNumber:', displayDayNumber);
+    console.log('3️⃣ finalDisplayLesson:', finalDisplayLesson);
+    console.log('4️⃣ displayLesson:', displayLesson);
+    
+    const lessonToSend = {
+      ...finalDisplayLesson,
+      dayNumber: displayDayNumber,
+      day: displayDayNumber,
+      index: displayDayNumber - 1
+    };
+    
+    console.log('5️⃣ ========== SENDING TO onStartLesson ==========');
+    console.log(JSON.stringify(lessonToSend, null, 2));
+    
+    // Show alert with data
+    alert(`Sending Day ${displayDayNumber}\n\nCheck console for details (you have 5 seconds)`);
+    
+    if (onStartLesson) {
+      onStartLesson(lessonToSend);
+    } else {
+      console.error('❌ onStartLesson is undefined!');
+    }
+  }}
+  whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(168, 85, 247, 0.3)" }}
+  whileTap={{ scale: 0.98 }}
+  className="group relative overflow-hidden bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg shadow-purple-500/30"
+>
+  <span className="relative z-10 flex items-center gap-3">
+    {isLessonInProgress ? (
+      <>
+        <Play className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+        Continue Lesson
+      </>
+    ) : (
+      <>
+        Start Today's Lesson
+        <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+      </>
+    )}
+  </span>
+  <motion.div
+    className="absolute inset-0 bg-gradient-to-r from-purple-500 to-blue-500"
+    initial={{ x: '-100%' }}
+    whileHover={{ x: 0 }}
+    transition={{ duration: 0.3 }}
+  />
+</motion.button>
               )}
             </motion.div>
           </div>
