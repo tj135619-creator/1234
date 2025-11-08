@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { apiKeys } from 'src/backend/keys/apiKeys';
 import { MessageCircle, Send, CheckCircle, Star, Sparkles, Target, TrendingUp, Award, Clock, Zap, ChevronRight, Volume2, Mic, XCircle, Trophy, Flame } from "lucide-react";
 
 // Types
@@ -161,53 +162,60 @@ const handleSendMessage = async () => {
   setUserInput('');
   setIsLoading(true);
 
-  try {
-    const response = await fetch('https://one23-u2ck.onrender.com/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer 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`
-      },
-      body: JSON.stringify({
-        user_id: "HfwcJgkyNNb3T3UdWRDbrCiRQuS2",
-        message: currentMessage,
-        goal_name: "genuine-appreciation"
-      })
-    });
+  let success = false;
+  let result: any = null;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Server error:', errorText);
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
+  for (let i = 0; i < apiKeys.length; i++) {
+    const apiKey = apiKeys[i];
+    try {
+      const response = await fetch('https://one23-u2ck.onrender.com/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          user_id: "HfwcJgkyNNb3T3UdWRDbrCiRQuS2",
+          message: currentMessage,
+          goal_name: "genuine-appreciation"
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.warn(`API key ${i + 1} failed:`, errorText);
+        continue; // try next key
+      }
+
+      result = await response.json();
+      console.log(`✅ API Response with key ${i + 1}:`, result);
+      success = true;
+      break; // exit loop on success
+    } catch (err) {
+      console.warn(`🔥 Request failed with API key ${i + 1}:`, err);
     }
+  }
 
-    const result = await response.json();
-    console.log('API Response:', result);
-    
-    // Backend returns: { reply, current_state, next_state, states }
+  if (success && result) {
     if (result.reply) {
       addBotMessage(result.reply);
-      
+
       // Update conversation state
-      if (result.next_state) {
-        setChatStep(prev => prev + 1);
-      }
-      
-      // Check if we've reached the final state or gotten enough context
-      if (chatStep >= 2 || result.next_state === 'action') {
-        setShowScenarioButton(true);
-      }
+      if (result.next_state) setChatStep(prev => prev + 1);
+
+      // Show scenario button if final state reached
+      if (chatStep >= 2 || result.next_state === 'action') setShowScenarioButton(true);
     } else {
       addBotMessage("Sorry, I didn't receive a proper response. Please try again.");
     }
-
-  } catch (error) {
-    console.error('Chat error:', error);
-    addBotMessage(`Sorry, I'm having trouble connecting. Please check your internet and try again.`);
-  } finally {
-    setIsLoading(false);
+  } else {
+    console.warn('⚠️ All API keys failed, sending fallback message.');
+    addBotMessage("Sorry, I'm having trouble connecting. Please check your internet and try again.");
   }
+
+  setIsLoading(false);
 };
+
 
   const handleStartScenario = () => {
     setStage('scenario');

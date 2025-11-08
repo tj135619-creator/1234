@@ -4,30 +4,30 @@ import { Brain, TrendingUp, MessageCircle, Trophy, Star, Check } from "lucide-re
 const features = [
   {
     icon: Brain,
-    title: "Guided Daily Missions",
+    title: "Tiny Daily Missions",
     description:
-      "Start with micro-actions that feel manageable—like 'make eye contact once today' or 'say hi to a cashier.' Our AI breaks social skills into steps so small, you can't fail. No pressure. No judgment. Just progress.",
+      "Start small like 'say hi once' or 'notice someone’s smile.' Each mission is broken into tiny steps so you can make progress without pressure.",
     gradient: "from-blue-500 to-blue-600",
   },
   {
     icon: TrendingUp,
-    title: "Interactive Map Experience",
+    title: "Track Your Progress",
     description:
-      "See your progress visualized like a game map. Each completed mission unlocks the next skill—from 'Being Present' to 'Starting Conversations.' You're not lost anymore. You have a path.",
+      "Your journey feels like a game map. Each small win unlocks the next step. No guessing just a clear path forward.",
     gradient: "from-purple-500 to-purple-600",
   },
   {
     icon: MessageCircle,
-    title: "Role-Play & Live Support",
+    title: "Get Guidance & Feedback",
     description:
-      "Practice in a safe space where mistakes don't matter. Ask our AI: 'What do I say when someone asks about my weekend?' Get instant feedback. Build confidence before trying it in real life.",
+      "Ask questions and get practical tips from others who understand. Practice privately and build confidence at your own pace.",
     gradient: "from-indigo-500 to-indigo-600",
   },
   {
     icon: Trophy,
-    title: "Private Progress Tracking",
+    title: "Celebrate Wins",
     description:
-      "Track your progress privately with streaks and milestones. When you're ready, connect with others who started exactly where you are—not where you wish you were.",
+      "Log your milestones and streaks privately. When ready, share progress with others who’ve been in your shoes.",
     gradient: "from-violet-500 to-violet-600",
   },
 ];
@@ -42,34 +42,35 @@ export default function FeaturePreview() {
   return (
     <div>
       <div className="text-center lg:text-left mb-8">
-        <motion.h3
-          className="text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          You're Not Broken.{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-            You Just Need a Different Starting Point.
-          </span>
-        </motion.h3>
-        <motion.p
-          className="text-slate-400 text-lg mb-2"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-        >
-          AI-guided social skills for people starting from zero
-        </motion.p>
-        <motion.p
-          className="text-slate-300 text-xl leading-relaxed"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          Start with actions so small they don't feel scary. Build real connection skills one tiny step at a time—completely private, zero pressure, 100% free.
-        </motion.p>
-      </div>
+  <motion.h3
+    className="text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.6 }}
+  >
+    Daily Social Practice{" "}
+    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+      with People Just Like Us
+    </span>
+  </motion.h3>
+  <motion.p
+    className="text-slate-400 text-lg mb-2"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.6, delay: 0.1 }}
+  >
+    Take small, practical steps every day to improve your interactions
+  </motion.p>
+  <motion.p
+    className="text-slate-300 text-xl leading-relaxed"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.6, delay: 0.2 }}
+  >
+    Practice in real situations, get guidance from peers, and grow together one small action at a time.
+  </motion.p>
+</div>
+
 
       {/* Reassurance Bar */}
       <motion.div
@@ -81,15 +82,15 @@ export default function FeaturePreview() {
         <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-8 text-sm text-slate-300">
           <span className="flex items-center space-x-2">
             <Check size={16} className="text-green-400" />
-            <span>Start completely alone</span>
+            <span>Work at your own pace</span>
           </span>
           <span className="flex items-center space-x-2">
             <Check size={16} className="text-green-400" />
-            <span>No awkward group chats</span>
+            <span>No pressure, no judgment</span>
           </span>
           <span className="flex items-center space-x-2">
             <Check size={16} className="text-green-400" />
-            <span>Practice privately first</span>
+            <span>Practice privately or with support</span>
           </span>
         </div>
       </motion.div>
@@ -125,37 +126,7 @@ export default function FeaturePreview() {
       </div>
 
       {/* Social Proof */}
-      <motion.div
-        className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-white/10 rounded-xl p-6"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.8 }}
-        data-testid="testimonial-section"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex -space-x-2">
-            {testimonialAvatars.map((avatar, index) => (
-              <img
-                key={index}
-                src={avatar}
-                alt={`User testimonial ${index + 1}`}
-                className="w-10 h-10 rounded-full border-2 border-slate-800 object-cover"
-                data-testid={`avatar-${index}`}
-              />
-            ))}
-          </div>
-          <div className="flex items-center space-x-2 text-slate-300 text-sm">
-            <Star className="text-yellow-400 fill-current" size={14} />
-            <span>Trusted by people who started from zero</span>
-          </div>
-        </div>
-        <blockquote className="text-white font-medium mb-2 leading-relaxed">
-          "I hadn't had a real conversation in months. GoalGrid helped me take the first step without feeling judged. Now I actually have someone to text."
-        </blockquote>
-        <cite className="text-slate-400 text-sm not-italic">
-          – Someone who gets it
-        </cite>
-      </motion.div>
+      
 
       {/* Final Reassurance */}
       <motion.div
@@ -165,7 +136,7 @@ export default function FeaturePreview() {
         transition={{ duration: 0.6, delay: 1 }}
       >
         <p className="text-slate-400 text-sm">
-          No cost. No risk. Just you and a clear path forward.
+          No cost. No risk. Just you and a community that understands.
         </p>
       </motion.div>
     </div>

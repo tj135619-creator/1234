@@ -20,69 +20,78 @@ import FeaturePreview from "./Newfolder/featurespreview";
 const detailedFeatures = [
   {
     icon: Brain,
-    title: "AI-Powered Daily Missions",
+    title: "Daily Social Practice",
     description:
-      "Every day, our AI creates personalized challenges based on Dale Carnegie's principles. Start with simple tasks like 'smile at 3 people' and progress to 'lead a team discussion.'",
+      "Each day, you'll get a small, practical exercise. Start with simple actions like greeting someone or starting a short chat. Over time, these build into stronger social confidence.",
     benefits: [
-      "Personalized to your skill level",
-      "Based on proven psychology",
-      "Gradual confidence building",
+      "Exercises match your current comfort level",
+      "Small steps you can do daily",
+      "Gradual skill improvement"
     ],
     gradient: "from-blue-500 to-blue-600",
   },
   {
     icon: TrendingUp,
-    title: "Interactive Progress Map",
+    title: "Visual Progress Tracker",
     description:
-      "Unlock skill nodes on a game-like map as you complete missions. Watch your social skills tree grow with visual progress tracking and achievement milestones.",
+      "See your growth over time with a simple map that highlights the steps you've completed. Watching your progress helps you stay motivated and see tangible improvements.",
     benefits: [
-      "Visual progress tracking",
-      "Unlock new skill areas",
-      "Gamified learning path",
+      "Track what you've accomplished",
+      "Identify next steps",
+      "Stay motivated by progress"
     ],
     gradient: "from-purple-500 to-purple-600",
   },
   {
     icon: MessageCircle,
-    title: "Real-Time AI Coaching",
+    title: "Guided Conversations",
     description:
-      "Get live support when you need it most. Practice conversations, get feedback on your approach, and build confidence before important social interactions.",
-    benefits: ["Role-play practice", "Instant feedback", "Confidence building"],
+      "Get on-the-spot guidance while practicing social interactions. This helps you prepare for real-life conversations and gain confidence before trying something new.",
+    benefits: [
+      "Practice different scenarios",
+      "Receive feedback quickly",
+      "Learn by doing"
+    ],
     gradient: "from-indigo-500 to-indigo-600",
   },
   {
     icon: Trophy,
-    title: "Achievement & Streak System",
+    title: "Daily Milestones",
     description:
-      "Maintain daily streaks, earn badges, and celebrate milestones. Turn social skills development into an engaging game with rewards for consistency.",
+      "Celebrate small wins by tracking daily consistency and earning visual markers for your progress. The goal is to make improvement feel achievable and rewarding.",
     benefits: [
-      "Daily streak motivation",
-      "Achievement badges",
-      "Progress celebrations",
+      "Recognize your daily efforts",
+      "Celebrate small achievements",
+      "Encourage routine building"
     ],
     gradient: "from-violet-500 to-violet-600",
   },
   {
     icon: Target,
-    title: "Goal-Driven Learning",
+    title: "Personal Goals",
     description:
-      "Set your personal social goals and receive customized lesson plans. Whether it's networking, dating confidence, or leadership skills - we adapt to your needs.",
+      "Decide what areas you want to focus on — whether meeting new people, speaking up more, or leading a group. Each step is tailored to what matters most to you.",
     benefits: [
-      "Personalized learning paths",
-      "Custom goal setting",
-      "Adaptive content",
+      "Focus on your priorities",
+      "Receive guidance that fits you",
+      "Adapt as you progress"
     ],
     gradient: "from-emerald-500 to-emerald-600",
   },
   {
     icon: Users,
-    title: "Community Challenges",
+    title: "Shared Learning",
     description:
-      "Join 5-day challenges with other learners, share progress, and get supportive feedback. Build accountability through community connection.",
-    benefits: ["Group accountability", "Peer support", "Shared experiences"],
+      "Connect with others who are working on similar social skills. Try small group challenges and share experiences to stay accountable and learn from peers.",
+    benefits: [
+      "Exchange ideas with others",
+      "Support from a small group",
+      "Shared progress boosts motivation"
+    ],
     gradient: "from-orange-500 to-orange-600",
   },
 ];
+
 
 const successStats = [
   { number: "1", label: "Book" },
@@ -230,30 +239,7 @@ export function SignInView() {
           </motion.div>
 
           {/* Testimonial Section */}
-          <motion.div
-            className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-white/10 rounded-2xl p-6 md:p-8 text-center mb-8 md:mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.7 }}
-          >
-            <div className="flex justify-center space-x-1 mb-4">
-              {[...Array(5)].map((_, index) => (
-                <Star
-                  key={index}
-                  className="text-yellow-400 fill-current"
-                  size={20}
-                />
-              ))}
-            </div>
-            <blockquote className="text-white font-medium text-base md:text-lg mb-4 px-4">
-              "I went from avoiding eye contact to confidently leading
-              meetings at work. GoalGrid broke down social skills into
-              achievable daily steps that actually work."
-            </blockquote>
-            <cite className="text-slate-400 text-sm md:text-base">
-              – Sarah M., Product Manager
-            </cite>
-          </motion.div>
+          
 
           {/* Final CTA */}
           <motion.div

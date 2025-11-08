@@ -9,6 +9,7 @@ import {
   Calendar, X
 } from "lucide-react";
 import Confetti from "react-confetti";
+import { apiKeys } from 'src/backend/keys/apiKeys';
 
 // Firebase imports
 import { initializeApp } from 'firebase/app';
@@ -604,50 +605,57 @@ const handleTaskClick = (taskObj: Task, taskIndex: number) => {
   setShowTaskModal(true);
 };
 
-const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+
 
 const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
-  try {
-    setLoadingLiveSupport(true);
-    
-    const response = await fetch('https://one23-u2ck.onrender.com/live-action-support', {  // Removed double slash
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        task_name: taskObj.task,
-        user_id: userId,
-        category: "General Social",
-        difficulty: taskObj.difficulty || "Medium",
-        user_context: {
-          anxiety_level: "moderate",
-          experience: "beginner",
-          specific_challenges: []
-        }
-      })
-    });
+  setLoadingLiveSupport(true);
 
-    const data = await response.json();
-    
-    if (!response.ok) {
-      console.error('Server error:', data);
-      throw new Error(data.error || 'Failed to get live support');
-    }
+  for (let i = 0; i < apiKeys.length; i++) {
+    const apiKey = apiKeys[i];
 
-    if (data.success && data.task) {
-      window.location.href = `/connections?task=${encodeURIComponent(JSON.stringify(data.task))}`;
-    } else {
-      throw new Error('Invalid response from server');
+    try {
+      const response = await fetch('https://one23-u2ck.onrender.com/live-action-support', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          task_name: taskObj.task,
+          user_id: userId,
+          category: "General Social",
+          difficulty: taskObj.difficulty || "Medium",
+          user_context: {
+            anxiety_level: "moderate",
+            experience: "beginner",
+            specific_challenges: []
+          }
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.warn(`API key ${apiKey} failed:`, data.error || 'Unknown error');
+        continue; // Try next key
+      }
+
+      if (data.success && data.task) {
+        window.location.href = `/connections?task=${encodeURIComponent(JSON.stringify(data.task))}`;
+        return; // Success, exit the function
+      } else {
+        console.warn(`API key ${apiKey} returned invalid response`);
+        continue; // Try next key
+      }
+
+    } catch (error) {
+      console.warn(`API key ${apiKey} request failed:`, error);
+      // Try next key
     }
-    
-  } catch (error) {
-    console.error('Error getting live support:', error);
-    alert(`Failed to get live support: ${error.message}`);
-  } finally {
-    setLoadingLiveSupport(false);
   }
+
+  alert('All API keys failed. Please try again later.');
+  setLoadingLiveSupport(false);
 };
 
 

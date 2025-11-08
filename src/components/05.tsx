@@ -107,6 +107,9 @@ const PLACEHOLDER_LESSONS = {
     }
   }, [displayLesson, currentDayNumber, onStartLesson]);
 
+
+  
+
   useEffect(() => {
     const handleMouseMove = (e) => {
       setMousePosition({

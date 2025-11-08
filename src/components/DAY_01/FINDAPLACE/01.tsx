@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { doc, setDoc, collection , writeBatch } from "firebase/firestore";
 import { db, auth } from "./firebase"; // adjust path to your firebase config
 import { MapPin, Edit2, Check, X, TrendingUp, Sparkles, ChevronUp, ChevronDown, Target, Heart, Zap, Plus, Trash2 } from 'lucide-react';
+import { apiKeys } from 'src/backend/keys/apiKeys';
 
 
 const AILocationDiscovery = ({ onComplete }) => {
@@ -206,53 +207,74 @@ const [isLoadingAI, setIsLoadingAI] = useState(false);
 
   const generateAiResponse = async (newInputs, allInterests) => {
   setIsLoadingAI(true);
-  
+
   try {
     // ✅ Get the Firebase auth token
     const user = auth.currentUser;
     if (!user) {
       throw new Error('User not authenticated');
     }
-    
     const token = await user.getIdToken();
-    
-    const response = await fetch(`${API_BASE}/reply-day-chat-advanced`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_GROQ_API_KEY}` // ✅ Add auth header
-      },
-      body: JSON.stringify({
-        user_id: userId,
-        message: newInputs.join(', '),
-        goal_name: goalName,
-        user_interests: allInterests.map(i => i.text)
-      })
-    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error:', response.status, errorText);
-      throw new Error(`API failed: ${response.status}`);
+    let data: any;
+    let success = false;
+
+    for (let i = 0; i < apiKeys.length; i++) {
+      const apiKey = apiKeys[i];
+      try {
+        const response = await fetch(`${API_BASE}/reply-day-chat-advanced`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            message: newInputs.join(', '),
+            goal_name: goalName,
+            user_interests: allInterests.map(i => i.text)
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.warn(`API key ${apiKey} failed:`, response.status, errorText);
+          continue; // try next key
+        }
+
+        data = await response.json();
+        success = true;
+        break; // success, exit loop
+      } catch (err) {
+        console.warn(`Request failed with key ${apiKey}:`, err);
+        // try next key
+      }
     }
-    
-    const data = await response.json();
+
     setIsLoadingAI(false);
-    return data.reply || "Thanks for sharing! Tell me more.";
-    
-  } catch (error) {
-    console.error('AI Error:', error);
-    setIsLoadingAI(false);
-    
-    // Fallback responses
-    const responses = [
+    if (success) return data.reply || "Thanks for sharing! Tell me more.";
+
+    // fallback if all keys fail
+    const fallbackResponses = [
       "Fascinating! I'm detecting patterns in your neural map. Keep sharing!",
       "Great! Building connections between your interests. Tell me more!",
       "I see! Your neural network is taking shape beautifully."
     ];
-    return responses[Math.floor(Math.random() * responses.length)];
+    return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+
+  } catch (error) {
+    console.error('AI Error:', error);
+    setIsLoadingAI(false);
+
+    const fallbackResponses = [
+      "Fascinating! I'm detecting patterns in your neural map. Keep sharing!",
+      "Great! Building connections between your interests. Tell me more!",
+      "I see! Your neural network is taking shape beautifully."
+    ];
+    return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
   }
 };
+
 
   const categorizeInterest = (text) => {
     const lower = text.toLowerCase();
@@ -308,18 +330,19 @@ const [isLoadingAI, setIsLoadingAI] = useState(false);
   setStage('analyzing');
   setIsLoadingAI(true);
 
-  setAiResponses([...aiResponses, { 
-    id: Date.now(), 
-    text: `Perfect! I've mapped ${interests.length} interests across your neural network. Now analyzing patterns to discover your ideal social locations...` 
-  }]);
+  // Add initial AI message
+  setAiResponses(prev => [
+    ...prev,
+    { 
+      id: Date.now(), 
+      text: `Perfect! I've mapped ${interests.length} interests across your neural network. Now analyzing patterns to discover your ideal social locations...` 
+    }
+  ]);
 
   try {
-    // ✅ ADD THIS: Get Firebase auth token
+    // ✅ Get Firebase auth token
     const user = auth.currentUser;
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-    
+    if (!user) throw new Error('User not authenticated');
     const token = await user.getIdToken();
     console.log("[AI] User authenticated, token obtained");
 
@@ -327,77 +350,82 @@ const [isLoadingAI, setIsLoadingAI] = useState(false);
     console.log("[AI] Sending request to:", `${API_BASE}/generate-user-places`);
     console.log("[AI] Request payload:", payload);
 
-    const response = await fetch(`${API_BASE}/generate-user-places`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_GROQ_API_KEY}` // ✅ ADD THIS: Include auth token
-      },
-      body: JSON.stringify(payload)
-    });
+    let data: any;
+    let success = false;
 
-    console.log("[AI] Response status:", response.status, response.statusText);
+    // ✅ Multi-key failover
+    for (let i = 0; i < apiKeys.length; i++) {
+      const apiKey = apiKeys[i];
+      try {
+        const response = await fetch(`${API_BASE}/generate-user-places`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify(payload)
+        });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[AI] Error response:", errorText);
-      throw new Error(`API failed with status ${response.status}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.warn(`[AI] API key ${apiKey} failed:`, response.status, errorText);
+          continue; // Try next key
+        }
+
+        data = await response.json();
+        success = true;
+        break; // Success
+      } catch (err) {
+        console.warn(`[AI] Request failed with key ${apiKey}:`, err);
+        // Try next key
+      }
     }
 
-    const data = await response.json();
     setIsLoadingAI(false);
 
-    // ✅ ADD THIS: Show what was extracted
+    if (!success) throw new Error("All API keys failed. Using fallback.");
+
+    // ✅ Handle extracted places
     if (data.extracted_this_turn) {
       console.log("✅ Extracted this turn:", data.extracted_this_turn);
-    
       const { current_places, desired_places } = data.extracted_this_turn;
-    
-      // Show extraction feedback if places were found
-      if (current_places.length > 0 || desired_places.length > 0) {
+
+      if ((current_places?.length || 0) > 0 || (desired_places?.length || 0) > 0) {
         const badges = [];
-        if (current_places.length > 0) {
-          badges.push(`📍 Places you go: ${current_places.join(", ")}`);
-        }
-        if (desired_places.length > 0) {
-          badges.push(`✨ Want to try: ${desired_places.join(", ")}`);
-        }
-        
-        // Add as a special message after AI response
+        if (current_places?.length) badges.push(`📍 Places you go: ${current_places.join(", ")}`);
+        if (desired_places?.length) badges.push(`✨ Want to try: ${desired_places.join(", ")}`);
+
         setTimeout(() => {
-          setAiResponses(prev => [...prev, {
-            id: Date.now() + 1,
-            text: `I captured: ${badges.join(" • ")}`,
-            isExtraction: true
-          }]);
+          setAiResponses(prev => [
+            ...prev,
+            {
+              id: Date.now() + 1,
+              text: `I captured: ${badges.join(" • ")}`,
+              isExtraction: true
+            }
+          ]);
         }, 500);
       }
     }
 
     console.log("[AI] Raw API response:", data);
 
-    let aiText = data.suggested_places || '';
-    aiText = aiText.replace(/```json|```/g, '').trim();
-
+    let aiText = (data.suggested_places || '').replace(/```json|```/g, '').trim();
     let parsedLocations = [];
 
     try {
-      // Try full JSON parse first
       const match = aiText.match(/\{[\s\S]*\}/);
       if (match) {
         const parsed = JSON.parse(match[0]);
         parsedLocations = parsed.locations || [];
       }
     } catch (err) {
-      console.warn("[AI WARN] Failed full JSON parse, falling back to partial extraction:", err);
-
-      // Extract only id, name, reason using regex
+      console.warn("[AI WARN] Failed full JSON parse, falling back:", err);
       const locationMatches = [...aiText.matchAll(/"id"\s*:\s*(\d+)[\s\S]*?"name"\s*:\s*"([^"]+)"[\s\S]*?"reason"\s*:\s*"([^"]+)"/g)];
       parsedLocations = locationMatches.map(m => ({
         id: parseInt(m[1], 10),
         name: m[2],
         reason: m[3],
-        // Fill defaults for missing fields
         comfortScore: null,
         conversationPotential: null,
         tips: []
@@ -405,14 +433,15 @@ const [isLoadingAI, setIsLoadingAI] = useState(false);
     }
 
     console.log("[AI] Parsed locations:", parsedLocations);
-
     setLocations(parsedLocations);
-    setIsLoadingAI(false);
 
-    setAiResponses([...aiResponses, { 
-      id: Date.now() + 1, 
-      text: `Analysis complete! Based on your neural map, I've discovered ${parsedLocations.length} locations!` 
-    }]);
+    setAiResponses(prev => [
+      ...prev,
+      { 
+        id: Date.now() + 1, 
+        text: `Analysis complete! Based on your neural map, I've discovered ${parsedLocations.length} locations!` 
+      }
+    ]);
 
     setStage('results');
 
@@ -420,7 +449,7 @@ const [isLoadingAI, setIsLoadingAI] = useState(false);
     console.error("[AI ERROR] Location generation error:", error);
     setIsLoadingAI(false);
 
-    console.warn("[AI] Falling back to local location generation logic...");
+    console.warn("[AI] Falling back to local location generation...");
     const fallbackLocations = generateFallbackLocations(interests);
     console.log("[AI] Fallback locations:", fallbackLocations);
 
@@ -428,6 +457,7 @@ const [isLoadingAI, setIsLoadingAI] = useState(false);
     setStage('results');
   }
 };
+
 
 
 
@@ -596,7 +626,6 @@ const handleRemoveTip = (index) => {
     const batch = writeBatch(db);
     locations.forEach((loc, i) => {
       const locDocRef = doc(locationsRef);
-      // Only store essential info to avoid payload bloat
       batch.set(locDocRef, {
         name: loc.name || `Location ${i + 1}`,
         id: loc.id || null,
@@ -623,39 +652,57 @@ const handleRemoveTip = (index) => {
     );
     console.log("✅ User document updated with lightweight summary");
 
-    // --- Backend trigger ---
+    // --- Backend trigger with multi-key failover ---
     console.log("🌐 Sending modify-tasks-with-locations request...");
-    const response = await fetch(
-  "https://one23-u2ck.onrender.com/modify-tasks-with-locations",
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`, // ✅ Use backticks ` not quotes "
-    },
-    body: JSON.stringify({
-      user_id: uid,
-      course_id: "social_skills",
-    }),
-  }
-);
+    let success = false;
+    let result: any = null;
 
-    console.log("🌐 Response status:", response.status);
-    const result = await response.json();
-    console.log("📦 Server result:", result);
+    for (let i = 0; i < apiKeys.length; i++) {
+      const apiKey = apiKeys[i];
+      try {
+        const response = await fetch(
+          "https://one23-u2ck.onrender.com/modify-tasks-with-locations",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              user_id: uid,
+              course_id: "social_skills",
+            }),
+          }
+        );
 
-    if (response.ok && result.success) {
+        console.log(`🌐 Response status with key ${i + 1}:`, response.status);
+
+        result = await response.json();
+
+        if (response.ok && result.success) {
+          success = true;
+          console.log("🎯 Success: tasks updated");
+          break; // stop trying further keys
+        } else {
+          console.warn(`API key ${i + 1} failed:`, result.error || "Unknown error");
+        }
+      } catch (err) {
+        console.warn(`Request failed with API key ${i + 1}:`, err);
+      }
+    }
+
+    if (success) {
       alert("✅ Locations saved and tasks updated!");
-      console.log("🎯 Success: tasks updated");
       onComplete?.();
     } else {
-      throw new Error(result.error || "Task update failed");
+      throw new Error("All API keys failed. Could not update tasks.");
     }
   } catch (error) {
     console.error("🔥 Error in handleConfirm:", error);
     alert("Failed to save locations or update tasks.");
   }
 };
+
 
 
 

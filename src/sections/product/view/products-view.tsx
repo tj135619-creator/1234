@@ -1,7 +1,7 @@
 import React, { useState, useEffect , Fragment } from 'react';
 import GroupGrid from './GroupGrid';
 import { Users, Trophy, Target, MessageCircle, Bell, Search, Filter, TrendingUp, Award, Flame, Crown, Star, Zap, Calendar, Clock, Share2, BarChart3, Gift, Heart, ThumbsUp, Send, X, Plus, ChevronRight, Sparkles, CheckCircle, Edit3, Trash2, LogOut, Settings, UserPlus, UserMinus, Loader, AlertCircle } from 'lucide-react';
-
+import SocialCityMap from 'src/components/actionmap'
 import IRLConnectionsHub from './irlconnections'
 import IRLConnectionsValueHero from './HerosectionIRL'
 
@@ -318,6 +318,7 @@ export default  function ProductsView() {
   // ============================================
 
  
+const [mapExpanded, setMapExpanded] = useState(true);
 const [showChallengeModal, setShowChallengeModal] = useState(false);
 const [selectedChallengeUser, setSelectedChallengeUser] = useState(null);
 const [selectedChallengeTemplate, setSelectedChallengeTemplate] = useState(null);
@@ -1487,6 +1488,8 @@ const loadChallengeTemplates = async () => {
             <p className="text-purple-200 text-sm md:text-lg lg:text-xl max-w-2xl mx-auto mb-3 md:mb-4 px-4">
               Transform your skills through community, track progress, and unlock your potential
             </p>
+            
+
             <CommunityStories 
   userId={currentUser?.uid} 
   userName={userProfile?.name}
@@ -1498,69 +1501,11 @@ const loadChallengeTemplates = async () => {
               <p className="text-xs md:text-sm">{dailyQuote}</p>
               <Sparkles className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
             </div>
-            <button
-  onClick={() => setIsHubOpen(true)}
-  className="px-6 py-3 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-2xl hover:scale-105 transition-all duration-300 transform active:scale-95 border-4 border-white/50"
-  title="Open IRL Connections Hub"
->
-  <Users className="w-6 h-6 mr-2 inline" />
-  Open IRL Connections Hub
-</button>
-          </header>
 
-          </div>
+           <div className="mb-12">
+  <SocialCityMap />
+</div>
 
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-3 md:mb-4 bg-gradient-to-r from-purple-200 via-pink-200 to-purple-300 bg-clip-text text-transparent px-4 text-center">
-              See the progress of the entire community 
-            </h1>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
-            
-            <div className="bg-gradient-to-br from-purple-800/60 to-purple-900/60 backdrop-blur-sm p-4 md:p-6 rounded-xl md:rounded-2xl border border-purple-500/30 hover:border-purple-400/50 transition-all active:scale-95 md:hover:-translate-y-2 cursor-pointer">
-              
-              <div className="flex items-center justify-between mb-2">
-                <Trophy className="w-5 h-5 md:w-6 md:h-6 text-yellow-400" />
-                <span className="text-purple-300 text-xs md:text-sm font-medium">Total XP</span>
-              </div>
-              <p className="text-2xl md:text-3xl font-bold text-white">
-                {((userProfile?.stats?.totalXP || 0) / 1000).toFixed(1)}K
-              </p>
-              <div className="flex items-center gap-2 mt-2">
-                <TrendingUp className="w-3 h-3 md:w-4 md:h-4 text-green-400" />
-                <span className="text-xs text-green-400 font-bold">+{userProfile?.stats?.weeklyXP || 0}</span>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-pink-800/60 to-purple-900/60 backdrop-blur-sm p-4 md:p-6 rounded-xl md:rounded-2xl border border-pink-500/30 hover:border-pink-400/50 transition-all active:scale-95 md:hover:-translate-y-2 cursor-pointer">
-              <div className="flex items-center justify-between mb-2">
-                <Flame className="w-5 h-5 md:w-6 md:h-6 text-orange-400" />
-                <span className="text-purple-300 text-xs md:text-sm font-medium">Streak</span>
-              </div>
-              <p className="text-2xl md:text-3xl font-bold text-white">{userProfile?.stats?.streak || 0}</p>
-              <p className="text-purple-300 text-xs mt-2">Days in a row</p>
-            </div>
-
-            <div className="bg-gradient-to-br from-indigo-800/60 to-purple-900/60 backdrop-blur-sm p-4 md:p-6 rounded-xl md:rounded-2xl border border-indigo-500/30 hover:border-indigo-400/50 transition-all active:scale-95 md:hover:-translate-y-2 cursor-pointer">
-              <div className="flex items-center justify-between mb-2">
-                <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-400" />
-                <span className="text-purple-300 text-xs md:text-sm font-medium">Actions</span>
-              </div>
-              <p className="text-2xl md:text-3xl font-bold text-white">{userProfile?.stats?.tasksCompleted || 0}</p>
-              <p className="text-purple-300 text-xs mt-2">Total completed</p>
-            </div>
-
-            <div className="bg-gradient-to-br from-purple-800/60 to-indigo-900/60 backdrop-blur-sm p-4 md:p-6 rounded-xl md:rounded-2xl border border-purple-500/30 hover:border-purple-400/50 transition-all active:scale-95 md:hover:-translate-y-2 cursor-pointer">
-              <div className="flex items-center justify-between mb-2">
-                <Users className="w-5 h-5 md:w-6 md:h-6 text-blue-400" />
-                <span className="text-purple-300 text-xs md:text-sm font-medium">Friends</span>
-              </div>
-              <p className="text-2xl md:text-3xl font-bold text-white">{userProfile?.stats?.friendsCount || 0}</p>
-              <p className="text-purple-300 text-xs mt-2">Connections</p>
-            </div>
-          </div>
-          
-
-          {/* Action Groups Button */}
-<div className="mb-6 md:mb-8 text-center">
 <button
   onClick={() => {
   console.log('🔍 Button clicked!');
@@ -1577,26 +1522,36 @@ const loadChallengeTemplates = async () => {
   <ChevronRight size={20} />
 </button>
 
+  <button
+  onClick={() => setIsHubOpen(true)}
+  className="px-6 py-3 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-2xl hover:scale-105 transition-all duration-300 transform active:scale-95 border-4 border-white/50"
+  title="Open IRL Connections Hub"
+>
+  <Users className="w-6 h-6 mr-2 inline" />
+  Open IRL Connections Hub
+</button>
 
 
+         
+          </header>
 
-<GroupGrid
-  groups={groups}              // Array of group objects [{id, name, icon, members, activeNow, ...}]
-  onGroupClick={(groupId) => {
-    console.log('Clicked group:', groupId);
-    // navigate or open group chat
-  }}
-  onAction={(groupId, action) => {
-    console.log(`Action "${action}" triggered for group ${groupId}`);
-    // handle log action, message, etc.
-  }}
-/>
+          </div>
 
-
+           
+           
           
-          <div className="mb-6 md:mb-8">
+
+          {/* Action Groups Button */}
+          <div className="mb-6 md:mb-4 text-center">
+
+            
+         
+          <div className="mb-6 md:mb-6">
             <div className="flex gap-2 md:gap-3 flex-wrap">
+              
               <div className="flex-1 min-w-[200px] relative">
+
+                
                 <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-purple-400 pointer-events-none" />
                 <input
                   type="text"

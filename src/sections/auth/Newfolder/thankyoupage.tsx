@@ -17,72 +17,79 @@ import { Button } from "@/components/ui/button";
 const detailedFeatures = [
   {
     icon: Brain,
-    title: "Micro-Missions You Can Actually Do",
+    title: "Tiny Missions You Can Actually Do",
     description:
-      "Start with actions so small they feel manageable—like 'make eye contact with one person today.' Our AI creates daily steps based on where you actually are, not where you think you should be.",
+      "Start with super small actions—like saying hi to one person today. The community breaks social stuff into tiny steps so it’s doable, even if you’re shy or anxious.",
     benefits: [
       "Matched to your comfort level",
-      "Based on proven psychology",
-      "Build confidence gradually",
+      "Learn from proven approaches",
+      "Build confidence step by step",
     ],
     gradient: "from-blue-500 to-blue-600",
   },
   {
     icon: TrendingUp,
-    title: "See Your Progress (Privately)",
+    title: "Track Your Progress Privately",
     description:
-      "Track your journey on a visual map that only you can see. Each completed mission unlocks the next small step—watch your path unfold without anyone watching or judging.",
+      "See your journey unfold on a private map. Each small win unlocks the next step. No one’s watching—just you noticing your own growth.",
     benefits: [
       "Private progress tracking",
       "Unlock skills at your pace",
-      "No comparisons to others",
+      "No comparing yourself to anyone else",
     ],
     gradient: "from-purple-500 to-purple-600",
   },
   {
     icon: MessageCircle,
-    title: "Practice Without Real-World Risk",
+    title: "Practice & Get Real Tips",
     description:
-      "Talk to our AI when you need help. Practice what to say, get feedback in private, and build confidence before trying anything in real life. No pressure. No audience.",
-    benefits: ["Safe practice space", "Instant private feedback", "Zero social risk"],
+      "Ask the community for advice whenever you’re stuck. Practice conversations in a safe space and build confidence before trying it in the real world. No pressure, no judgment.",
+    benefits: [
+      "Safe practice space",
+      "Advice from people who get it",
+      "Zero social risk",
+    ],
     gradient: "from-indigo-500 to-indigo-600",
   },
   {
     icon: Trophy,
-    title: "Track Wins You Actually Care About",
+    title: "Celebrate Wins That Matter",
     description:
-      "Celebrate your streaks and milestones privately. This isn't about leaderboards—it's about noticing you're showing up for yourself, even when it's hard.",
+      "Notice your streaks and milestones, privately or with peers. It’s not about leaderboards—it’s about showing up for yourself.",
     benefits: [
-      "Personal streak tracking",
+      "Track your personal streaks",
       "Private achievements",
-      "Progress just for you",
+      "Progress for you, not others",
     ],
     gradient: "from-violet-500 to-violet-600",
   },
   {
     icon: Target,
-    title: "Your Goals, Your Timeline",
+    title: "Your Goals, Your Pace",
     description:
-      "Tell us what you're working toward—maybe it's just having one person to talk to. We'll adapt the lessons to match your life, not some generic social skills playbook.",
+      "Decide what matters to you—maybe just talking to one person. Lessons adapt to your real life, not some generic social playbook.",
     benefits: [
-      "Personalized for your reality",
+      "Personalized for your life",
       "Set goals that feel real",
-      "Content adapts to you",
+      "Content adjusts to you",
     ],
     gradient: "from-emerald-500 to-emerald-600",
   },
   {
     icon: Users,
-    title: "Connect When You're Ready (Optional)",
+    title: "Join Others When You Want",
     description:
-      "When you feel ready, join others who started exactly where you are. Share progress if you want, stay private if you don't. No forced participation. No awkward icebreakers.",
-    benefits: ["Join only when ready", "Optional peer support", "People who understand"],
+      "Whenever you feel ready, connect with people who started where you are. Share progress if you like, or stay private. No forced chats, no awkward icebreakers.",
+    benefits: [
+      "Join only when ready",
+      "Optional peer support",
+      "People who understand",
+    ],
     gradient: "from-orange-500 to-orange-600",
   },
 ];
 
 const successStats = [
-  { number: "1", label: "Book" },
   { number: "Small", label: "daily steps" },
   { number: "10", label: "Minutes daily" },
   { number: "Real", label: "Progress possible" },
@@ -90,12 +97,11 @@ const successStats = [
 
 export default function ThankYouPage() {
   useEffect(() => {
-    // Optional: Add analytics tracking for signup completion
     console.log("User completed signup - track conversion");
   }, []);
 
   const handleNextStep = () => {
-    window.location.href = "/creategoal";
+    window.location.href = "/conversation/user";
   };
 
   return (
@@ -169,22 +175,24 @@ export default function ThankYouPage() {
               </div>
 
               {/* Success Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-                {successStats.map((stat, index) => (
-                  <motion.div
-                    key={stat.label}
-                    className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6 text-center"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.1 * (index + 1) }}
-                  >
-                    <div className="text-2xl font-bold text-blue-400 mb-2">
-                      {stat.number}
-                    </div>
-                    <div className="text-slate-300 text-sm">{stat.label}</div>
-                  </motion.div>
-                ))}
-              </div>
+              <div className="grid grid-cols-1 gap-6 mb-8">
+  {successStats.map((stat, index) => (
+    <motion.div
+      key={stat.label}
+      className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6 text-center"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.1 * (index + 1) }}
+    >
+      <div className="text-2xl font-bold text-blue-400 mb-2">
+        {stat.number}
+      </div>
+      <div className="text-slate-300 text-sm">{stat.label}</div>
+    </motion.div>
+  ))}
+</div>
+
+
             </motion.div>
 
             {/* What's Next Section */}
@@ -198,13 +206,13 @@ export default function ThankYouPage() {
                 Here's What Happens Next
               </h3>
               <p className="text-slate-300 text-lg mb-8">
-                You'll see your first small mission. Read it. Try it when (or if) you feel ready. No timers. No pressure. Just you deciding your own pace.
+                You'll see your first tiny mission. Do it when you feel ready.
+                No timers, no pressure. Just your pace, your journey.
               </p>
 
               <Button
                 onClick={handleNextStep}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-lg"
-                data-testid="button-next-step"
               >
                 <span className="mr-2">See Your First Mission</span>
                 <ArrowRight size={20} />
@@ -269,28 +277,7 @@ export default function ThankYouPage() {
             </motion.div>
 
             {/* Testimonial Section */}
-            <motion.div
-              className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-white/10 rounded-2xl p-8 text-center mb-12"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.7 }}
-            >
-              <div className="flex justify-center space-x-1 mb-4">
-                {[...Array(5)].map((_, index) => (
-                  <Star
-                    key={index}
-                    className="text-yellow-400 fill-current"
-                    size={24}
-                  />
-                ))}
-              </div>
-              <blockquote className="text-white font-medium text-lg mb-4">
-                "I've been isolated for years. GoalGrid didn't magically fix everything, but it gave me something I didn't have before—a starting point that didn't feel impossible or fake."
-              </blockquote>
-              <cite className="text-slate-400">
-                – Someone who started where you are
-              </cite>
-            </motion.div>
+            
 
             {/* Final CTA */}
             <motion.div
@@ -300,13 +287,13 @@ export default function ThankYouPage() {
               transition={{ duration: 0.8, delay: 0.9 }}
             >
               <p className="text-slate-300 text-lg mb-6">
-                Everything you do here is private. You can go slow, take breaks, or pause anytime. This is your journey, at your speed.
+                Everything here is private. Go slow, take breaks, or pause
+                anytime. Your journey, your speed.
               </p>
 
               <Button
                 onClick={handleNextStep}
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-lg"
-                data-testid="button-final-cta"
               >
                 <span className="mr-2">Take a Look Around</span>
                 <ArrowRight size={20} />

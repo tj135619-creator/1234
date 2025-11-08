@@ -54,6 +54,22 @@ const EnhancedTaskHub = ({ task: propTask, userId: propUserId, userProfile: prop
   const [completionOnboardingStep, setCompletionOnboardingStep] = useState(0);
 
 
+  // NEW: Post-rejection & panic features
+const [showPanicMode, setShowPanicMode] = useState(false);
+const [showPostMortem, setShowPostMortem] = useState(false);
+const [interactionOutcome, setInteractionOutcome] = useState(null);
+const [postMortemData, setPostMortemData] = useState({
+  awkwardnessRating: 5,
+  theirReaction: '',
+  yourBody: '',
+  recording: ''
+});
+const [rejectionCount, setRejectionCount] = useState(0);
+const [attemptHistory, setAttemptHistory] = useState([]);
+const [showPatternAnalysis, setShowPatternAnalysis] = useState(false);
+const [expectedRejections, setExpectedRejections] = useState(20);
+
+
   // After imports
 
   const currentTask = task;
@@ -145,6 +161,24 @@ const completionOnboardingSteps = [
 
   }
 ];
+
+
+  useEffect(() => {
+  const loadRejectionData = async () => {
+    try {
+      const rejectionKey = `rejection-history:${userId}`;
+      const result = await window.storage.get(rejectionKey);
+      if (result) {
+        const data = JSON.parse(result.value);
+        setRejectionCount(data.count || 0);
+        setAttemptHistory(data.history || []);
+      }
+    } catch (error) {
+      console.log('No rejection history found');
+    }
+  };
+  if (userId) loadRejectionData();
+}, [userId]);
 
   useEffect(() => {
   // Get task from URL
@@ -303,6 +337,57 @@ const completeCompletionOnboarding = async () => {
     console.error('Failed to save completion onboarding:', error);
     setShowCompletionOnboarding(false);
   }
+};
+
+
+const handleAttemptComplete = (wasSuccessful) => {
+  if (!wasSuccessful) {
+    setShowPostMortem(true);
+    setInteractionOutcome('rejected');
+  } else {
+    setInteractionOutcome('success');
+    completeStep();
+  }
+};
+
+const saveAttemptToHistory = async (outcome) => {
+  const attempt = {
+    timestamp: new Date().toISOString(),
+    taskId: task.id,
+    stepId: currentStep,
+    outcome,
+    ...postMortemData
+  };
+  
+  const newHistory = [...attemptHistory, attempt];
+  const newCount = outcome === 'rejected' ? rejectionCount + 1 : rejectionCount;
+  
+  setAttemptHistory(newHistory);
+  setRejectionCount(newCount);
+  
+  try {
+    const rejectionKey = `rejection-history:${userId}`;
+    await window.storage.set(rejectionKey, JSON.stringify({
+      count: newCount,
+      history: newHistory
+    }));
+  } catch (error) {
+    console.error('Failed to save rejection history:', error);
+  }
+};
+
+const analyzePatterns = () => {
+  if (attemptHistory.length < 3) return null;
+  
+  const recentFailures = attemptHistory.filter(a => a.outcome === 'rejected').slice(-5);
+  
+  const patterns = {
+    avgAwkwardness: recentFailures.reduce((sum, a) => sum + a.awkwardnessRating, 0) / recentFailures.length,
+    commonReactions: [...new Set(recentFailures.map(a => a.theirReaction))],
+    commonBodyIssues: [...new Set(recentFailures.map(a => a.yourBody))]
+  };
+  
+  return patterns;
 };
 
   const formatTime = (seconds) => {
@@ -593,15 +678,31 @@ const progress = (currentStep / task.steps.length) * 100;
                   </button>
                 </div>
 
+                {/* EMERGENCY PANIC BUTTON */}
+<div className="mb-6">
+  <button
+    onClick={() => setShowPanicMode(true)}
+    className="w-full py-4 rounded-xl bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white font-bold transition-all active:scale-95 flex items-center justify-center gap-2 border-2 border-red-400"
+  >
+    🆘 PANIC - I Need Help NOW
+  </button>
+</div>
+
                 {/* Action Buttons */}
                 <div className="flex gap-3">
                   <button
-                    onClick={completeStep}
-                    className="flex-1 py-4 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold transition-all active:scale-95 flex items-center justify-center gap-2"
-                  >
-                    <CheckCircle className="w-5 h-5" />
-                    Complete Step
-                  </button>
+  onClick={() => handleAttemptComplete(true)}
+  className="flex-1 py-4 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold transition-all active:scale-95 flex items-center justify-center gap-2"
+>
+  <CheckCircle className="w-5 h-5" />
+  It Went Well ✓
+</button>
+<button
+  onClick={() => handleAttemptComplete(false)}
+  className="flex-1 py-4 rounded-xl bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold transition-all active:scale-95 flex items-center justify-center gap-2"
+>
+  It Failed / Got Rejected
+</button>
                   <button
                     onClick={skipStep}
                     className="px-6 py-4 rounded-xl bg-purple-600/20 hover:bg-purple-600/40 text-purple-200 font-semibold transition-all active:scale-95"
@@ -677,6 +778,37 @@ const progress = (currentStep / task.steps.length) * 100;
                 ))}
               </div>
             </div>
+
+            {/* Rejection Progress Tracker */}
+<div className="bg-gradient-to-br from-orange-900/50 to-red-900/50 backdrop-blur-md rounded-3xl p-6 border-2 border-orange-500/30 shadow-xl">
+  <div className="flex items-center gap-2 mb-4">
+    <Target className="w-6 h-6 text-orange-400" />
+    <h3 className="text-lg font-bold text-white">Rejection Progress</h3>
+  </div>
+  <div className="text-center mb-4">
+    <div className="text-4xl font-bold text-white mb-2">{rejectionCount}/{expectedRejections}</div>
+    <div className="text-sm text-orange-200">Expected rejections this month</div>
+    <div className="text-xs text-orange-300 mt-1">
+      {rejectionCount < expectedRejections ? 
+        `${expectedRejections - rejectionCount} more to go - You're on track! 🎯` : 
+        "You've hit your target! This means you're trying! 💪"}
+    </div>
+  </div>
+  <div className="h-3 bg-orange-950/50 rounded-full overflow-hidden mb-4">
+    <div 
+      className="h-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-500"
+      style={{ width: `${Math.min((rejectionCount / expectedRejections) * 100, 100)}%` }}
+    />
+  </div>
+  {attemptHistory.length >= 3 && (
+    <button
+      onClick={() => setShowPatternAnalysis(true)}
+      className="w-full py-2 rounded-xl bg-orange-600/20 hover:bg-orange-600/40 text-orange-200 text-sm font-semibold transition-all"
+    >
+      📊 See What's Going Wrong
+    </button>
+  )}
+</div>
 
             {/* Live Stats */}
             <div className="bg-gradient-to-br from-purple-900/50 to-indigo-900/50 backdrop-blur-md rounded-3xl p-6 border-2 border-blue-500/30 shadow-xl">
@@ -892,6 +1024,212 @@ const progress = (currentStep / task.steps.length) * 100;
           Skip
         </button>
       </div>
+    </div>
+  </div>
+)}
+
+{/* PANIC MODE MODAL */}
+{showPanicMode && (
+  <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="bg-gradient-to-br from-red-900 to-pink-900 rounded-3xl p-8 max-w-2xl w-full border-2 border-red-500/50 shadow-2xl">
+      <h2 className="text-3xl font-bold text-white mb-4 text-center">You're Okay. Breathe. 🫂</h2>
+      <p className="text-lg text-red-100 mb-6 text-center">It's completely normal to feel anxious. Here's what to do RIGHT NOW:</p>
+      
+      <div className="space-y-4 mb-6">
+        <div className="bg-red-950/50 rounded-xl p-4">
+          <h3 className="font-bold text-white mb-2">🚪 Exit Strategy</h3>
+          <p className="text-red-100 text-sm">"Sorry, I need to take a call" or "I just remembered something" - then WALK AWAY. It's okay to abort.</p>
+        </div>
+        
+        <div className="bg-red-950/50 rounded-xl p-4">
+          <h3 className="font-bold text-white mb-2">🫁 Breathing (Do this now)</h3>
+          <p className="text-red-100 text-sm">4 seconds in. Hold 4 seconds. 6 seconds out. Repeat 3 times.</p>
+        </div>
+        
+        <div className="bg-red-950/50 rounded-xl p-4">
+          <h3 className="font-bold text-white mb-2">💭 Reality Check</h3>
+          <p className="text-red-100 text-sm">This feeling will pass. You're not in danger. You're building courage just by trying.</p>
+        </div>
+      </div>
+      
+      <div className="flex gap-3">
+        <button
+          onClick={() => {
+            setShowPanicMode(false);
+            setCurrentStep(prev => prev); // Stay on same step
+          }}
+          className="flex-1 py-3 rounded-xl bg-red-600/20 hover:bg-red-600/40 text-white font-semibold transition-all"
+        >
+          I'm Better Now
+        </button>
+        <button
+          onClick={() => {
+            setShowPanicMode(false);
+            skipStep(); // Skip this challenge
+          }}
+          className="flex-1 py-3 rounded-xl bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white font-bold transition-all"
+        >
+          Abort Mission - Skip This
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{/* POST-MORTEM MODAL */}
+{showPostMortem && (
+  <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div className="bg-gradient-to-br from-purple-900 to-indigo-900 rounded-3xl p-8 max-w-3xl w-full border-2 border-purple-500/50 shadow-2xl my-8">
+      <h2 className="text-3xl font-bold text-white mb-2 text-center">Let's Figure Out What Happened 🔍</h2>
+      <p className="text-purple-200 mb-6 text-center">This isn't about blaming yourself - it's about collecting data to improve.</p>
+      
+      <div className="space-y-6">
+        <div>
+          <label className="block text-white font-semibold mb-3">How awkward was it? (1-10)</label>
+          <input
+            type="range"
+            min="1"
+            max="10"
+            value={postMortemData.awkwardnessRating}
+            onChange={(e) => setPostMortemData({...postMortemData, awkwardnessRating: parseInt(e.target.value)})}
+            className="w-full"
+          />
+          <div className="flex justify-between text-sm text-purple-300 mt-1">
+            <span>Not awkward</span>
+            <span className="text-2xl font-bold text-white">{postMortemData.awkwardnessRating}</span>
+            <span>Extremely awkward</span>
+          </div>
+        </div>
+        
+        <div>
+          <label className="block text-white font-semibold mb-2">What did THEIR face/body do?</label>
+          <select
+            value={postMortemData.theirReaction}
+            onChange={(e) => setPostMortemData({...postMortemData, theirReaction: e.target.value})}
+            className="w-full bg-purple-950/50 border border-purple-500/30 rounded-xl p-3 text-white"
+          >
+            <option value="">Select reaction...</option>
+            <option value="smiled">Smiled / seemed friendly</option>
+            <option value="neutral">Neutral / no strong reaction</option>
+            <option value="looked-away">Looked away / avoided eye contact</option>
+            <option value="short-answers">Gave very short answers</option>
+            <option value="seemed-uncomfortable">Seemed uncomfortable</option>
+            <option value="walked-away">Walked away / ended conversation</option>
+          </select>
+        </div>
+        
+        <div>
+          <label className="block text-white font-semibold mb-2">What did YOUR body do?</label>
+          <div className="space-y-2">
+            {['Made eye contact', 'Looked at ground/away', 'Fidgeted/nervous hands', 'Spoke too quietly', 'Spoke too fast', 'Said "um" a lot', 'Crossed arms'].map((option) => (
+              <label key={option} className="flex items-center gap-2 text-purple-200">
+                <input type="checkbox" className="rounded" 
+                  onChange={(e) => {
+                    const current = postMortemData.yourBody.split(',').filter(Boolean);
+                    if (e.target.checked) {
+                      setPostMortemData({...postMortemData, yourBody: [...current, option].join(',')});
+                    } else {
+                      setPostMortemData({...postMortemData, yourBody: current.filter(i => i !== option).join(',')});
+                    }
+                  }}
+                />
+                {option}
+              </label>
+            ))}
+          </div>
+        </div>
+        
+        <div>
+          <label className="block text-white font-semibold mb-2">Voice notes / What happened? (optional)</label>
+          <textarea
+            value={postMortemData.recording}
+            onChange={(e) => setPostMortemData({...postMortemData, recording: e.target.value})}
+            placeholder="Describe what happened in your own words..."
+            className="w-full h-24 bg-purple-950/50 border border-purple-500/30 rounded-xl p-3 text-white placeholder-purple-300/50 resize-none"
+          />
+        </div>
+      </div>
+      
+      <div className="mt-6 bg-purple-950/50 rounded-xl p-4">
+        <h3 className="font-bold text-white mb-2">💭 Alternative Explanations (NOT your fault):</h3>
+        <ul className="text-sm text-purple-200 space-y-1">
+          <li>• They were distracted / having a bad day</li>
+          <li>• Bad timing - they were busy</li>
+          <li>• They're also shy and don't know how to respond</li>
+          <li>• This is ONE data point, not proof you're broken</li>
+        </ul>
+      </div>
+      
+      <div className="flex gap-3 mt-6">
+        <button
+          onClick={() => {
+            saveAttemptToHistory('rejected');
+            setShowPostMortem(false);
+            setPostMortemData({awkwardnessRating: 5, theirReaction: '', yourBody: '', recording: ''});
+          }}
+          className="flex-1 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold transition-all"
+        >
+          Save & Continue
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{/* PATTERN ANALYSIS MODAL */}
+{showPatternAnalysis && attemptHistory.length >= 3 && (
+  <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="bg-gradient-to-br from-indigo-900 to-purple-900 rounded-3xl p-8 max-w-2xl w-full border-2 border-indigo-500/50 shadow-2xl">
+      <h2 className="text-3xl font-bold text-white mb-4">📊 Here's What I'm Seeing</h2>
+      
+      {(() => {
+        const patterns = analyzePatterns();
+        if (!patterns) return null;
+        
+        return (
+          <div className="space-y-4">
+            <div className="bg-indigo-950/50 rounded-xl p-4">
+              <h3 className="font-bold text-white mb-2">Your Average Awkwardness: {patterns.avgAwkwardness.toFixed(1)}/10</h3>
+              {patterns.avgAwkwardness > 7 && (
+                <p className="text-indigo-200 text-sm">You're rating things as very awkward. Remember: You're your harshest critic.</p>
+              )}
+            </div>
+            
+            {patterns.commonReactions.length > 0 && (
+              <div className="bg-indigo-950/50 rounded-xl p-4">
+                <h3 className="font-bold text-white mb-2">What people usually do:</h3>
+                <ul className="text-indigo-200 text-sm space-y-1">
+                  {patterns.commonReactions.map((r, i) => <li key={i}>• {r}</li>)}
+                </ul>
+              </div>
+            )}
+            
+            {patterns.commonBodyIssues.length > 0 && (
+              <div className="bg-indigo-950/50 rounded-xl p-4">
+                <h3 className="font-bold text-white mb-2">🎯 Pattern Found - You often:</h3>
+                <ul className="text-indigo-200 text-sm space-y-1">
+                  {patterns.commonBodyIssues.filter(Boolean).map((issue, i) => (
+                    <li key={i}>• {issue}</li>
+                  ))}
+                </ul>
+                <p className="text-yellow-300 text-sm mt-3 font-semibold">👆 THIS is what to work on next!</p>
+              </div>
+            )}
+            
+            <div className="bg-green-950/30 rounded-xl p-4 border border-green-500/30">
+              <h3 className="font-bold text-white mb-2">✅ Progress Check:</h3>
+              <p className="text-green-200 text-sm">You've tried {attemptHistory.length} times. Most people quit after 2-3 attempts. You're already in the top 20% just by keeping going.</p>
+            </div>
+          </div>
+        );
+      })()}
+      
+      <button
+        onClick={() => setShowPatternAnalysis(false)}
+        className="w-full mt-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold transition-all"
+      >
+        Got It - Let's Keep Going
+      </button>
     </div>
   </div>
 )}

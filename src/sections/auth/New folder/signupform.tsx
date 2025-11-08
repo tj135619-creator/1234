@@ -3,14 +3,14 @@ import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AlertTriangle, Eye, EyeOff, Loader2, CheckCircle } from "lucide-react";
-import { signUpWithGoogle, signUpWithEmail } from "./auth";
+import { signInWithGoogle,  } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 const signupSchema = z.object({
@@ -31,7 +31,7 @@ export default function SignupForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   const form = useForm<SignupFormData>({
@@ -59,11 +59,13 @@ export default function SignupForm() {
           variant: "destructive",
         });
       } else if (result.user) {
+        console.log("Google signup successful, redirecting to thank you page");
         toast({
           title: "Welcome to GoalGrid!",
           description: "Google signup successful! Redirecting...",
         });
-        navigate("/thankyou");
+        // Redirect to thank you page immediately
+        setLocation("/thank-you");
       }
     } catch (error: any) {
       const errorMessage = "Google signup failed. Please try again.";
@@ -83,9 +85,12 @@ export default function SignupForm() {
     setAuthError(null);
 
     try {
+      console.log("Attempting email signup with:", data.email);
       const result = await signUpWithEmail(data.email, data.password);
+      console.log("Email signup result:", result);
       
       if (result.error) {
+        console.error("Email signup error:", result.error);
         setAuthError(result.error);
         toast({
           title: "Signup failed",
@@ -93,14 +98,18 @@ export default function SignupForm() {
           variant: "destructive",
         });
       } else if (result.user) {
+        console.log("Email signup successful, redirecting to thank you page");
         setShowSuccess(true);
         toast({
           title: "Welcome to GoalGrid!",
           description: "Account created successfully!",
         });
-        navigate("/thankyou");
+        
+        // Redirect to thank you page immediately
+        setLocation("/thank-you");
       }
     } catch (error) {
+      console.error("Email signup unexpected error:", error);
       setAuthError("An unexpected error occurred. Please try again.");
       toast({
         title: "Signup failed",
@@ -124,7 +133,7 @@ export default function SignupForm() {
           <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-6 mb-6">
             <CheckCircle className="text-green-400 text-3xl mb-3 mx-auto" size={48} />
             <h3 className="text-green-200 font-semibold text-lg mb-2">Welcome to GoalGrid!</h3>
-            <p className="text-green-300 text-sm">Redirecting you to your first community activity...</p>
+            <p className="text-green-300 text-sm">Redirecting you to set your first goal...</p>
           </div>
         </motion.div>
       </div>
@@ -134,10 +143,11 @@ export default function SignupForm() {
   return (
     <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-8 shadow-2xl">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-white mb-3">Start Your Journey with the Community</h2>
-        <p className="text-slate-300 text-lg">Take small steps, learn, and grow together with others at your own pace</p>
+        <h2 className="text-3xl font-bold text-white mb-3">Level Up Your Social Skills</h2>
+        <p className="text-slate-300 text-lg">Join thousands improving their confidence daily</p>
       </div>
 
+      {/* Auth Error Display */}
       {authError && (
         <motion.div 
           className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 mb-6"
@@ -152,6 +162,7 @@ export default function SignupForm() {
         </motion.div>
       )}
 
+      {/* Google Sign Up Button */}
       <Button
         onClick={handleGoogleSignup}
         disabled={isGoogleLoading || isSubmitting}
@@ -176,15 +187,17 @@ export default function SignupForm() {
         )}
       </Button>
 
+      {/* Divider */}
       <div className="relative my-6">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-white/20"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-transparent text-slate-400">or join using email</span>
+          <span className="px-4 bg-transparent text-slate-400">or continue with email</span>
         </div>
       </div>
 
+      {/* Email Signup Form */}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleEmailSignup)} className="space-y-4">
           <FormField
@@ -259,6 +272,7 @@ export default function SignupForm() {
             )}
           />
 
+          {/* Terms Agreement */}
           <FormField
             control={form.control}
             name="acceptTerms"
@@ -289,6 +303,7 @@ export default function SignupForm() {
             )}
           />
 
+          {/* Submit Button */}
           <Button
             type="submit"
             disabled={isSubmitting || isGoogleLoading}
@@ -298,10 +313,10 @@ export default function SignupForm() {
             {isSubmitting ? (
               <div className="flex items-center justify-center">
                 <Loader2 className="animate-spin mr-2" size={16} />
-                Joining the community...
+                Creating your account...
               </div>
             ) : (
-              "Join the Community"
+              "Start Your Journey"
             )}
           </Button>
         </form>

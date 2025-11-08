@@ -8,7 +8,7 @@ import { getAuth } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 
 import FirstSteps from "src/components/FirstSteps";
-
+import { apiKeys } from 'src/backend/keys/apiKeys';
 
 // FIREBASE CONFIG (YOUR ORIGINAL)
 const firebaseConfig = {
@@ -210,7 +210,7 @@ const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' 
 
 const navigate = useNavigate();
 const auth = getAuth();
-const userId = auth.currentUser?.uid || "user_demo";
+const userId = auth.currentUser?.uid || "user_trial";
 const messagesEndRef = useRef<HTMLDivElement>(null);
 
 const avatarConfig = avatar ? AVATAR_PERSONALITIES[avatar.name] : AVATAR_PERSONALITIES.Skyler;
@@ -218,7 +218,7 @@ const avatarConfig = avatar ? AVATAR_PERSONALITIES[avatar.name] : AVATAR_PERSONA
 // Remove the import line completely
 
 // Replace the apiKeys line with:
-const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+
 
 
 // TOAST NOTIFICATION
@@ -255,70 +255,85 @@ return () => clearInterval(interval);
 }, [messages]);
 
 const handleSendMessage = async (msgContent: string) => {
-if (!msgContent.trim() || localLoading || isLoading) return;
+  if (!msgContent.trim() || localLoading || isLoading) return;
 
-// 1️⃣ Add user message immediately
-const userMessage: Message = {
-id: Date.now().toString(),
-role: "user",
-content: msgContent,
+  // 1️⃣ Add user message immediately
+  const userMessage: Message = {
+    id: Date.now().toString(),
+    role: "user",
+    content: msgContent,
+  };
+  setMessages((prev) => [...prev, userMessage]);
+  setInputValue("");
+  setShowExamplePlan(false);
+  setLocalLoading(true);
+
+  // Mark that user shared goal
+  if (!hasSharedGoal) setHasSharedGoal(true);
+
+  // 2️⃣ Call AI API with failover for multiple keys
+  let success = false;
+  let data: any;
+
+  for (let i = 0; i < apiKeys.length; i++) {
+    const apiKey = apiKeys[i];
+    try {
+      // Only send the last 3 messages to reduce payload size
+      const lastMessages = [...messages, userMessage].slice(-3).map(m => ({
+        role: m.role,
+        content: m.content,
+      }));
+
+      const payload = {
+        user_id: userId,
+        message: msgContent,
+        goal_name: answers["q1"] || "daily habits",
+        answers,
+        history: lastMessages,  // Send only recent messages
+      };
+
+      const resp = await fetch("https://one23-u2ck.onrender.com/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const rawText = await resp.text();
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        data = { reply: rawText };
+      }
+
+      if (!resp.ok) {
+        console.warn(`API key ${apiKey} failed:`, data);
+        continue; // Try next key
+      }
+
+      success = true;
+      break; // Success, exit loop
+    } catch (err) {
+      console.warn(`Request failed with key ${apiKey}:`, err);
+    }
+  }
+
+  // 3️⃣ Add AI message
+  const aiMessage: Message = {
+    id: (Date.now() + 1).toString(),
+    role: "assistant",
+    content: success ? data.reply || "I understand. Tell me more." : "I'm having trouble connecting. Try again.",
+  };
+  setMessages((prev) => [...prev, aiMessage]);
+  setLocalLoading(false);
 };
-setMessages((prev) => [...prev, userMessage]);
-setInputValue("");
-setShowExamplePlan(false);
-setLocalLoading(true);
 
-// Mark that user shared goal
-if (!hasSharedGoal) {
-setHasSharedGoal(true);
-}
 
-// 2️⃣ Call AI API
-const apiKey = apiKeys[Math.floor(Math.random() * apiKeys.length)];
-try {
-const payload = {
-user_id: userId,
-message: msgContent,
-goal_name: answers["q1"] || "social skills",
-answers,
-};
 
-const resp = await fetch("https://one23-u2ck.onrender.com/chat", {
-method: "POST",
-headers: {
-"Content-Type": "application/json",
-Authorization: `Bearer ${apiKey}`,
-},
-body: JSON.stringify(payload),
-});
 
-const rawText = await resp.text();
-let data: any;
-try {
-data = JSON.parse(rawText);
-} catch {
-data = { reply: rawText };
-}
 
-// 3️⃣ Add AI message
-const aiMessage: Message = {
-id: (Date.now() + 1).toString(),
-role: "assistant",
-content: data.reply || "I understand. Tell me more.",
-};
-setMessages((prev) => [...prev, aiMessage]);
-} catch (err) {
-console.error("AI fetch error:", err);
-const errorMessage: Message = {
-id: (Date.now() + 1).toString(),
-role: "assistant",
-content: "I'm having trouble connecting. Try again.",
-};
-setMessages((prev) => [...prev, errorMessage]);
-} finally {
-setLocalLoading(false);
-}
-};
 
 const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
   if (e.key === "Enter" && !e.shiftKey) {
@@ -351,66 +366,75 @@ const handleGeneratePlan = async () => {
   setIsGeneratingPlan(true);
   setCurrentStep(0);
 
+  const userMessages = messages.filter((m) => m.role === "user");
+  const userAnswers = Object.values(answers);
+  const goalName =
+    (userMessages[0]?.content && userMessages[0].content.trim()) ||
+    (userAnswers[0] && userAnswers[0].toString().trim()) ||
+    "social skills";
+
+  const joinDate = new Date().toISOString().split('T')[0];
+  const payload = {
+    user_id: userId,
+    goal_name: goalName,
+    user_answers: userAnswers,
+    join_date: joinDate,
+  };
+
+  // Simulate step-by-step progress
+  const progressInterval = setInterval(() => {
+    setCurrentStep(prev => {
+      if (prev < GENERATION_STEPS.length) return prev + 1;
+      return prev;
+    });
+  }, 1200);
+
   try {
-    const userMessages = messages.filter((m) => m.role === "user");
-    const userAnswers = Object.values(answers);
-    const goalName =
-      (userMessages[0]?.content && userMessages[0].content.trim()) ||
-      (userAnswers[0] && userAnswers[0].toString().trim()) ||
-      "social skills";
-
-    const joinDate = new Date().toISOString().split('T')[0];
-    const apiKey = apiKeys[Math.floor(Math.random() * apiKeys.length)];
-
-    const payload = {
-      user_id: userId,
-      goal_name: goalName,
-      user_answers: userAnswers,
-      join_date: joinDate,
-    };
-
-    // Simulate step-by-step progress
-    const progressInterval = setInterval(() => {
-      setCurrentStep(prev => {
-        if (prev < GENERATION_STEPS.length) return prev + 1;
-        return prev;
-      });
-    }, 1200);
-
-    const resp = await fetch(
-      "https://one23-u2ck.onrender.com/create-task-overview",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(payload),
-      }
-    );
-
-    clearInterval(progressInterval);
-
     let data: any;
-    try {
-      data = await resp.json();
-    } catch (jsonErr) {
-      const rawText = await resp.text();
-      console.error("❌ Invalid JSON response:", rawText);
-      throw new Error(`Failed due to invalid JSON: ${jsonErr}`);
+    let success = false;
+
+    for (let i = 0; i < apiKeys.length; i++) {
+      const apiKey = apiKeys[i];
+
+      try {
+        const resp = await fetch(
+          "https://one23-u2ck.onrender.com/create-task-overview",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify(payload),
+          }
+        );
+
+        try {
+          data = await resp.json();
+        } catch (jsonErr) {
+          const rawText = await resp.text();
+          console.warn(`Invalid JSON with key ${apiKey}:`, rawText);
+          continue; // Try next key
+        }
+
+        if (!resp.ok || !data.success || !data.overview) {
+          console.warn(`API key ${apiKey} failed or invalid response`, data);
+          continue; // Try next key
+        }
+
+        success = true;
+        console.log("✅ Task overview received:", data.overview);
+        break; // Success! exit the loop
+
+      } catch (err) {
+        console.warn(`Request failed with key ${apiKey}:`, err);
+        // Try next key
+      }
     }
 
-    if (!resp.ok) {
-      console.error("❌ Server error:", data);
-      throw new Error(data.error || "Failed to generate task overview");
+    if (!success) {
+      throw new Error("All API keys failed. Could not generate plan.");
     }
-
-    if (!data.success || !data.overview) {
-      console.error("❌ Invalid response structure:", data);
-      throw new Error("Task overview data missing or malformed");
-    }
-
-    console.log("✅ Task overview received:", data.overview);
 
     // Save to Firebase
     const courseId = "social_skills";
@@ -431,7 +455,6 @@ const handleGeneratePlan = async () => {
     setCurrentStep(GENERATION_STEPS.length);
     await markPlanAsCreated();
 
-    // Show plan preview
     setPlanPreview({
       days: data.overview.days || [
         { day: 1, title: "Build Foundation", task: "Start with 15min daily practice" },
@@ -448,9 +471,11 @@ const handleGeneratePlan = async () => {
     console.error("🔥 handleGeneratePlan error:", err);
     showToast(`⚠️ Plan generation failed: ${err.message}`, "error");
   } finally {
+    clearInterval(progressInterval);
     setIsGeneratingPlan(false);
   }
 };
+
 
 
 const latestAIMessage = isTyping ? typingText : messages.filter(m => m.role === "assistant").pop()?.content;
@@ -509,21 +534,7 @@ return (
 {/* HERO SECTION - 3D ELEVATED */}
 {showExamplePlan && messages.length === 0 && (
 <div className="w-full max-w-4xl mb-12 text-center animate-fade-in-3d">
-<h1 className="text-4xl md:text-6xl font-bold text-white mb-6 tracking-tight leading-tight"
-style={{
-textShadow: '0 4px 12px rgba(168, 85, 247, 0.3)',
-transform: 'translateZ(50px)'
-}}>
-You're Not the Only One<br />
-<span className="text-purple-300">Who Feels Left Behind Socially</span>
-</h1>
-<p className="text-lg text-purple-200 mb-4 leading-relaxed" style={{ transform: 'translateZ(30px)' }}>
-Most people here started exactly where you are.<br />
-Quiet. Unsure. Just wanting one real connection.
-</p>
-<p className="text-sm text-purple-300/70 mb-12" style={{ transform: 'translateZ(30px)' }}>
-This isn't about "fixing" yourself. It's about small steps that don't feel scary.
-</p>
+
 
 {/* EXAMPLE PLAN PREVIEW - 3D CARDS */}
 <div className="relative mb-12" style={{ transform: 'translateZ(20px)', transformStyle: 'preserve-3d' }}>

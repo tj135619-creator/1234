@@ -28,6 +28,7 @@ import IRLConnectionsValueHero from './HerosectionIRL'
 import EnhancedTaskHub from './liveactionsupport'
 import HeroSection from './HerosectionLive';
 import OnboardingOverlay from "./OnboardingOverlay"; // adjust path if needed
+import SocialCityMap from 'src/components/actionmap';
 
 
 const avatars = [Avatar01, Avatar02, Avatar03];
@@ -357,7 +358,12 @@ useEffect(() => {
 
               <Grid item xs={12} className="tour-friends-community">
                 <FriendsCommunity />
+                
               </Grid>
+
+              <Grid item xs={12} className="tour-social-city-map">
+  <SocialCityMap />
+</Grid>
             </Grid>
 
             {/* IRL Connections Button */}

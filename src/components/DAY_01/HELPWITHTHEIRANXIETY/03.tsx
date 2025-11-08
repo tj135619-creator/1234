@@ -9,6 +9,7 @@ import {
 import { doc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from './firebase'; // Adjust path to your firebase config
 
+import { apiKeys } from 'src/backend/keys/apiKeys';
 // API Configuration
 const API_BASE = 'https://your-api.com';
 const USE_MOCK_DATA = false;
@@ -97,49 +98,60 @@ export default function AnxietyReduction10X( {onComplete }) {
 const apiCall = async (endpoint, method = 'GET', body = null) => {
   // For anxiety chat endpoint
   if (endpoint === '/api/ai/chat') {
-    try {
-      console.log('🔵 Making API call with:', {
-        user_id: userId,
-        conversation_id: conversationId,
-        ...body
-      });
+    let data: any = null;
+    let success = false;
 
-      const response = await fetch('https://one23-u2ck.onrender.com/anxiety-chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer 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'
-        },
-        body: JSON.stringify({
+    for (let i = 0; i < apiKeys.length; i++) {
+      const apiKey = apiKeys[i];
+      try {
+        console.log(`🔵 Making API call with key ${i + 1}:`, {
           user_id: userId,
           conversation_id: conversationId,
           ...body
-        })
-      });
+        });
 
-      console.log('📡 Response status:', response.status);
+        const response = await fetch('https://one23-u2ck.onrender.com/anxiety-chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            conversation_id: conversationId,
+            ...body
+          })
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Error response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        console.log(`📡 Response status with key ${i + 1}:`, response.status);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.warn(`❌ API key ${i + 1} failed:`, errorText);
+          continue; // try next key
+        }
+
+        data = await response.json();
+        console.log('✅ Success response:', data);
+        success = true;
+        break; // stop trying further keys
+      } catch (err) {
+        console.warn(`🔥 Request failed with API key ${i + 1}:`, err);
       }
-
-      const data = await response.json();
-      console.log('✅ Success response:', data);
-      return data;
-    } catch (error) {
-      console.error('🔥 API Error:', error);
-      // Return a fallback response instead of null
-      return {
-        response: "I'm here to support you. Take a deep breath - you've got this.",
-        suggestions: null
-      };
     }
+
+    if (success) return data;
+
+    console.warn('⚠️ All API keys failed, returning fallback response.');
+    return {
+      response: "I'm here to support you. Take a deep breath - you've got this.",
+      suggestions: null
+    };
   }
-  
+
   return null;
 };
+
 
 
 
