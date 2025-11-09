@@ -39,7 +39,7 @@ Skyler: {
 icon: "🌤️",
 gradient: "from-purple-400 via-blue-400 to-purple-500",
 borderGlow: "rgba(147, 51, 234, 0.6)",
-greeting: "Hey. No pressure here. What's one thing about your social life you wish was different?",
+greeting: "I'll ask a few questions to understand what's going on. Nothing intense just enough to make this actually useful for you.",
 style: "analytical",
 followUp: "I get that. What would it feel like if that changed, even a little?",
 },
@@ -510,144 +510,78 @@ return (
 {/* PAGE HEADER - REASSURING */}
 <div className="relative z-10 pt-12 pb-8 px-6 text-center">
   <div className="max-w-3xl mx-auto">
-    <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-purple-800/40 backdrop-blur-sm rounded-full border border-purple-500/30">
-      <span className="text-sm font-medium text-purple-200">Starting Point</span>
+    <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-purple-800/30 backdrop-blur-sm rounded-full border border-purple-500/20">
+      <span className="text-sm text-purple-300">Starting Point</span>
     </div>
     
-    <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight">
-      Let's Start With Where You Are Right Now
+    <h1 className="text-3xl md:text-4xl font-semibold text-white mb-4 leading-tight">
+      I'll ask a few questions to understand what's going on. Nothing intense—just enough to make this actually useful for you.
     </h1>
     
-    <p className="text-base md:text-lg text-purple-200 leading-relaxed mb-6">
-      I'll ask a few simple questions to understand what's going on in your life. 
-      Nothing scary—just enough to make sure the plan actually makes sense for you.
-    </p>
-    
-    <div className="inline-block bg-purple-900/40 backdrop-blur-sm border border-purple-400/30 rounded-2xl px-6 py-3">
-      <p className="text-sm text-purple-300">
-        💬 Usually takes 2 minutes. Go at your own pace.
-      </p>
-    </div>
+   
+
+    {/* CREATE PLAN BUTTON - Positioned properly */}
+    {hasSharedGoal && !isGeneratingPlan && !planPreview && (
+      <div className="space-y-4">
+        <p className="text-purple-300 text-base">
+          Once you've shared what a typical day looks like for you, click below to get your plan.
+        </p>
+        <button
+          onClick={handleGeneratePlan}
+          className="relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-purple-600 via-purple-700 to-purple-600 hover:from-purple-500 hover:via-purple-600 hover:to-purple-500 text-white text-lg font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-purple-500/50 hover:scale-105 border border-purple-400/30 group overflow-hidden"
+        >
+          {/* Animated shine effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+          
+          <svg className="w-5 h-5 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+          </svg>
+          <span className="relative z-10">Create plan</span>
+        </button>
+      </div>
+    )}
   </div>
 </div>
 
 {/* HERO SECTION - 3D ELEVATED */}
+{/* PREVIEW PLAN - CLEAN & SIMPLE */}
 {showExamplePlan && messages.length === 0 && (
-<div className="w-full max-w-4xl mb-12 text-center animate-fade-in-3d">
-
-
-{/* EXAMPLE PLAN PREVIEW - 3D CARDS */}
-<div className="relative mb-12" style={{ transform: 'translateZ(20px)', transformStyle: 'preserve-3d' }}>
-<div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-fuchsia-600/20 rounded-3xl blur-xl" style={{ transform: 'translateZ(-10px)' }} />
-
-<div className="relative bg-gradient-to-br from-purple-900/40 to-purple-950/40 backdrop-blur-2xl border border-purple-400/30 rounded-3xl p-10 shadow-2xl"
-style={{
-boxShadow: '0 25px 50px -12px rgba(168, 85, 247, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.1)',
-transform: 'translateZ(0px)'
-}}>
-<h3 className="text-2xl font-bold text-white mb-8" style={{ textShadow: '0 4px 12px rgba(168, 85, 247, 0.5)' }}>
-Heres What's gonna happen
+<div className="w-full max-w-3xl mb-12 animate-fade-in-3d">
+<div className="bg-purple-900/20 backdrop-blur-sm border border-purple-400/20 rounded-2xl p-8">
+<h3 className="text-xl font-medium text-white/90 mb-6">
+Here's roughly what this could look like
 </h3>
 
-<div className="grid gap-5">
+<div className="space-y-3 mb-8">
 {[
-{ 
-      day: 1, 
-      title: "Just Get Started", 
-      task: "Today is about getting comfortable with the idea. No pressure to do anything big—just think about one small social interaction you could have this week.",
-      tips: [
-        "Pick a low-stakes moment (like saying hi to a neighbor)",
-        "Don't judge yourself if you don't do it today",
-        "Just notice where you feel most comfortable"
-      ]
-    },
-    { 
-      day: 2, 
-      title: "Visit Your First Place", 
-      task: "Today, you'll visit one of the places we identified. You don't have to talk to anyone—just go there, observe, and get a feel for the environment. Maybe grab a coffee or browse for 10 minutes.",
-      tips: [
-        "Go during a quieter time if that feels easier",
-        "Notice what people are doing (reading, working, chatting)",
-        "It's okay to just sit and be present—that counts"
-      ]
-    },
-    { 
-      day: 3, 
-      title: "Try One Small Interaction", 
-      task: "Return to the same place or try a different one. This time, aim for one tiny interaction—asking a barista a question, commenting on someone's book, or just making eye contact and smiling.",
-      tips: [
-        "Pick the easiest option that doesn't feel scary",
-        "If it doesn't happen naturally, that's fine—try again tomorrow",
-        "Even just being there builds your comfort level"
-      ]
-    },
-    { 
-      day: 4, 
-      title: "Reflect on What Felt Right", 
-      task: "Take a break from going out. Today is for thinking about what worked and what didn't. Which place felt most comfortable? What made you nervous? What would make it easier next time?",
-      tips: [
-        "Write down what you noticed about yourself",
-        "Don't criticize yourself—just observe",
-        "Adjust your approach based on what felt manageable"
-      ]
-    },
-    { 
-      day: 5, 
-      title: "Make It Your Routine", 
-      task: "Go back to your favorite spot one more time. By now, it should feel a little more familiar. The goal is to make this place part of your regular routine—not to force friendships, just to exist in a social space comfortably.",
-      tips: [
-        "Aim to go at least once a week moving forward",
-        "You might start recognizing familiar faces (that's progress)",
-        "Consistency matters more than big breakthroughs"
-      ]
-    },
-  
-].map((item, idx) => (
-<div key={item.day}
-className="group relative flex items-start gap-5 bg-gradient-to-r from-purple-800/30 to-purple-900/30 backdrop-blur-sm rounded-2xl p-6 border border-purple-400/20 transition-all duration-500 hover:scale-105 hover:border-purple-400/50"
-style={{
-boxShadow: '0 10px 30px -10px rgba(168, 85, 247, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.1)',
-transform: `translateZ(${5 + idx * 2}px)`,
-transformStyle: 'preserve-3d'
-}}>
-{/* 3D number badge */}
-<div className={`flex-shrink-0 w-16 h-16 bg-gradient-to-br ${item.color} rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-lg group-hover:shadow-2xl transition-all duration-500`}
-style={{
-boxShadow: '0 10px 25px -5px rgba(168, 85, 247, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.3)',
-transform: 'translateZ(10px)'
-}}>
+{ day: 1, title: "Just get started", desc: "Get comfortable with the idea. Think about one small social thing you could try this week." },
+{ day: 2, title: "Visit your first place", desc: "Go somewhere. You don't have to talk to anyone—just observe and get a feel for it." },
+{ day: 3, title: "Try one small interaction", desc: "Ask a question, make eye contact, or just smile at someone. Whatever feels easiest." },
+{ day: 4, title: "Reflect on what felt right", desc: "Take a break. Think about what worked and what didn't. No judgment, just noticing." },
+{ day: 5, title: "Make it your routine", desc: "Go back to your favorite spot. The goal is consistency, not breakthroughs." },
+].map((item) => (
+<div key={item.day} className="flex gap-4 p-4 bg-purple-800/20 rounded-xl border border-purple-400/10 hover:border-purple-400/20 transition-colors">
+<div className="flex-shrink-0 w-10 h-10 bg-purple-600/30 rounded-lg flex items-center justify-center text-white font-medium border border-purple-400/20">
 {item.day}
 </div>
-<div className="flex-1 text-left">
-<h4 className="text-white font-bold text-xl mb-2">{item.title}</h4>
-<p className="text-purple-200 text-base leading-relaxed">{item.desc}</p>
+<div className="flex-1 min-w-0">
+<h4 className="font-medium text-white mb-1">{item.title}</h4>
+<p className="text-sm text-purple-200/70 leading-relaxed">{item.desc}</p>
 </div>
-
-{/* Hover glow effect */}
-<div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-400/5 to-purple-500/0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 </div>
 ))}
 </div>
-</div>
-</div>
 
-{/* 3D CTA BUTTON */}
 <button
 onClick={() => {
 setShowExamplePlan(false);
 setTimeout(() => textareaRef.current?.focus(), 100);
 }}
-className="relative px-10 py-5 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-purple-600 text-white text-xl font-black rounded-full transition-all duration-500 hover:scale-110 group overflow-hidden"
-style={{
-boxShadow: '0 20px 40px -10px rgba(168, 85, 247, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.3)',
-transform: 'translateZ(60px)'
-}}>
-{/* Shine effect */}
-<div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-<span className="relative z-10 flex items-center gap-3">
-I'm Ready to Start (Take Your Time)
-</span>
+className="w-full px-6 py-3 bg-purple-600/80 hover:bg-purple-600 text-white font-medium rounded-xl transition-colors border border-purple-500/30"
+>
+Yeah, let's talk
 </button>
+</div>
 </div>
 )}
 
@@ -746,12 +680,9 @@ I'm Ready to Start (Take Your Time)
 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
 <div className="relative max-w-2xl w-full my-8">
 <div className="bg-gradient-to-br from-purple-900 via-purple-800 to-fuchsia-900 rounded-2xl shadow-2xl overflow-hidden border border-purple-500/30">
-<div className="bg-gradient-to-r from-purple-600 to-fuchsia-600 px-8 py-6">
-<div className="flex items-center gap-3 mb-2">
-<span className="text-4xl">🎉</span>
-<h2 className="text-3xl font-bold text-white">Your Plan is Ready</h2>
-</div>
-<p className="text-purple-100">Take it one day at a time. You've got this!</p>
+<div className="bg-purple-800/50 px-8 py-6">
+<h2 className="text-2xl font-medium text-white mb-2">Okay, here's what I'm thinking</h2>
+<p className="text-purple-200/80">Take a look and let me know if this feels right.</p>
 </div>
 
 <div className="p-6 max-h-96 overflow-y-auto">
@@ -773,16 +704,16 @@ I'm Ready to Start (Take Your Time)
 <div className="flex gap-3 p-6 bg-purple-950/50 border-t border-purple-500/20">
 <button
 onClick={() => setPlanPreview(null)}
-className="flex-1 px-6 py-3 bg-purple-800/50 border-2 border-purple-500/30 text-white font-semibold rounded-lg hover:bg-purple-700/50 hover:border-purple-400/50 transition-colors">
-Adjust Plan
+className="flex-1 px-6 py-3 bg-purple-800/50 border border-purple-500/30 text-white font-medium rounded-lg hover:bg-purple-700/50 hover:border-purple-400/50 transition-colors">
+Not quite right
 </button>
 <button
   onClick={() => {
     setPlanPreview(null);
     setShowmicroactions(true);
   }}
-  className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white font-semibold rounded-lg hover:from-purple-500 hover:to-fuchsia-500 transition-all shadow-lg hover:shadow-xl">
-  Continue 🚀
+  className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-lg transition-colors">
+  Looks good
 </button>
 </div>
 </div>
@@ -806,19 +737,7 @@ Adjust Plan
 {/* GENERATE PLAN BUTTON - 3D FLOATING */}
 {/* GENERATE PLAN BUTTON - 3D FLOATING TOP */}
 {/* GENERATE PLAN BUTTON - 3D FLOATING TOP */}
-{hasSharedGoal && !isGeneratingPlan && !planPreview && (
-<button
-onClick={handleGeneratePlan}
-className="fixed top-6 right-6 z-40 group px-5 py-2.5 bg-purple-900/60 hover:bg-purple-800/70 backdrop-blur-lg border-2 border-purple-400/30 hover:border-purple-400/50 text-white text-sm font-medium rounded-2xl transition-all duration-300 shadow-md hover:shadow-purple-500/30"
->
-  <span className="flex items-center gap-2">
-    <svg className="w-4 h-4 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-    </svg>
-    <span>Create My Plan</span>
-  </span>
-</button>
-)}
+
 
 {!showExamplePlan && !planPreview && !isGeneratingPlan && (
   <div className="fixed bottom-0 left-0 right-0 z-40 px-4 py-4 bg-purple-950/90 backdrop-blur-lg border-t border-purple-400/20">

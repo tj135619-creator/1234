@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { Check, Sparkles, ArrowRight } from "lucide-react";
 
 interface FirstStepsProps {
   onComplete: () => void;
@@ -65,102 +66,145 @@ export default function FirstSteps({ onComplete }: FirstStepsProps) {
   };
 
   const currentTask = tasks[currentTaskIndex];
+  const progress = ((currentTaskIndex + (showFeedback ? 1 : 0)) / tasks.length) * 100;
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-purple-950 via-purple-900 to-purple-950 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="w-full max-w-2xl relative">
-        {/* Card */}
-        <div className="relative bg-gradient-to-br from-purple-800/90 via-purple-900/90 to-fuchsia-900/90 rounded-3xl shadow-2xl border border-purple-400/30 p-8 overflow-hidden">
-          {/* Background Orbs */}
-          <div className="absolute top-[-100px] left-[-100px] w-72 h-72 bg-purple-600/20 rounded-full blur-3xl animate-float"></div>
-          <div className="absolute bottom-[-120px] right-[-120px] w-96 h-96 bg-fuchsia-600/20 rounded-full blur-3xl animate-float-delayed"></div>
+    <div className="fixed inset-0 bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 flex items-center justify-center z-50 p-4 overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse-slow"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-fuchsia-500/10 rounded-full blur-3xl animate-pulse-slower"></div>
+      </div>
 
-          {/* Header */}
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-8 text-center drop-shadow-lg">
+      <div className="w-full max-w-3xl relative z-10">
+        {/* Header with Icon */}
+        <div className="text-center mb-8 animate-fade-in">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-fuchsia-500 rounded-2xl mb-4 shadow-lg">
+            <Sparkles className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">
             Your first actions
           </h2>
+          <p className="text-purple-300 text-lg">
+            Complete these to build your foundation
+          </p>
+        </div>
 
-          {/* Task Card */}
-          <div className="bg-purple-700/80 border border-purple-400/30 rounded-2xl shadow-lg p-6 mb-6 relative hover:scale-[1.02] transition-transform duration-300">
-            <p className="text-white text-lg md:text-xl mb-4">{currentTask.question}</p>
-
-            {!showFeedback ? (
-              <label className="flex items-center cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={currentTask.completed}
-                  onChange={handleCompleteTask}
-                  className="hidden peer"
-                />
-                <div className="w-6 h-6 rounded-full border-2 border-purple-400/50 flex-shrink-0 flex items-center justify-center mr-3 transition-all duration-300 peer-checked:bg-gradient-to-r peer-checked:from-purple-600 peer-checked:to-fuchsia-600">
-                  <svg
-                    className="w-4 h-4 text-white opacity-0 peer-checked:opacity-100 transition-opacity"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={3}
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <span className="text-white font-medium text-base md:text-lg">
-                  Mark as done
-                </span>
-              </label>
-            ) : (
-              <div className="space-y-4">
-                <div className="p-5 bg-green-900/50 border border-green-400/40 rounded-2xl shadow-inner text-green-100 text-base md:text-lg animate-slide-in">
-                  {currentTask.feedback}
-                </div>
-                <button
-                  onClick={handleNext}
-                  className="w-full py-3 md:py-4 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white font-bold rounded-xl shadow-lg hover:scale-105 transition-transform duration-300"
-                >
-                  Next
-                </button>
-              </div>
-            )}
+        {/* Main Task Card */}
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl p-8 md:p-10 mb-6 animate-slide-up">
+          {/* Task Number Badge */}
+          <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-purple-600/20 backdrop-blur-sm rounded-full border border-purple-400/30">
+            <span className="text-sm font-medium text-purple-300">
+              Task {currentTaskIndex + 1} of {tasks.length}
+            </span>
           </div>
 
-          {/* Progress */}
-          <div className="mt-6 h-3 bg-purple-950/50 rounded-full overflow-hidden relative">
+          {/* Task Question */}
+          <div className="mb-8">
+            <p className="text-white text-xl md:text-2xl leading-relaxed font-medium">
+              {currentTask.question}
+            </p>
+          </div>
+
+          {/* Action Section */}
+          {!showFeedback ? (
+            <button
+              onClick={handleCompleteTask}
+              className="group w-full flex items-center justify-between p-6 bg-gradient-to-r from-purple-600/80 to-fuchsia-600/80 hover:from-purple-600 hover:to-fuchsia-600 rounded-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-xl border border-purple-400/30"
+            >
+              <span className="text-white font-semibold text-lg">Mark as done</span>
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-all">
+                <Check className="w-5 h-5 text-white" />
+              </div>
+            </button>
+          ) : (
+            <div className="space-y-6 animate-fade-in">
+              {/* Feedback Box */}
+              <div className="p-6 bg-gradient-to-br from-green-900/40 to-emerald-900/40 border border-green-400/30 rounded-2xl backdrop-blur-sm">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mt-1">
+                    <Check className="w-4 h-4 text-white" />
+                  </div>
+                  <p className="text-green-100 text-base md:text-lg leading-relaxed flex-1">
+                    {currentTask.feedback}
+                  </p>
+                </div>
+              </div>
+
+              {/* Next Button */}
+              <button
+                onClick={handleNext}
+                className="group w-full flex items-center justify-center gap-3 py-4 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-semibold text-lg rounded-2xl transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-xl"
+              >
+                <span>{currentTaskIndex < tasks.length - 1 ? "Next task" : "Finish"}</span>
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Progress Bar */}
+        <div className="space-y-3 animate-fade-in">
+          <div className="h-2 bg-purple-950/50 rounded-full overflow-hidden backdrop-blur-sm border border-purple-500/20">
             <div
-              className="h-full bg-gradient-to-r from-white/80 via-purple-200 to-white/80 transition-all duration-500 rounded-full"
-              style={{ width: `${((currentTaskIndex + (showFeedback ? 1 : 0)) / tasks.length) * 100}%` }}
+              className="h-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-purple-500 transition-all duration-700 ease-out rounded-full shadow-lg"
+              style={{ width: `${progress}%` }}
             />
           </div>
-          <div className="mt-2 text-xs md:text-sm text-center text-purple-300">
-            Task {currentTaskIndex + 1} of {tasks.length}
+          
+          {/* Task Dots */}
+          <div className="flex justify-center gap-2">
+            {tasks.map((task, index) => (
+              <div
+                key={task.id}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  index < currentTaskIndex || (index === currentTaskIndex && showFeedback)
+                    ? "bg-purple-400 w-8"
+                    : index === currentTaskIndex
+                    ? "bg-purple-500 w-3 h-3"
+                    : "bg-purple-800"
+                }`}
+              />
+            ))}
           </div>
         </div>
       </div>
 
       <style jsx>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
-        }
-
-        @keyframes float-delayed {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(20px); }
-        }
-
-        @keyframes slide-in {
-          from { opacity: 0; transform: translateY(-10px); }
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
 
-        .animate-float {
-          animation: float 6s ease-in-out infinite;
+        @keyframes slide-up {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
         }
 
-        .animate-float-delayed {
-          animation: float-delayed 8s ease-in-out infinite;
+        @keyframes pulse-slow {
+          0%, 100% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(1.1); }
         }
 
-        .animate-slide-in {
-          animation: slide-in 0.5s ease-out forwards;
+        @keyframes pulse-slower {
+          0%, 100% { opacity: 0.2; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(1.15); }
+        }
+
+        .animate-fade-in {
+          animation: fade-in 0.6s ease-out forwards;
+        }
+
+        .animate-slide-up {
+          animation: slide-up 0.8s ease-out forwards;
+        }
+
+        .animate-pulse-slow {
+          animation: pulse-slow 8s ease-in-out infinite;
+        }
+
+        .animate-pulse-slower {
+          animation: pulse-slower 10s ease-in-out infinite;
         }
       `}</style>
     </div>

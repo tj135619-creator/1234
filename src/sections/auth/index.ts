@@ -1,2 +1,2 @@
 export * from './sign-in-view';
-export { SignInView } from './sign-in-view';
+export { default as SignInView } from './sign-in-view';
