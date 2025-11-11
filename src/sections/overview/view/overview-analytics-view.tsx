@@ -347,35 +347,24 @@ useEffect(() => {
                   </div>
                 </div>
               </Grid>
-              
-              <Grid item xs={12} md={6} lg={4} className="tour-mini-task-tracker">
-                <MiniTaskTracker />
-              </Grid>
-              
-              <Grid item xs={12} md={6} lg={4} className="tour-goalgrid-chatbot">
-                <HeroSection/>
-              </Grid>
 
               <Grid item xs={12} className="tour-friends-community">
                 <FriendsCommunity />
                 
               </Grid>
+              
+              <Grid item xs={12} md={6} lg={4} className="tour-mini-task-tracker">
+                <MiniTaskTracker />
+              </Grid>
+              
 
-              <Grid item xs={12} className="tour-social-city-map">
-  <SocialCityMap />
-</Grid>
+             
+
+             
             </Grid>
 
-            {/* IRL Connections Button */}
-            <button
-              onClick={() => setIsHubOpen(true)}
-              className="fixed bottom-6 right-6 z-50 w-16 h-16 flex items-center justify-center rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-2xl hover:scale-105 transition-all duration-300 transform active:scale-95 border-4 border-white/50"
-              title="Open IRL Connections Hub"
-            >
-              <Users className="w-8 h-8" />
-            </button>
+            
 
-            <IRLConnectionsValueHero onOpenHub={() => setIsHubOpen(true)} />
           </div>
         </div>
       </DashboardContent>

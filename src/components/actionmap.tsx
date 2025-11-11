@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Users, Zap, Star, Award, Heart, Coffee, BookOpen, TreePine, ShoppingBag, MessageCircle, Smile, Hand, Check, Lock, TrendingUp, Sparkles, ChevronRight, X, Trophy } from 'lucide-react';
+import { MapPin, Users, Zap, Star, Award, Heart, Coffee, BookOpen, TreePine, ShoppingBag, MessageCircle, Smile, Hand, Check, Lock, TrendingUp, Sparkles, ChevronRight, X, Trophy, FolderOpen } from 'lucide-react';
 
 
 // ADD THESE FIREBASE IMPORTS
 import { db, auth } from '../firebase';
+import { getAuth } from "firebase/auth";
 import { 
   collection, 
   doc, 
+  getDoc,
   onSnapshot, 
   addDoc, 
   updateDoc, 
@@ -141,7 +143,16 @@ interface Location {
   reflectionPrompt: string;
   day: number;  // ADD THIS LINE
 }
+
+
+
 export default function SocialCityMap() {
+  // ... existing state ...
+
+
+const [selectedDayNumber, setSelectedDayNumber] = useState<number | null>(null);
+const [dayExplorerTab, setDayExplorerTab] = useState<'mission' | 'community'>('mission'); // <--- ADD THIS
+// ... existing community state ...
     const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [completionModalOpen, setCompletionModalOpen] = useState(false);
@@ -198,14 +209,105 @@ const [partyReactionCount, setPartyReactionCount] = useState(0);
   const [showMatchingScreen, setShowMatchingScreen] = useState(false);
 const [matchingProgress, setMatchingProgress] = useState(0);
 
-  const currentUserId = 'user123'; // Replace with auth.currentUser?.uid
+  const [showDayExplorer, setShowDayExplorer] = useState(false);
+const [peopleOnSelectedDay, setPeopleOnSelectedDay] = useState<Avatar[]>([]);
+
+  const auth = getAuth();
+const currentUserId = auth.currentUser?.uid;
   const currentUserName = 'You';
+
+
+
+  const [campfireMessages, setCampfireMessages] = useState<{
+    id: string;
+    userId: string;
+    userName: string;
+    text: string;
+    timestamp: any;
+    reactions: { [emoji: string]: number };
+    isVulnerable: boolean;
+  }[]>([]);
+
+  const [liveAtLocation, setLiveAtLocation] = useState<{
+    arrived: Avatar[];
+    onTheWay: Avatar[];
+    preparing: Avatar[];
+    justCompleted: Avatar[];
+  }>({
+    arrived: [],
+    onTheWay: [],
+    preparing: [],
+    justCompleted: []
+  });
+
+  const [dayStats, setDayStats] = useState({
+    completionsToday: 0,
+    completionRate: 0,
+    avgTimeToComplete: 0,
+    peakTime: '7-8pm',
+    hypeLevel: 67,
+    trendPercentage: 45
+  });
+
+  const [todaysChampions, setTodaysChampions] = useState({
+    firstTimer: null,
+    bestTip: null,
+    biggestBreakthrough: null
+  });
+
+  const [encouragementNotes, setEncouragementNotes] = useState([]);
+  const [groupDepartures, setGroupDepartures] = useState([]);
+  const [buddyMatches, setBuddyMatches] = useState([]);
+  const [anxietyJourney, setAnxietyJourney] = useState({
+    beforeAvg: 7.8,
+    duringAvg: 5.2,
+    afterAvg: 2.1,
+    totalResponses: 234,
+    dropRate: 5.7
+  });
+  const [liveUpdates, setLiveUpdates] = useState([]);
+  const [showCampfireWall, setShowCampfireWall] = useState(false);
+  const [campfireInput, setCampfireInput] = useState('');
+  const [showBuddyFinder, setShowBuddyFinder] = useState(false);
+  const [buddyFilters, setBuddyFilters] = useState({
+    anxietyLevel: 5,
+    preferredTime: 'evening',
+    experience: 'first-timer'
+  });
+
+  // ---------------------------------
+  // Guarded updates using useEffect
+  // ---------------------------------
+ // only runs when currentUserId changes
+
+useEffect(() => {
+  if (!currentUserId) return;
+
+  // Listen to campfire messages in real-time
+  const q = query(
+    collection(db, "campfireMessages"),
+    where("userId", "==", currentUserId)
+  );
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const messages = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    setCampfireMessages(messages as any); // Type assertion if needed
+  });
+
+  return () => unsubscribe(); // cleanup listener on unmount
+}, [currentUserId]);
 
 
 useEffect(() => {
   console.log('🎉 showPartiesPanel changed:', showPartiesPanel);
   console.log('📦 upcomingParties:', upcomingParties);
 }, [showPartiesPanel, upcomingParties]);
+
+
+
 
 // FIREBASE LISTENER 1: User's Squad
 useEffect(() => {
@@ -235,6 +337,11 @@ useEffect(() => {
   
   return () => unsubscribe();
 }, [currentUserId]);
+
+
+// ONE-TIME TASK UPDATE: Add 'done' field to all tasks
+
+
 
 // LISTENER: Party Chat Messages
 useEffect(() => {
@@ -397,8 +504,10 @@ useEffect(() => {
   return () => unsubscribe();
 }, []);
 
+
 // TEMPORARY TEST DATA - Remove this later
 // TEMPORARY TEST DATA
+// TEMPORARY TEST DATA - FIXED
 useEffect(() => {
   const now = new Date();
   
@@ -407,7 +516,7 @@ useEffect(() => {
       id: 'party1',
       locationId: 'coffee',
       missionName: 'Coffee Shop Greeting Party',
-      startTime: new Date(now.getTime() + 8 * 60 * 1000), // 8 minutes from now
+      startTime: new Date(now.getTime() + 8 * 60 * 1000),
       participants: [currentUserId, 'alex', 'sam', 'jordan', 'casey'],
       status: 'upcoming',
       createdBy: currentUserId,
@@ -417,7 +526,7 @@ useEffect(() => {
       id: 'party2',
       locationId: 'library',
       missionName: 'Library Reading Challenge',
-      startTime: new Date(now.getTime() + 7 * 60 * 1000), // 3 minutes from now (lobby opens!)
+      startTime: new Date(now.getTime() + 7 * 60 * 1000),
       participants: [currentUserId, 'alex', 'sam'],
       status: 'upcoming',
       createdBy: 'alex',
@@ -427,7 +536,7 @@ useEffect(() => {
       id: 'party3',
       locationId: 'park',
       missionName: 'Park Walking Party',
-      startTime: new Date(now.getTime() - 5 * 60 * 1000), // Started 5 mins ago - ACTIVE
+      startTime: new Date(now.getTime() - 5 * 60 * 1000),
       participants: ['alex', 'sam', 'jordan'],
       status: 'active',
       createdBy: 'sam',
@@ -437,7 +546,7 @@ useEffect(() => {
       id: 'party4',
       locationId: 'market',
       missionName: 'Market Shopping Mission',
-      startTime: new Date(now.getTime() - 60 * 60 * 1000), // Ended 1 hour ago - COMPLETED
+      startTime: new Date(now.getTime() - 60 * 60 * 1000),
       participants: [currentUserId, 'alex', 'sam', 'jordan', 'casey', 'riley'],
       status: 'completed',
       createdBy: 'jordan',
@@ -447,38 +556,6 @@ useEffect(() => {
   
   setUpcomingParties(testParties);
   
-  // Add test messages for party 2 (lobby)
-  // Add test messages for party 2 (lobby) - but only if that party is selected
-if (selectedParty?.id === 'party2') {
-  setPartyMessages([
-    {
-      id: 'msg1',
-      userId: 'alex',
-      userName: 'Alex',
-      text: 'First timer here, so nervous! 😰',
-      timestamp: { toDate: () => new Date(now.getTime() - 30000) },
-      type: 'chat'
-    },
-    {
-      id: 'msg2',
-      userId: 'sam',
-      userName: 'Sam',
-      text: 'You got this! 💪',
-      timestamp: { toDate: () => new Date(now.getTime() - 20000) },
-      type: 'chat'
-    },
-    {
-      id: 'msg3',
-      userId: 'jordan',
-      userName: 'Jordan',
-      text: 'Who else is excited?!',
-      timestamp: { toDate: () => new Date(now.getTime() - 10000) },
-      type: 'chat'
-    }
-  ]);
-}
-  
-  // Add test stats for completed party
   setPartyStats({
     totalParticipants: 6,
     completions: 5,
@@ -492,7 +569,6 @@ if (selectedParty?.id === 'party2') {
     ]
   });
   
-  // Add live locations for active party
   setLiveParticipantLocations({
     'alex': {
       lat: 0,
@@ -516,8 +592,157 @@ if (selectedParty?.id === 'party2') {
       locationId: 'park'
     }
   });
-  
-}, []);
+
+  setCampfireMessages([
+    { id: 'camp1', userId: 'alex', userName: 'Alex', text: 'Sitting in my car...', timestamp: { toDate: () => new Date(Date.now() - 3000) }, reactions: { '💪': 12, '❤️': 8 }, isVulnerable: true },
+    { id: 'camp2', userId: 'sam', userName: 'Sam', text: 'YOU GOT THIS ALEX!', timestamp: { toDate: () => new Date(Date.now() - 12000) }, reactions: { '👋': 47, '💪': 23 }, isVulnerable: false },
+    { id: 'camp3', userId: 'jordan', userName: 'Jordan', text: 'Pro tip...', timestamp: { toDate: () => new Date(Date.now() - 60000) }, reactions: { '⭐': 89, '💡': 34 }, isVulnerable: false },
+    { id: 'camp4', userId: 'casey', userName: 'Casey', text: 'Anyone else\'s heart racing?', timestamp: { toDate: () => new Date(Date.now() - 120000) }, reactions: { '🙋': 31 }, isVulnerable: true }
+  ]);
+
+  setTodaysChampions({
+    firstTimer: {
+      name: 'Sarah',
+      time: '6:47am',
+      message: 'I couldn\'t sleep so I just went for it. BEST DECISION!',
+      reactions: 234
+    },
+    bestTip: {
+      name: 'Mike',
+      tip: 'Smile at the barista when you walk in. It breaks the ice and they smile back.',
+      helpful: 178
+    },
+    biggestBreakthrough: {
+      name: 'Jordan',
+      story: 'I have social anxiety disorder. I did it. I cried happy tears in my car after.',
+      reactions: 456,
+      replies: 89
+    }
+  });
+
+  setEncouragementNotes([
+    {
+      id: 'enc1',
+      from: 'Sarah',
+      message: 'I was SO scared. I sat outside for 10 minutes. But I did it. And you know what? The barista was SO NICE. Nobody judged me. You can do this. I believe in you. ❤️',
+      completedAgo: '2h ago',
+      reactions: 892
+    },
+    {
+      id: 'enc2',
+      from: 'Mike',
+      message: 'Your anxiety is lying to you. Everyone in there is focused on their own stuff. Nobody is watching you. You\'re going to do amazing. 💪',
+      completedAgo: '5h ago',
+      reactions: 567
+    }
+  ]);
+
+  const nextDeparture = new Date(Date.now() + 15 * 60 * 1000);
+  setGroupDepartures([
+    {
+      id: 'group1',
+      locationId: 'cafe',
+      departureTime: nextDeparture,
+      participants: ['alex', 'sam', 'jordan', 'casey', 'pat', 'riley', 'morgan', 'taylor'],
+      messages: [
+        { userId: 'alex', userName: 'Alex', text: 'Let\'s all order the same thing lol' },
+        { userId: 'sam', userName: 'Sam', text: 'I\'m so nervous but excited!' },
+        { userId: 'jordan', userName: 'Jordan', text: 'We move together! 💪' }
+      ]
+    }
+  ]);
+
+  setBuddyMatches([
+    {
+      id: 'buddy1',
+      name: 'Alex',
+      anxietyLevel: 7,
+      preferredTime: 'Evening (6-9pm)',
+      experience: 'First timer',
+      matchPercentage: 95,
+      lastSeen: '2m ago',
+      message: 'Also terrified. Want to text each other before/during/after?'
+    },
+    {
+      id: 'buddy2',
+      name: 'Sam',
+      anxietyLevel: 6,
+      preferredTime: 'Evening (6-9pm)',
+      experience: 'Did it once before',
+      matchPercentage: 89,
+      lastSeen: '5m ago',
+      message: '7/10 anxiety. Planning to go at 7pm. Would love a buddy!'
+    }
+  ]);
+
+  setLiveUpdates([
+    {
+      id: 'live1',
+      userId: 'sarah',
+      userName: 'Sarah',
+      action: 'Just ordered! ✅',
+      timestamp: new Date(Date.now() - 5000),
+      replies: [
+        { userId: 'mike', userName: 'Mike', text: 'YESSS GO SARAH! 🎉' },
+        { userId: 'alex', userName: 'Alex', text: 'How do you feel??' },
+        { userId: 'sarah', userName: 'Sarah', text: 'Honestly? PROUD. My voice shook but I did it!' }
+      ],
+      reactions: 47
+    },
+    {
+      id: 'live2',
+      userId: 'jordan',
+      userName: 'Jordan',
+      action: 'Walking in now... here goes 😰',
+      timestamp: new Date(Date.now() - 23000),
+      replies: [],
+      reactions: 47
+    },
+    {
+      id: 'live3',
+      userId: 'pat',
+      userName: 'Pat',
+      action: 'COMPLETED! IM SHAKING! IN A GOOD WAY!!!! 🎉🎉🎉',
+      timestamp: new Date(Date.now() - 60000),
+      replies: [],
+      reactions: 156
+    }
+  ]);
+}, [selectedDayNumber]); // Run only once on mount
+
+// Separate useEffect for party messages based on selected party
+useEffect(() => {
+  if (selectedParty?.id === 'party2') {
+    const now = new Date();
+    setPartyMessages([
+      {
+        id: 'msg1',
+        userId: 'alex',
+        userName: 'Alex',
+        text: 'First timer here, so nervous! 😰',
+        timestamp: { toDate: () => new Date(now.getTime() - 30000) },
+        type: 'chat'
+      },
+      {
+        id: 'msg2',
+        userId: 'sam',
+        userName: 'Sam',
+        text: 'You got this! 💪',
+        timestamp: { toDate: () => new Date(now.getTime() - 20000) },
+        type: 'chat'
+      },
+      {
+        id: 'msg3',
+        userId: 'jordan',
+        userName: 'Jordan',
+        text: 'Who else is excited?!',
+        timestamp: { toDate: () => new Date(now.getTime() - 10000) },
+        type: 'chat'
+      }
+    ]);
+  }
+}, [selectedParty?.id]); // Only run when selectedParty changes
+
 
 // Countdown timer for active party
 useEffect(() => {
@@ -661,13 +886,270 @@ useEffect(() => {
 ]);
 
   // Mock avatars moving through city
-  const [activeAvatars] = useState<Avatar[]>([
-    { id: '1', name: 'Alex', color: 'from-blue-500 to-cyan-500', currentLocation: 'cafe', streak: 5 },
-    { id: '2', name: 'Sam', color: 'from-pink-500 to-rose-500', currentLocation: 'library', streak: 12 },
-    { id: '3', name: 'Jordan', color: 'from-green-500 to-emerald-500', currentLocation: 'park', streak: 3 },
-    { id: '4', name: 'Casey', color: 'from-purple-500 to-violet-500', currentLocation: 'library', streak: 8 },
-    { id: '5', name: 'Riley', color: 'from-orange-500 to-amber-500', currentLocation: 'market', streak: 15 }
-  ]);
+  const [activeAvatars, setActiveAvatars] = useState<Avatar[]>([]);
+const [currentUserDay, setCurrentUserDay] = useState<number>(1);
+
+// LISTENER: Campfire Messages for Selected Day
+useEffect(() => {
+  if (!selectedDayNumber) return;
+  
+  const unsubscribe = onSnapshot(
+    query(
+      collection(db, 'dayCampfire', `day${selectedDayNumber}`, 'messages'),
+      orderBy('timestamp', 'desc'),
+      limit(50)
+    ),
+    (snapshot) => {
+      const messages = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setCampfireMessages(messages as any);
+    },
+    (error) => {
+      console.error('Error loading campfire messages:', error);
+      setCampfireMessages([]);
+    }
+  );
+  
+  return () => unsubscribe();
+}, [selectedDayNumber]);
+
+// LISTENER: Today's Champions for Selected Day
+useEffect(() => {
+  if (!selectedDayNumber) return;
+  
+  const unsubscribe = onSnapshot(
+    doc(db, 'dayChampions', `day${selectedDayNumber}`),
+    (snapshot) => {
+      if (snapshot.exists()) {
+        setTodaysChampions(snapshot.data() as any);
+      }
+    },
+    (error) => {
+      console.error('Error loading champions:', error);
+    }
+  );
+  
+  return () => unsubscribe();
+}, [selectedDayNumber]);
+
+// LISTENER: Day Stats
+useEffect(() => {
+  if (!selectedDayNumber) return;
+  
+  const unsubscribe = onSnapshot(
+    doc(db, 'dayStats', `day${selectedDayNumber}`),
+    (snapshot) => {
+      if (snapshot.exists()) {
+        setDayStats(snapshot.data() as any);
+      }
+    },
+    (error) => {
+      console.error('Error loading day stats:', error);
+    }
+  );
+  
+  return () => unsubscribe();
+}, [selectedDayNumber]);
+
+// LISTENER: Encouragement Notes
+useEffect(() => {
+  if (!selectedDayNumber) return;
+  
+  const unsubscribe = onSnapshot(
+    query(
+      collection(db, 'encouragementNotes', `day${selectedDayNumber}`, 'notes'),
+      orderBy('timestamp', 'desc'),
+      limit(20)
+    ),
+    (snapshot) => {
+      const notes = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setEncouragementNotes(notes as any);
+    },
+    (error) => {
+      console.error('Error loading encouragement notes:', error);
+      setEncouragementNotes([]);
+    }
+  );
+  
+  return () => unsubscribe();
+}, [selectedDayNumber]);
+
+// LISTENER: Group Departures
+useEffect(() => {
+  if (!selectedDayNumber) return;
+  
+  const locationForDay = locations.find(l => l.day === selectedDayNumber);
+  if (!locationForDay) return;
+  
+  const unsubscribe = onSnapshot(
+    query(
+      collection(db, 'groupDepartures'),
+      where('locationId', '==', locationForDay.id),
+      where('departureTime', '>', new Date()),
+      orderBy('departureTime', 'asc'),
+      limit(5)
+    ),
+    (snapshot) => {
+      const departures = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setGroupDepartures(departures as any);
+    },
+    (error) => {
+      console.error('Error loading group departures:', error);
+      setGroupDepartures([]);
+    }
+  );
+  
+  return () => unsubscribe();
+}, [selectedDayNumber, locations]);
+
+// LISTENER: Live Updates for Selected Day
+useEffect(() => {
+  if (!selectedDayNumber) return;
+  
+  const locationForDay = locations.find(l => l.day === selectedDayNumber);
+  if (!locationForDay) return;
+  
+  const unsubscribe = onSnapshot(
+    query(
+      collection(db, 'liveUpdates', locationForDay.id, 'updates'),
+      orderBy('timestamp', 'desc'),
+      limit(30)
+    ),
+    (snapshot) => {
+      const updates = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setLiveUpdates(updates as any);
+    },
+    (error) => {
+      console.error('Error loading live updates:', error);
+      setLiveUpdates([]);
+    }
+  );
+  
+  return () => unsubscribe();
+}, [selectedDayNumber, locations]);
+
+// ADD THIS NEW LISTENER (after the other useEffect listeners, around line 350):
+
+// LISTENER: Real-time community avatars by current day
+useEffect(() => {
+  if (!currentUserId) return;
+
+  const unsubscribe = onSnapshot(
+    collection(db, "users"),
+    (snapshot) => {
+      const avatars: Avatar[] = [];
+      console.log(`🧩 Total user documents found: ${snapshot.size}`);
+
+      snapshot.forEach((userDoc) => {
+        const userId = userDoc.id;
+        const userData = userDoc.data();
+        const courseData = userData.datedcourses?.social_skills;
+
+        console.log(`\n👤 Processing user: ${userId}`);
+
+        if (!courseData) {
+          console.log("⚠️ No 'datedcourses.social_skills' found for this user");
+          return;
+        }
+        if (!Array.isArray(courseData.days)) {
+          console.log("⚠️ 'days' field missing or not an array");
+          return;
+        }
+
+        // Detect missing 'done' indicators
+        const hasMissingDone = courseData.days.some((day: any) =>
+          day.tasks?.some((t: any) => t.done === undefined)
+        );
+
+        let currentDayData;
+
+        if (hasMissingDone) {
+          currentDayData = courseData.days[0];
+          console.log("🟡 Missing 'done' fields → Defaulting to Day 1");
+        } else {
+          const earliestUnfinished = courseData.days.find((day: any) =>
+            day.tasks?.some((t: any) => !t.done)
+          );
+          currentDayData = earliestUnfinished || courseData.days[courseData.days.length - 1];
+          console.log(
+            earliestUnfinished
+              ? `🔍 Earliest unfinished day found → Day ${currentDayData.day}`
+              : `✅ All tasks completed → Using last day (${courseData.days.length})`
+          );
+        }
+
+        if (!currentDayData) {
+          console.log("❌ No valid day data found, skipping user");
+          return;
+        }
+
+        const dayNumber = currentDayData.day;
+        console.log(`📅 Determined current day for ${userId}: Day ${dayNumber}`);
+
+        // Track current user locally
+        if (userId === currentUserId) setCurrentUserDay(dayNumber);
+
+        // Determine display location
+        const firstTask = currentDayData.tasks?.[0];
+        const locationName = firstTask?.location || currentDayData.title || "";
+        if (!locationName) {
+          console.log("⚠️ No location name found for this day");
+          return;
+        }
+
+        const locationId = locations.find((loc) =>
+          loc.name.toLowerCase().includes(locationName.toLowerCase().slice(0, 10))
+        )?.id;
+        if (!locationId) {
+          console.log(`⚠️ No matching location found for name: ${locationName}`);
+          return;
+        }
+
+        const colors = [
+          "from-blue-500 to-cyan-500",
+          "from-pink-500 to-rose-500",
+          "from-green-500 to-emerald-500",
+          "from-purple-500 to-violet-500",
+          "from-orange-500 to-amber-500",
+          "from-red-500 to-rose-500",
+          "from-yellow-500 to-orange-500",
+        ];
+
+        avatars.push({
+          id: userId,
+          name: courseData.goal_name || "User",
+          color: colors[Math.floor(Math.random() * colors.length)],
+          currentLocation: locationId,
+          streak: courseData.streak || 0,
+          isInExperiment: false,
+        });
+      });
+
+      console.log(`\n✅ Active avatars updated: ${avatars.length}`);
+      setActiveAvatars(avatars);
+    },
+    (error) => {
+      console.error("❌ Error loading community avatars:", error);
+    }
+  );
+
+  return () => unsubscribe();
+}, [currentUserId, locations]);
+
+
+
+
 
   const [recentActivity] = useState([
     { user: 'Alex', action: 'completed Café mission', time: '2m ago', icon: Check },
@@ -855,6 +1337,8 @@ const startMission = () => {
     }
 
   };
+
+  
   
 
 
@@ -1111,6 +1595,19 @@ const uploadPartyPhoto = async (partyId: string, imageFile: File) => {
   }
 };
 
+const openDayExplorer = (dayNumber: number) => {
+  setSelectedDayNumber(dayNumber);
+  
+  // Filter avatars who are on this day
+  const peopleOnDay = activeAvatars.filter(avatar => {
+    const location = locations.find(l => l.currentLocation === avatar.currentLocation);
+    return location?.day === dayNumber;
+  });
+  
+  setPeopleOnSelectedDay(peopleOnDay);
+  setShowDayExplorer(true);
+};
+
 
 // Format countdown time
 const formatCountdown = (seconds: number) => {
@@ -1127,6 +1624,100 @@ const formatCountdown = (seconds: number) => {
   return `${secs}s`;
 };
 
+// Post message to campfire
+const postToCampfire = async (message: string, isVulnerable: boolean = false) => {
+  if (!message.trim() || !selectedDayNumber || !currentUserId) return;
+  
+  try {
+    await addDoc(collection(db, 'dayCampfire', `day${selectedDayNumber}`, 'messages'), {
+      userId: currentUserId,
+      userName: currentUserName,
+      text: message.trim(),
+      timestamp: serverTimestamp(),
+      reactions: {},
+      isVulnerable: isVulnerable
+    });
+    
+    setCampfireInput('');
+  } catch (error) {
+    console.error('Error posting to campfire:', error);
+  }
+};
+
+// React to campfire message
+const reactToCampfireMessage = async (messageId: string, emoji: string) => {
+  if (!selectedDayNumber) return;
+  
+  try {
+    const messageRef = doc(db, 'dayCampfire', `day${selectedDayNumber}`, 'messages', messageId);
+    await updateDoc(messageRef, {
+      [`reactions.${emoji}`]: increment(1)
+    });
+  } catch (error) {
+    console.error('Error reacting to message:', error);
+  }
+};
+
+// Leave encouragement note
+const leaveEncouragementNote = async (message: string) => {
+  if (!message.trim() || !selectedDayNumber || !currentUserId) return;
+  
+  try {
+    await addDoc(collection(db, 'encouragementNotes', `day${selectedDayNumber}`, 'notes'), {
+      from: currentUserName,
+      message: message.trim(),
+      completedAgo: '2h ago', // Calculate from actual completion
+      reactions: 0,
+      timestamp: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error leaving encouragement:', error);
+  }
+};
+
+// Join group departure
+// Join group departure
+const joinGroupDeparture = async (departureId: string) => {
+  if (!currentUserId) return;
+  
+  try {
+    const departureRef = doc(db, 'groupDepartures', departureId);
+    const departure = groupDepartures.find(d => d.id === departureId);
+    
+    if (departure && !departure.participants.includes(currentUserId)) {
+      await updateDoc(departureRef, {
+        participants: [...departure.participants, currentUserId]
+      });
+    }
+  } catch (error) {
+    console.error('Error joining group departure:', error);
+  }
+};
+
+// Calculate live location status
+const updateLiveLocationStatus = () => {
+  if (!selectedDayNumber) return;
+  
+  const dayLocation = locations.find(l => l.day === selectedDayNumber);
+  if (!dayLocation) return;
+  
+  const peopleAtLocation = activeAvatars.filter(a => a.currentLocation === dayLocation.id);
+  
+  // Mock categorization - in real app, track actual status
+  setLiveAtLocation({
+    arrived: peopleAtLocation.slice(0, 3),
+    onTheWay: peopleAtLocation.slice(3, 8),
+    preparing: peopleAtLocation.slice(8, 20),
+    justCompleted: peopleAtLocation.slice(20, 28)
+  });
+};
+
+// Update live status when day changes
+useEffect(() => {
+  updateLiveLocationStatus();
+}, [selectedDayNumber, activeAvatars]);
+
+
 
   return (
     <div className="w-full text-white">
@@ -1141,9 +1732,10 @@ const formatCountdown = (seconds: number) => {
                 <span className="text-sm font-medium text-purple-200">Social Adventure City</span>
                 
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-200 via-pink-200 to-purple-300 bg-clip-text text-transparent">
-                Your Social Journey Map
-              </h1>
+              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-300 via-pink-300 to-purple-400 bg-clip-text text-transparent">
+  Your City of Growth
+</h1>
+
               <p className="text-purple-300 mt-2">Complete missions, connect with others, level up your social skills</p>
             </div>
             
@@ -1254,7 +1846,8 @@ const formatCountdown = (seconds: number) => {
                         )}
 
                         {/* Main location circle */}
-                        <div className={`w-16 h-16 rounded-full flex items-center justify-center border-4 shadow-xl transition-all duration-300 ${
+                        <div className={`w-20 h-20 rounded-full flex items-center justify-center border-4 shadow-2xl transition-all duration-300 ${
+
                           location.status === 'completed'
                             ? 'bg-gradient-to-br from-green-500 to-emerald-600 border-green-400 shadow-green-500/50'
                             : location.status === 'in-progress'
@@ -1266,14 +1859,28 @@ const formatCountdown = (seconds: number) => {
                           {location.status === 'locked' ? (
                             <Lock className="w-7 h-7 text-purple-500" />
                           ) : (
-                            <location.icon className="w-7 h-7 text-white" />
+                            <location.icon className="w-10 h-10 text-white drop-shadow-lg" />
+
                           )}
                         </div>
 
                         {/* Day Number Badge - TOP LEFT */}
-<div className="absolute -top-2 -left-2 bg-gradient-to-br from-yellow-500 to-orange-500 text-white text-xs font-bold rounded-full w-7 h-7 flex items-center justify-center border-2 border-white shadow-lg z-10">
+<button
+  onClick={(e) => {
+    e.stopPropagation();
+    openDayExplorer(location.day);
+  }}
+  className="absolute -top-2 -left-2 bg-gradient-to-br from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white text-xs font-bold rounded-full w-7 h-7 flex items-center justify-center border-2 border-white shadow-lg z-10 transition-all hover:scale-110"
+>
   {location.day}
-</div>
+</button>
+
+{/* Current user's day indicator */}
+{location.day === currentUserDay && (
+  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-2 py-1 bg-cyan-500 text-white text-xs font-bold rounded-full border-2 border-white shadow-lg animate-pulse">
+    YOUR DAY
+  </div>
+)}
 
                         {/* Active users badge */}
                         {location.status !== 'locked' && (
@@ -1446,17 +2053,11 @@ const formatCountdown = (seconds: number) => {
               <div className="flex-1 px-4 py-3 bg-purple-900/60 backdrop-blur-sm rounded-xl border border-purple-500/30">
                 <div className="flex items-center gap-2 mb-1">
                   <Zap className="w-4 h-4 text-yellow-400" />
-                  <span className="text-xs text-purple-300">XP</span>
+                  <span className="text-xs text-purple-300">XP of the entire squad</span>
                 </div>
                 <p className="text-xl font-bold text-white">{userXP}</p>
               </div>
-              <div className="flex-1 px-4 py-3 bg-purple-900/60 backdrop-blur-sm rounded-xl border border-purple-500/30">
-                <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp className="w-4 h-4 text-green-400" />
-                  <span className="text-xs text-purple-300">SGF</span>
-                </div>
-                <p className="text-xl font-bold text-white">{userStreak} days</p>
-              </div>
+              
             </div>
 
               {/* ⬇️⬇️⬇️ ADD STEP 7 CODE HERE ⬇️⬇️⬇️ */}
@@ -1660,28 +2261,7 @@ const formatCountdown = (seconds: number) => {
   </button>
 </div>
 
-            {/* Quick Actions */}
-            <div className="bg-purple-900/40 backdrop-blur-md rounded-2xl border border-purple-500/30 p-5">
-              <h3 className="font-bold text-white mb-4 flex items-center gap-2">
-                <Heart className="w-5 h-5 text-pink-400" />
-                Quick Actions
-              </h3>
-              
-              <div className="space-y-2">
-                <button className="w-full flex items-center gap-3 p-3 bg-purple-800/30 hover:bg-purple-800/50 rounded-lg transition-colors text-left">
-                  <Hand className="w-5 h-5 text-purple-400" />
-                  <span className="text-sm text-white">Send a Wave</span>
-                </button>
-                <button className="w-full flex items-center gap-3 p-3 bg-purple-800/30 hover:bg-purple-800/50 rounded-lg transition-colors text-left">
-                  <MessageCircle className="w-5 h-5 text-purple-400" />
-                  <span className="text-sm text-white">Leave a Note</span>
-                </button>
-                <button className="w-full flex items-center gap-3 p-3 bg-purple-800/30 hover:bg-purple-800/50 rounded-lg transition-colors text-left">
-                  <Trophy className="w-5 h-5 text-purple-400" />
-                  <span className="text-sm text-white">View Badges</span>
-                </button>
-              </div>
-            </div>
+           
 
           </div>
         </div>
@@ -1689,175 +2269,924 @@ const formatCountdown = (seconds: number) => {
       </div>
 
       {/* Location Modal */}
-      {modalOpen && selectedLocation && (
-        <div 
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={closeModal}
-        >
-          <div 
-            className="bg-gradient-to-br from-purple-900/95 to-indigo-900/95 rounded-2xl border border-purple-500/50 max-w-lg w-full shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+      {/* Location Modal */}
+{modalOpen && selectedLocation && (
+  <div 
+    className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    onClick={() => setShowDayExplorer(false)}
+  >
+    <div 
+      className="bg-gradient-to-br from-orange-900/98 to-red-900/98 rounded-2xl border border-orange-500/50 max-w-6xl w-full max-h-[90vh] shadow-2xl flex flex-col"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Header */}
+      <div className="p-6 border-b border-orange-500/30 flex-shrink-0">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="p-3 rounded-xl bg-orange-500/20">
+                <Trophy className="w-8 h-8 text-orange-400" />
+              </div>
+              <div className="absolute -top-1 -right-1 w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                <span className="text-xs font-bold text-white">{selectedDayNumber}</span>
+              </div>
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-white">🏕️ Day {selectedDayNumber} Base Camp</h2>
+              <p className="text-orange-300 text-sm mt-1">
+                {peopleOnSelectedDay.length} adventurers warming up together
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={() => setModalOpen(false)} 
+            className="p-2 hover:bg-orange-800/50 rounded-lg transition-colors"
           >
-            <div className="p-6 border-b border-purple-500/30">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className={`p-3 rounded-xl ${
-                    selectedLocation.status === 'completed'
-                      ? 'bg-green-500/20'
-                      : selectedLocation.status === 'in-progress'
-                      ? 'bg-purple-500/20'
-                      : 'bg-indigo-500/20'
-                  }`}>
-                    <selectedLocation.icon className="w-8 h-8 text-white" />
+            <X className="w-6 h-6 text-orange-300" />
+          </button>
+        </div>
+
+        {/* Tab Navigation */}
+        {/* Tab Navigation */}
+<div className="flex gap-2">
+  <button
+    onClick={() => setDayExplorerTab('community')}
+    className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all relative ${
+      dayExplorerTab === 'community'
+        ? 'bg-orange-600 text-white shadow-lg'
+        : 'bg-orange-800/30 text-orange-300 hover:bg-orange-800/50'
+    }`}
+  >
+    <div className="flex items-center justify-center gap-2">
+      🔥 Community (Live)
+      {/* NEW: Live indicator dot */}
+      {dayExplorerTab === 'community' && (
+        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse absolute top-2 right-2" />
+      )}
+    </div>
+    {/* NEW: Feature count badge */}
+    <div className="text-xs mt-1 opacity-75">
+      9 active features
+    </div>
+  </button>
+  <button
+    onClick={() => setDayExplorerTab('mission')}
+    className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all ${
+      dayExplorerTab === 'mission'
+        ? 'bg-orange-600 text-white shadow-lg'
+        : 'bg-orange-800/30 text-orange-300 hover:bg-orange-800/50'
+    }`}
+  >
+    📍 Mission Info
+  </button>
+</div>
+      </div>
+
+      {/* Tab Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto">
+        {dayExplorerTab === 'community' ? (
+          /* COMMUNITY TAB */
+          <div className="p-6 space-y-6">
+
+    
+    {/* NEW: Community Features Overview Banner */}
+    <div className="bg-gradient-to-r from-cyan-900/60 to-purple-900/60 rounded-2xl border border-cyan-500/50 p-5">
+      <div className="flex items-center gap-3 mb-4">
+        <Sparkles className="w-6 h-6 text-cyan-400 animate-pulse" />
+        <h3 className="text-xl font-bold text-white">Day {selectedDayNumber} Community Hub - All Features Active!</h3>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="p-3 bg-orange-800/30 rounded-lg border border-orange-500/30 text-center">
+          <div className="text-2xl mb-1">🔥</div>
+          <p className="text-xs text-orange-300 font-semibold">Campfire Wall</p>
+          <p className="text-lg font-bold text-white">{campfireMessages.length}</p>
+        </div>
+        <div className="p-3 bg-purple-800/30 rounded-lg border border-purple-500/30 text-center">
+          <div className="text-2xl mb-1">📊</div>
+          <p className="text-xs text-purple-300 font-semibold">Live Stats</p>
+          <p className="text-lg font-bold text-white">{dayStats.hypeLevel}%</p>
+        </div>
+        <div className="p-3 bg-cyan-800/30 rounded-lg border border-cyan-500/30 text-center">
+          <div className="text-2xl mb-1">📍</div>
+          <p className="text-xs text-cyan-300 font-semibold">At Location</p>
+          <p className="text-lg font-bold text-white">{liveAtLocation.arrived.length}</p>
+        </div>
+        <div className="p-3 bg-green-800/30 rounded-lg border border-green-500/30 text-center">
+          <div className="text-2xl mb-1">🎯</div>
+          <p className="text-xs text-green-300 font-semibold">Buddies</p>
+          <p className="text-lg font-bold text-white">{buddyMatches.length}</p>
+        </div>
+      </div>
+      <p className="text-center text-sm text-cyan-200 mt-4">
+        ⚡ All features are live and updating in real-time
+      </p>
+    </div>
+
+    {/* ⬇️⬇️⬇️ ADD THE QUICK NAVIGATION HERE ⬇️⬇️⬇️ */}
+    <div className="flex gap-2 overflow-x-auto pb-2">
+      <button 
+        onClick={() => document.getElementById('campfire')?.scrollIntoView({ behavior: 'smooth' })}
+        className="px-4 py-2 bg-orange-700/30 hover:bg-orange-700/50 rounded-lg text-sm text-orange-200 whitespace-nowrap transition-all"
+      >
+        🔥 Campfire
+      </button>
+      <button 
+        onClick={() => document.getElementById('hype-meter')?.scrollIntoView({ behavior: 'smooth' })}
+        className="px-4 py-2 bg-purple-700/30 hover:bg-purple-700/50 rounded-lg text-sm text-purple-200 whitespace-nowrap transition-all"
+      >
+        📊 Hype Meter
+      </button>
+      <button 
+        onClick={() => document.getElementById('live-location')?.scrollIntoView({ behavior: 'smooth' })}
+        className="px-4 py-2 bg-cyan-700/30 hover:bg-cyan-700/50 rounded-lg text-sm text-cyan-200 whitespace-nowrap transition-all"
+      >
+        📍 Live Map
+      </button>
+      <button 
+        onClick={() => document.getElementById('champions')?.scrollIntoView({ behavior: 'smooth' })}
+        className="px-4 py-2 bg-yellow-700/30 hover:bg-yellow-700/50 rounded-lg text-sm text-yellow-200 whitespace-nowrap transition-all"
+      >
+        🏆 Champions
+      </button>
+      <button 
+        onClick={() => document.getElementById('encouragement')?.scrollIntoView({ behavior: 'smooth' })}
+        className="px-4 py-2 bg-pink-700/30 hover:bg-pink-700/50 rounded-lg text-sm text-pink-200 whitespace-nowrap transition-all"
+      >
+        💌 Messages
+      </button>
+      <button 
+        onClick={() => document.getElementById('buddy-finder')?.scrollIntoView({ behavior: 'smooth' })}
+        className="px-4 py-2 bg-green-700/30 hover:bg-green-700/50 rounded-lg text-sm text-green-200 whitespace-nowrap transition-all"
+      >
+        🎯 Buddy Finder
+      </button>
+    </div>
+    {/* ⬆️⬆️⬆️ END OF QUICK NAVIGATION ⬆️⬆️⬆️ */}
+
+            
+            {/* THE CAMPFIRE WALL */}
+            <div className="bg-gradient-to-br from-orange-800/40 to-red-800/40 rounded-2xl border border-orange-500/50 p-6">
+              <div className="text-center mb-6">
+                <div className="text-6xl mb-3 animate-pulse">🔥</div>
+                <h3 className="text-2xl font-bold text-white mb-2">The Campfire Wall</h3>
+                <p className="text-orange-200 text-sm">What people are thinking RIGHT NOW</p>
+              </div>
+
+              {/* Live Messages Stream */}
+              <div className="space-y-3 mb-4 max-h-96 overflow-y-auto">
+                {campfireMessages.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-orange-300">Be the first to share your thoughts...</p>
                   </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-white">{selectedLocation.name}</h2>
-                    <p className="text-purple-300 text-sm mt-1">{selectedLocation.activeUsers} adventurers here</p>
+                ) : (
+                  campfireMessages.map((msg) => (
+                    <div 
+                      key={msg.id}
+                      className={`p-4 rounded-xl transition-all ${
+                        msg.isVulnerable 
+                          ? 'bg-pink-900/40 border-2 border-pink-500/50' 
+                          : 'bg-orange-900/30 border border-orange-500/30'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+                          {msg.userName[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-white">{msg.userName}</span>
+                            <span className="text-xs text-orange-400">
+                              {msg.timestamp?.toDate ? formatTimeAgo(msg.timestamp.toDate()) : 'now'}
+                            </span>
+                            {msg.isVulnerable && (
+                              <span className="text-xs px-2 py-0.5 bg-pink-500/30 border border-pink-400/50 rounded-full text-pink-200">
+                                vulnerable
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-orange-100 mb-2">{msg.text}</p>
+                          
+                          {/* Reactions */}
+                          <div className="flex items-center gap-3">
+                            {Object.entries(msg.reactions).map(([emoji, count]) => (
+                              <button
+                                key={emoji}
+                                onClick={() => reactToCampfireMessage(msg.id, emoji)}
+                                className="flex items-center gap-1 px-2 py-1 bg-orange-800/30 hover:bg-orange-800/50 rounded-lg transition-all hover:scale-110"
+                              >
+                                <span>{emoji}</span>
+                                <span className="text-xs text-orange-200">{count}</span>
+                              </button>
+                            ))}
+                            {Object.keys(msg.reactions).length === 0 && (
+                              <div className="flex gap-1">
+                                {['💪', '❤️', '👋'].map(emoji => (
+                                  <button
+                                    key={emoji}
+                                    onClick={() => reactToCampfireMessage(msg.id, emoji)}
+                                    className="px-2 py-1 bg-orange-800/20 hover:bg-orange-800/40 rounded-lg text-lg transition-all hover:scale-125"
+                                  >
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Post Input */}
+              <div className="border-t border-orange-500/30 pt-4">
+                <textarea
+                  value={campfireInput}
+                  onChange={(e) => setCampfireInput(e.target.value)}
+                  placeholder="Share what you're feeling... (be real, everyone here gets it)"
+                  className="w-full px-4 py-3 bg-orange-900/30 border border-orange-500/30 rounded-xl text-white placeholder-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                  rows={3}
+                  maxLength={300}
+                />
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-xs text-orange-400">{campfireInput.length}/300</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => postToCampfire(campfireInput, true)}
+                      disabled={!campfireInput.trim()}
+                      className="px-4 py-2 bg-pink-600/50 hover:bg-pink-600/70 disabled:bg-orange-800/30 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-all"
+                    >
+                      😰 Vulnerable Post
+                    </button>
+                    <button
+                      onClick={() => postToCampfire(campfireInput, false)}
+                      disabled={!campfireInput.trim()}
+                      className="px-4 py-2 bg-orange-600 hover:bg-orange-500 disabled:bg-orange-800/30 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-all"
+                    >
+                      Share
+                    </button>
                   </div>
                 </div>
-                <button onClick={closeModal} className="p-2 hover:bg-purple-800/50 rounded-lg transition-colors">
-                  <X className="w-6 h-6 text-purple-300" />
-                </button>
               </div>
             </div>
 
-            <div className="p-6">
+            {/* THE HYPE METER */}
+            <div className="bg-gradient-to-br from-purple-800/40 to-pink-800/40 rounded-2xl border border-purple-500/50 p-6">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <TrendingUp className="w-6 h-6 text-purple-400" />
+                🎯 Day {selectedDayNumber} Energy Today
+              </h3>
+
+              {/* Hype Bar */}
               <div className="mb-6">
-                <h3 className="text-lg font-bold text-white mb-2">Today's Mission</h3>
-                <div className="p-4 bg-purple-800/30 rounded-xl border border-purple-500/30">
-                  <p className="text-xl font-semibold text-purple-100 mb-2">{selectedLocation.mission}</p>
-                  <p className="text-purple-300 text-sm">{selectedLocation.description}</p>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-purple-300">HYPE LEVEL</span>
+                  <span className="text-2xl font-bold text-white">{dayStats.hypeLevel}%</span>
+                </div>
+                <div className="w-full bg-purple-900/50 rounded-full h-4 overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500 rounded-full transition-all duration-1000 animate-pulse"
+                    style={{ width: `${dayStats.hypeLevel}%` }}
+                  />
                 </div>
               </div>
 
-              <div className="mb-6">
-                <div className="flex items-center justify-between p-4 bg-yellow-900/20 border border-yellow-500/30 rounded-xl">
-                  <div className="flex items-center gap-2">
-                    <Star className="w-5 h-5 text-yellow-400" />
-                    <span className="text-white font-semibold">Reward</span>
+              {/* Live Stats Grid */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="p-3 bg-purple-900/30 rounded-lg">
+                  <p className="text-xs text-purple-300 mb-1">Completions Today</p>
+                  <p className="text-2xl font-bold text-white">{dayStats.completionsToday}</p>
+                  <p className="text-xs text-green-400 mt-1">↑ {dayStats.trendPercentage}% from yesterday</p>
+                </div>
+                <div className="p-3 bg-purple-900/30 rounded-lg">
+                  <p className="text-xs text-purple-300 mb-1">Completion Rate</p>
+                  <p className="text-2xl font-bold text-white">{dayStats.completionRate}%</p>
+                </div>
+                <div className="p-3 bg-purple-900/30 rounded-lg">
+                  <p className="text-xs text-purple-300 mb-1">Avg Time</p>
+                  <p className="text-lg font-bold text-white">{dayStats.avgTimeToComplete} mins</p>
+                </div>
+                <div className="p-3 bg-purple-900/30 rounded-lg">
+                  <p className="text-xs text-purple-300 mb-1">Peak Time</p>
+                  <p className="text-lg font-bold text-white">{dayStats.peakTime}</p>
+                </div>
+              </div>
+
+              {/* Momentum Alert */}
+              <div className="p-4 bg-gradient-to-r from-orange-900/40 to-red-900/40 border border-orange-500/50 rounded-xl">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🔥</span>
+                  <div>
+                    <p className="text-sm font-bold text-orange-200">MOMENTUM ALERT</p>
+                    <p className="text-xs text-orange-300">Day {selectedDayNumber} is ON FIRE right now! {dayStats.completionsToday} people completed today!</p>
                   </div>
-                  <span className="text-yellow-400 font-bold text-lg">{selectedLocation.xpReward} XP</span>
+                </div>
+              </div>
+            </div>
+
+            {/* LIVE "WHO'S HERE" MAP */}
+            <div className="bg-gradient-to-br from-cyan-800/40 to-blue-800/40 rounded-2xl border border-cyan-500/50 p-6">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <MapPin className="w-6 h-6 text-cyan-400" />
+                📍 RIGHT NOW AT THE LOCATION
+              </h3>
+
+              {/* Status Groups */}
+              <div className="space-y-4">
+                {/* Arrived */}
+                <div className="p-4 bg-green-900/30 border border-green-500/30 rounded-xl">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+                    <span className="font-bold text-green-300">🟢 ARRIVED ({liveAtLocation.arrived.length} people)</span>
+                  </div>
+                  {liveAtLocation.arrived.length === 0 ? (
+                    <p className="text-sm text-green-400 italic">No one here yet - be the first!</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {liveAtLocation.arrived.map(person => (
+                        <div key={person.id} className="px-3 py-2 bg-green-800/30 rounded-lg border border-green-500/30 flex items-center gap-2">
+                          <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${person.color} flex items-center justify-center text-xs font-bold text-white`}>
+                            {person.name[0]}
+                          </div>
+                          <span className="text-sm text-white">{person.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* On The Way */}
+                <div className="p-4 bg-yellow-900/30 border border-yellow-500/30 rounded-xl">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse" />
+                    <span className="font-bold text-yellow-300">🟡 ON THE WAY ({liveAtLocation.onTheWay.length} people)</span>
+                  </div>
+                  {liveAtLocation.onTheWay.length > 0 && (
+                    <div className="space-y-2">
+                      {liveAtLocation.onTheWay.slice(0, 5).map(person => (
+                        <p key={person.id} className="text-sm text-yellow-200">
+                          • {person.name} - "heading there now..."
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Preparing */}
+                <div className="p-4 bg-blue-900/30 border border-blue-500/30 rounded-xl">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full" />
+                    <span className="font-bold text-blue-300">🔵 PREPARING ({liveAtLocation.preparing.length} people)</span>
+                  </div>
+                  {liveAtLocation.preparing.length > 0 && (
+                    <p className="text-sm text-blue-200">
+                      {liveAtLocation.preparing.map(p => p.name).slice(0, 3).join(', ')}
+                      {liveAtLocation.preparing.length > 3 && ` +${liveAtLocation.preparing.length - 3} more`} getting ready...
+                    </p>
+                  )}
+                </div>
+
+                {/* Just Completed */}
+                <div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Trophy className="w-4 h-4 text-purple-400" />
+                    <span className="font-bold text-purple-300">⚡ JUST COMPLETED ({liveAtLocation.justCompleted.length} in last hour)</span>
+                  </div>
+                  {liveAtLocation.justCompleted.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {liveAtLocation.justCompleted.slice(0, 8).map(person => (
+                        <div key={person.id} className="px-2 py-1 bg-purple-800/30 rounded-lg text-xs text-purple-200">
+                          {person.name} ✅
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* TODAY'S CHAMPIONS */}
+            {(todaysChampions.firstTimer || todaysChampions.bestTip || todaysChampions.biggestBreakthrough) && (
+              <div className="bg-gradient-to-br from-yellow-800/40 to-orange-800/40 rounded-2xl border border-yellow-500/50 p-6">
+                <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                  <Trophy className="w-6 h-6 text-yellow-400" />
+                  🏆 TODAY'S CHAMPIONS
+                </h3>
+
+                <div className="space-y-4">
+                  {todaysChampions.firstTimer && (
+                    <div className="p-4 bg-yellow-900/30 border border-yellow-500/30 rounded-xl">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">⭐</span>
+                        <span className="font-bold text-yellow-300">FIRST TIMER OF THE DAY</span>
+                      </div>
+                      <p className="text-white font-semibold mb-1">{todaysChampions.firstTimer.name} completed at {todaysChampions.firstTimer.time}</p>
+                      <p className="text-yellow-200 italic">"{todaysChampions.firstTimer.message}"</p>
+                      <p className="text-xs text-yellow-400 mt-2">👋 {todaysChampions.firstTimer.reactions} reactions</p>
+                    </div>
+                  )}
+
+                  {todaysChampions.bestTip && (
+                    <div className="p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">🎯</span>
+                        <span className="font-bold text-cyan-300">MOST HELPFUL TIP</span>
+                      </div>
+                      <p className="text-white font-semibold mb-1">{todaysChampions.bestTip.name}:</p>
+                      <p className="text-cyan-200">"{todaysChampions.bestTip.tip}"</p>
+                      <p className="text-xs text-cyan-400 mt-2">⭐ {todaysChampions.bestTip.helpful} people: "This helped!"</p>
+                    </div>
+                  )}
+
+                  {todaysChampions.biggestBreakthrough && (
+                    <div className="p-4 bg-pink-900/30 border border-pink-500/30 rounded-xl">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">💪</span>
+                        <span className="font-bold text-pink-300">BIGGEST BREAKTHROUGH</span>
+                      </div>
+                      <p className="text-white font-semibold mb-1">{todaysChampions.biggestBreakthrough.name}:</p>
+                      <p className="text-pink-200">"{todaysChampions.biggestBreakthrough.story}"</p>
+                      <div className="flex items-center gap-4 mt-2 text-xs text-pink-400">
+                        <span>❤️ {todaysChampions.biggestBreakthrough.reactions} reactions</span>
+                        <span>💬 {todaysChampions.biggestBreakthrough.replies} replies</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* THE ENCOURAGEMENT WALL */}
+            {encouragementNotes.length > 0 && (
+              <div className="bg-gradient-to-br from-pink-800/40 to-purple-800/40 rounded-2xl border border-pink-500/50 p-6">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <Heart className="w-6 h-6 text-pink-400" />
+                  💌 MESSAGES FROM PEOPLE WHO MADE IT
+                </h3>
+
+                <div className="space-y-4">
+                  {encouragementNotes.map(note => (
+                    <div key={note.id} className="p-5 bg-pink-900/30 border border-pink-500/30 rounded-xl">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-sm font-semibold text-pink-200">From: {note.from}</span>
+                        <span className="text-xs text-pink-400">(completed {note.completedAgo})</span>
+                      </div>
+                      <p className="text-pink-100 leading-relaxed mb-3 whitespace-pre-line">
+                        {note.message}
+                      </p>
+                      <p className="text-xs text-pink-400">👋 {note.reactions} people waved back</p>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setShowCampfireWall(true)}
+                  className="w-full mt-4 py-3 bg-pink-600/50 hover:bg-pink-600/70 rounded-xl text-white font-semibold transition-all"
+                >
+                  Leave Your Own Message
+                </button>
+              </div>
+            )}
+
+            {/* THE ANXIETY METER */}
+            <div className="bg-gradient-to-br from-indigo-800/40 to-purple-800/40 rounded-2xl border border-indigo-500/50 p-6">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <TrendingUp className="w-6 h-6 text-indigo-400" />
+                📊 DAY {selectedDayNumber} EMOTIONAL JOURNEY
+              </h3>
+
+              <div className="space-y-4 mb-6">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-indigo-300">BEFORE MISSION:</span>
+                    <span className="text-xl font-bold text-white">{anxietyJourney.beforeAvg}/10</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {['😰','😰','😰','😰','😰','😰','😰','😐','😐','😊'].map((emoji, i) => (
+                      <span key={i} className="text-2xl">{emoji}</span>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-indigo-300">DURING MISSION:</span>
+                    <span className="text-xl font-bold text-white">{anxietyJourney.duringAvg}/10</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {['😰','😰','😰','😐','😐','😊','😊','😄','😄','😄'].map((emoji, i) => (
+                      <span key={i} className="text-2xl">{emoji}</span>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-indigo-300">AFTER MISSION:</span>
+                    <span className="text-xl font-bold text-green-400">{anxietyJourney.afterAvg}/10</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {['😊','😊','😊','😊','😄','😄','😄','😄','😁','😁'].map((emoji, i) => (
+                      <span key={i} className="text-2xl">{emoji}</span>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {/* Active users preview */}
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-purple-300 mb-3">Currently here:</h4>
-                <div className="flex flex-wrap gap-2">
-                  {getAvatarsAtLocation(selectedLocation.id).map((avatar) => (
-                    <div key={avatar.id} className="flex items-center gap-2 px-3 py-2 bg-purple-800/30 rounded-lg border border-purple-500/20">
-                      <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${avatar.color} flex items-center justify-center text-xs font-bold text-white`}>
-                        {avatar.name[0]}
+              <div className="p-4 bg-indigo-900/30 border border-indigo-500/30 rounded-xl space-y-2">
+                <p className="text-sm text-indigo-200">
+                  <span className="font-semibold">💡 INSIGHT:</span> {anxietyJourney.totalResponses} responses analyzed
+                </p>
+                <p className="text-sm text-indigo-200">
+                  94% of Day {selectedDayNumber}'ers report feeling BETTER after completing than they expected. <span className="font-semibold text-green-400">You will too.</span>
+                </p>
+                <p className="text-sm text-indigo-200">
+                  📈 Average anxiety drops by <span className="font-bold text-green-400">{anxietyJourney.dropRate} points</span>. That's normal!
+                </p>
+              </div>
+            </div>
+
+            {/* NEXT GROUP DEPARTURE */}
+            {groupDepartures.length > 0 && (
+              <div className="bg-gradient-to-br from-green-800/40 to-emerald-800/40 rounded-2xl border border-green-500/50 p-6">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <Users className="w-6 h-6 text-green-400" />
+                  ⏰ NEXT GROUP DEPARTURE
+                </h3>
+
+                {groupDepartures.map(departure => (
+                  <div key={departure.id} className="space-y-4">
+                    {/* Countdown */}
+                    <div className="p-6 bg-green-900/40 border-2 border-green-500/50 rounded-xl text-center">
+                      <p className="text-green-300 text-sm mb-2">Leaving together in:</p>
+                      <p className="text-5xl font-bold text-white mb-2">
+                        {Math.floor((departure.departureTime.getTime() - new Date().getTime()) / 60000)}:{
+                          String(Math.floor(((departure.departureTime.getTime() - new Date().getTime()) % 60000) / 1000)).padStart(2, '0')
+                        }
+                      </p>
+                      <p className="text-green-400 text-sm">
+                        🚀 {departure.participants.length} PEOPLE heading to {
+                          locations.find(l => l.id === departure.locationId)?.name || 'location'
+                        }
+                      </p>
+                    </div>
+
+                    {/* Participants */}
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <span className="text-sm text-green-300 mr-2">Who's joining:</span>
+                      {departure.participants.slice(0, 10).map((_, i) => (
+                        <div 
+                          key={i}
+                          className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 border-2 border-white/30"
+                          style={{ marginLeft: i > 0 ? '-12px' : '0', zIndex: 10 - i }}
+                        />
+                      ))}
+                      {departure.participants.length > 10 && (
+                        <span className="text-sm font-bold text-green-400 ml-2">
+                          +{departure.participants.length - 10} more
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Group Chat Preview */}
+                    {departure.messages.length > 0 && (
+                      <div className="p-4 bg-green-900/20 border border-green-500/30 rounded-xl">
+                        <p className="text-xs text-green-400 mb-2">💬 Group Chat:</p>
+                        <div className="space-y-1">
+                          {departure.messages.map((msg, i) => (
+                            <p key={i} className="text-sm text-green-200">
+                              <span className="font-semibold">{msg.userName}:</span> {msg.text}
+                            </p>
+                          ))}
+                        </div>
                       </div>
-                      <span className="text-sm text-white">{avatar.name}</span>
-                      <span className="text-xs text-purple-400">🔥 {avatar.streak}</span>
+                    )}
+
+                    {/* Join Button */}
+                    <button
+                      onClick={() => joinGroupDeparture(departure.id)}
+                      className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+                    >
+                      <Users className="w-5 h-5" />
+                      Count Me In!
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* "LIVE FROM THE LOCATION" */}
+            {liveUpdates.length > 0 && (
+              <div className="bg-gradient-to-br from-red-800/40 to-orange-800/40 rounded-2xl border border-red-500/50 p-6">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                  📡 LIVE UPDATES - HAPPENING NOW
+                </h3>
+
+                <div className="space-y-4">
+                  {liveUpdates.map(update => (
+                    <div key={update.id} className="p-4 bg-red-900/30 border border-red-500/30 rounded-xl">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+                          {update.userName[0]}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-bold text-white">{update.userName}:</span>
+                            <span className="text-xs text-red-400">{formatTimeAgo(update.timestamp)}</span>
+                          </div>
+                          <p className="text-red-100 text-lg mb-2">{update.action}</p>
+                          
+                          {/* Reactions */}
+                          {update.reactions > 0 && (
+                            <p className="text-sm text-red-300 mb-2">💪 {update.reactions} reactions</p>
+                          )}
+
+                          {/* Replies */}
+                          {update.replies.length > 0 && (
+                            <div className="mt-3 pl-4 border-l-2 border-red-500/30 space-y-2">
+                              {update.replies.map((reply, i) => (
+                                <div key={i} className="text-sm">
+                                  <span className="font-semibold text-red-200">{reply.userName}:</span>
+                                  <span className="text-red-300 ml-1">{reply.text}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
+            )}
 
-              {/* Memory preview in location modal */}
-{locationMemories[selectedLocation.id]?.length > 0 && (
-  <div className="mb-6">
-    <div className="flex items-center justify-between mb-3">
-      <h4 className="text-sm font-semibold text-purple-300">Recent experiences:</h4>
-      <button
-        onClick={() => {
-          setShowMemoryWall(true);
-          setSelectedMemoryLocation(selectedLocation.id);
-        }}
-        className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
-      >
-        View all {locationMemories[selectedLocation.id].length} →
-      </button>
-      
-    </div>
-    <div className="space-y-2">
-      {locationMemories[selectedLocation.id].slice(0, 2).map((memory) => (
-        <div key={memory.id} className="p-3 bg-purple-800/20 rounded-lg border border-purple-500/20">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-semibold text-purple-200">{memory.userName}</span>
-            <span className="text-xs text-purple-400">
-              {memory.timestamp?.toDate ? formatTimeAgo(memory.timestamp.toDate()) : 'now'}
-            </span>
+            {/* BUDDY BEACON */}
+            {buddyMatches.length > 0 && (
+              <div className="bg-gradient-to-br from-cyan-800/40 to-blue-800/40 rounded-2xl border border-cyan-500/50 p-6">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <Users className="w-6 h-6 text-cyan-400" />
+                  🎯 FIND YOUR MISSION BUDDY
+                </h3>
+
+                {/* Filters */}
+                <div className="mb-6 p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl">
+                  <p className="text-sm text-cyan-300 mb-3">Filter by:</p>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs text-cyan-400 block mb-1">😰 Anxiety Level: {buddyFilters.anxietyLevel}/10</label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        value={buddyFilters.anxietyLevel}
+                        onChange={(e) => setBuddyFilters({...buddyFilters, anxietyLevel: parseInt(e.target.value)})}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-cyan-400 block mb-1">⏰ Preferred Time</label>
+                      <select
+                        value={buddyFilters.preferredTime}
+                        onChange={(e) => setBuddyFilters({...buddyFilters, preferredTime: e.target.value})}
+                        className="w-full px-3 py-2 bg-cyan-900/30 border border-cyan-500/30 rounded-lg text-white text-sm"
+                      >
+                        <option value="morning">Morning (6-12pm)</option>
+                        <option value="afternoon">Afternoon (12-6pm)</option>
+                        <option value="evening">Evening (6-9pm)</option>
+                        <option value="night">Night (9pm+)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-cyan-400 block mb-1">🎭 Experience</label>
+                      <select
+                        value={buddyFilters.experience}
+                        onChange={(e) => setBuddyFilters({...buddyFilters, experience: e.target.value})}
+                        className="w-full px-3 py-2 bg-cyan-900/30 border border-cyan-500/30 rounded-lg text-white text-sm"
+                      >
+                        <option value="first-timer">First timer</option>
+                        <option value="did-once">Did it once before</option>
+                        <option value="experienced">Experienced</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Perfect Matches */}
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-cyan-300 mb-3">PERFECT MATCHES:</p>
+                  {buddyMatches.map(match => (
+                    <div key={match.id} className="p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl hover:border-cyan-500/60 transition-all">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg">
+                            {match.name[0]}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-white">{match.name}</span>
+                              <div className="px-2 py-0.5 bg-green-500/30 border border-green-400/50 rounded-full">
+                                <span className="text-xs font-bold text-green-200">{match.matchPercentage}% match</span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-cyan-400">Last seen: {match.lastSeen}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Match Details */}
+                      <div className="grid grid-cols-3 gap-2 mb-3 text-xs">
+                        <div className="p-2 bg-cyan-800/30 rounded">
+                          <p className="text-cyan-400">Anxiety</p>
+                          <p className="text-white font-semibold">{match.anxietyLevel}/10</p>
+                        </div>
+                        <div className="p-2 bg-cyan-800/30 rounded">
+                          <p className="text-cyan-400">Time</p>
+                          <p className="text-white font-semibold text-xs">{match.preferredTime}</p>
+                        </div>
+                        <div className="p-2 bg-cyan-800/30 rounded">
+                          <p className="text-cyan-400">Experience</p>
+                          <p className="text-white font-semibold text-xs">{match.experience}</p>
+                        </div>
+                      </div>
+
+                      {/* Their Message */}
+                      <div className="p-3 bg-cyan-900/20 border border-cyan-500/20 rounded-lg mb-3">
+                        <p className="text-sm text-cyan-100 italic">"{match.message}"</p>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2">
+                        <button className="flex-1 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2">
+                          <MessageCircle className="w-4 h-4" />
+                          Message {match.name}
+                        </button>
+                        <button className="flex-1 py-2 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2">
+                          <Users className="w-4 h-4" />
+                          Buddy Up
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setShowBuddyFinder(true)}
+                  className="w-full mt-4 py-3 bg-cyan-600/50 hover:bg-cyan-600/70 rounded-xl text-white font-semibold transition-all"
+                >
+                  See All Matches
+                </button>
+              </div>
+            )}
+
           </div>
-          <p className="text-sm text-purple-100 line-clamp-2">{memory.text}</p>
+        ) : (
+          /* MISSION TAB */
+          <div className="p-6 space-y-6">
+            {/* Mission Details */}
+            <div className="bg-gradient-to-br from-purple-800/40 to-indigo-800/40 rounded-2xl border border-purple-500/50 p-6">
+              <div className="flex items-center gap-4 mb-4">
+                {(() => {
+                  const dayLocation = locations.find(l => l.day === selectedDayNumber);
+                  const IconComponent = dayLocation?.icon || MapPin;
+                  return (
+                    <>
+                      <div className="p-4 rounded-xl bg-purple-500/20">
+                        <IconComponent className="w-12 h-12 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-bold text-white">{dayLocation?.name}</h3>
+                        <p className="text-purple-300">{dayLocation?.mission}</p>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+
+              {(() => {
+                const dayLocation = locations.find(l => l.day === selectedDayNumber);
+                return (
+                  <>
+                    <div className="p-4 bg-purple-900/30 rounded-xl mb-4">
+                      <p className="text-purple-200 leading-relaxed">{dayLocation?.description}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-4 bg-yellow-900/30 border border-yellow-500/30 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Star className="w-5 h-5 text-yellow-400" />
+                          <span className="text-sm text-yellow-300">Reward</span>
+                        </div>
+                        <p className="text-2xl font-bold text-white">{dayLocation?.xpReward} XP</p>
+                      </div>
+                      <div className="p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Users className="w-5 h-5 text-cyan-400" />
+                          <span className="text-sm text-cyan-300">Active Now</span>
+                        </div>
+                        <p className="text-2xl font-bold text-white">{dayLocation?.activeUsers}</p>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+
+            {/* People on This Day */}
+            <div className="bg-gradient-to-br from-cyan-800/40 to-blue-800/40 rounded-2xl border border-cyan-500/50 p-6">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <Users className="w-6 h-6 text-cyan-400" />
+                👥 People on Day {selectedDayNumber}
+              </h3>
+
+              {peopleOnSelectedDay.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="w-12 h-12 text-cyan-400/50 mx-auto mb-3" />
+                  <p className="text-cyan-300">No one on this day right now</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {peopleOnSelectedDay.map((person) => (
+                    <div 
+                      key={person.id}
+                      className="p-4 bg-cyan-900/30 border border-cyan-500/20 rounded-xl hover:border-cyan-500/40 transition-all"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${person.color} flex items-center justify-center text-lg font-bold text-white border-2 border-cyan-400/50`}>
+                          {person.name[0]}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-bold text-white">{person.name}</h4>
+                            {person.streak > 5 && (
+                              <div className="px-2 py-0.5 bg-orange-500/30 border border-orange-400/50 rounded-full">
+                                <span className="text-xs font-bold text-orange-200">🔥 Hot Streak!</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="text-cyan-300">🔥 {person.streak} day streak</span>
+                            <span className="text-cyan-400">
+                              📍 {locations.find(l => l.id === person.currentLocation)?.name || 'Exploring'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button className="p-2 bg-cyan-700/30 hover:bg-cyan-700/50 rounded-lg transition-all group">
+                            <span className="text-lg group-hover:scale-125 transition-transform inline-block">👋</span>
+                          </button>
+                          <button className="p-2 bg-cyan-700/30 hover:bg-cyan-700/50 rounded-lg transition-all">
+                            <MessageCircle className="w-5 h-5 text-cyan-300" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-4 bg-green-900/30 border border-green-500/30 rounded-xl">
+                <p className="text-xs text-green-300 mb-1">Completion Rate</p>
+                <p className="text-2xl font-bold text-white">{dayStats.completionRate}%</p>
+              </div>
+              <div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
+                <p className="text-xs text-purple-300 mb-1">Avg Time</p>
+                <p className="text-2xl font-bold text-white">{dayStats.avgTimeToComplete}m</p>
+              </div>
+              <div className="p-4 bg-orange-900/30 border border-orange-500/30 rounded-xl">
+                <p className="text-xs text-orange-300 mb-1">Peak Hour</p>
+                <p className="text-lg font-bold text-white">{dayStats.peakTime}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer Actions */}
+      <div className="p-4 border-t border-orange-500/30 bg-orange-900/20 flex-shrink-0">
+        <div className="flex gap-3">
+          <button
+            onClick={() => {
+              const dayLocation = locations.find(l => l.day === selectedDayNumber);
+              if (dayLocation) {
+                setShowDayExplorer(false);
+                openLocationModal(dayLocation);
+              }
+            }}
+            className="flex-1 py-3 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+          >
+            <Zap className="w-5 h-5" />
+            Start Day {selectedDayNumber} Mission
+          </button>
         </div>
-      ))}
+      </div>
     </div>
   </div>
 )}
-
-              {selectedLocation.status === 'in-progress' ? (
-                <div className="space-y-3">
-                  <button
-                    onClick={completeMission}
-                    className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-purple-500/50"
-                  >
-                    <Check className="w-5 h-5" />
-                    Complete Mission Solo
-                  </button>
-                  
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl blur opacity-50 animate-pulse"></div>
-                    <div className="relative">
-  {/* Pulsing glow effect */}
-  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl blur-lg opacity-60 animate-pulse"></div>
-  
-  <button
-    onClick={startExperiment}
-    className="relative w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl transition-all duration-300 shadow-lg hover:shadow-cyan-500/50 border-2 border-cyan-400 overflow-hidden"
-  >
-    {/* Live ticker at top */}
-    <div className="bg-cyan-700/50 px-4 py-2 text-xs flex items-center justify-between border-b border-cyan-400/30">
-      <div className="flex items-center gap-2">
-        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-        <span className="text-cyan-100">7 people ready right now</span>
-      </div>
-      <span className="text-cyan-300 font-semibold">Instant match ⚡</span>
-    </div>
-
-    {/* Main content */}
-    <div className="px-4 py-4">
-      <div className="flex items-center justify-center gap-3 mb-2">
-        <Users className="w-6 h-6" />
-        <span className="text-lg font-bold">Do This With Someone</span>
-        <Sparkles className="w-6 h-6 animate-pulse" />
-      </div>
-      
-      {/* Value prop */}
-      <div className="text-sm text-cyan-100 mb-3">
-        You're not alone • They're just as nervous • 2.5x XP bonus
-      </div>
-
-      {/* Social proof ticker */}
-      <div className="flex items-center justify-center gap-2 text-xs text-cyan-200">
-        <Check className="w-3 h-3 text-green-400" />
-        <span>94% say it was easier with a buddy</span>
-      </div>
-    </div>
-
-    {/* Recent activity */}
-    <div className="bg-cyan-900/30 px-4 py-2 text-xs text-cyan-200 border-t border-cyan-400/20">
-      <span className="opacity-75">Just now:</span> Alex completed this with Sam • Jordan joined
-    </div>
-  </button>
-</div>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={startMission}
-                  className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-purple-500/50"
-                >
-                  Start Mission
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Matching Screen */}
 {showMatchingScreen && (
@@ -1984,43 +3313,56 @@ const formatCountdown = (seconds: number) => {
               </div>
 
               {/* Connection beams between participants */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
-                <defs>
-                  <linearGradient id="beamGradient">
-                    <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.8" />
-                    <stop offset="50%" stopColor="#8b5cf6" stopOpacity="0.6" />
-                    <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.8" />
-                  </linearGradient>
-                  <filter id="beamGlow">
-                    <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-                    <feMerge>
-                      <feMergeNode in="coloredBlur"/>
-                      <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                  </filter>
-                </defs>
-                
-                {/* Draw lines between all participants */}
-                {experimentParticipants.map((p1, i) => 
-                  experimentParticipants.slice(i + 1).map((p2, j) => {
-                    const allCompleted = p1.hasCompleted && p2.hasCompleted;
-                    return (
-                      <line
-                        key={`${p1.id}-${p2.id}`}
-                        x1={`${p1.nodePosition.x}%`}
-                        y1={`${p1.nodePosition.y}%`}
-                        x2={`${p2.nodePosition.x}%`}
-                        y2={`${p2.nodePosition.y}%`}
-                        stroke={allCompleted ? "url(#beamGradient)" : "#a855f7"}
-                        strokeWidth={allCompleted ? "3" : "1"}
-                        strokeOpacity={allCompleted ? "1" : "0.3"}
-                        filter={allCompleted ? "url(#beamGlow)" : "none"}
-                        className={allCompleted ? "animate-pulse" : ""}
-                      />
-                    );
-                  })
-                )}
-              </svg>
+              <svg
+  className="absolute inset-0 w-full h-full pointer-events-none"
+  style={{ zIndex: 1 }}
+  viewBox="0 0 100 100"
+  preserveAspectRatio="none"
+>
+  <defs>
+    <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#a855f7" stopOpacity="0.8" />
+      <stop offset="25%" stopColor="#ec4899" stopOpacity="0.7" />
+      <stop offset="50%" stopColor="#8b5cf6" stopOpacity="0.6" />
+      <stop offset="75%" stopColor="#ec4899" stopOpacity="0.7" />
+      <stop offset="100%" stopColor="#a855f7" stopOpacity="0.8" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="0.8" result="coloredBlur" />
+      <feMerge>
+        <feMergeNode in="coloredBlur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  {/* Alternating curved path */}
+  <path
+    d="M 10 10 
+       Q 30 20, 50 10 
+       T 90 10 
+       M 10 30 
+       Q 30 40, 50 30 
+       T 90 30 
+       M 10 50 
+       Q 30 60, 50 50 
+       T 90 50 
+       M 10 70 
+       Q 30 80, 50 70 
+       T 90 70 
+       M 10 90 
+       Q 30 100, 50 90 
+       T 90 90"
+    fill="none"
+    stroke="url(#pathGradient)"
+    strokeWidth="0.8"
+    strokeLinecap="round"
+    strokeDasharray="4 6"
+    filter="url(#glow)"
+    className="animate-dash"
+  />
+</svg>
+
 
               {/* Participant nodes */}
               {experimentParticipants.map((participant) => (
@@ -2410,6 +3752,214 @@ const formatCountdown = (seconds: number) => {
           >
             Share Memory
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+{showDayExplorer && selectedDayNumber && (
+  <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+    <div className="bg-purple-900/90 p-6 rounded-2xl border border-purple-500/40 w-[90%] md:w-[600px] max-h-[90vh] overflow-y-auto">
+      <button
+        onClick={() => setShowDayExplorer(false)}
+        className="absolute top-4 right-4 text-purple-200 hover:text-white"
+      >
+        ✕
+      </button>
+      <h2 className="text-2xl font-bold mb-4 text-purple-200">
+        🌅 Day {selectedDayNumber} Explorer
+      </h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+        {/* Feature 1: Campfire Wall */}
+        <div 
+          className="bg-gradient-to-br from-orange-900/50 to-amber-900/50 p-4 rounded-xl border border-amber-500/30 hover:border-amber-400/50 transition-all cursor-pointer"
+          onClick={() => {
+            setShowDayExplorer(false);
+            // Set the selected location to show the memory wall
+            const firstLocation = locations.find(loc => loc.day === selectedDayNumber);
+            if (firstLocation) {
+              setSelectedMemoryLocation(firstLocation.id);
+              setShowMemoryWall(true);
+            }
+          }}
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-amber-500/20 rounded-lg">
+              <MessageCircle className="w-5 h-5 text-amber-400" />
+            </div>
+            <h3 className="font-semibold text-white">Campfire Wall</h3>
+          </div>
+          <p className="text-sm text-amber-100">Share experiences and cheer others on</p>
+        </div>
+
+        {/* Feature 2: Group Challenges */}
+        <div 
+          className="bg-gradient-to-br from-purple-900/50 to-indigo-900/50 p-4 rounded-xl border border-purple-500/30 hover:border-purple-400/50 transition-all cursor-pointer"
+          onClick={() => {
+            setShowDayExplorer(false);
+            // Show group challenges for this day
+            alert(`Loading group challenges for Day ${selectedDayNumber}`);
+            // TODO: Implement group challenges view
+          }}
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-purple-500/20 rounded-lg">
+              <Users className="w-5 h-5 text-purple-400" />
+            </div>
+            <h3 className="font-semibold text-white">Group Challenges</h3>
+          </div>
+          <p className="text-sm text-purple-100">Team up for special missions</p>
+        </div>
+
+        {/* Feature 3: Live Events */}
+        <div 
+          className="bg-gradient-to-br from-pink-900/50 to-rose-900/50 p-4 rounded-xl border border-pink-500/30 hover:border-pink-400/50 transition-all cursor-pointer"
+          onClick={() => {
+            setShowDayExplorer(false);
+            // Show live events for this day
+            alert(`Loading live events for Day ${selectedDayNumber}`);
+            // TODO: Implement live events view
+          }}
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-pink-500/20 rounded-lg">
+              <Zap className="w-5 h-5 text-pink-400" />
+            </div>
+            <h3 className="font-semibold text-white">Live Events</h3>
+          </div>
+          <p className="text-sm text-pink-100">Join real-time activities</p>
+        </div>
+
+        {/* Feature 4: Daily Leaderboard */}
+        <div 
+          className="bg-gradient-to-br from-blue-900/50 to-cyan-900/50 p-4 rounded-xl border border-blue-500/30 hover:border-blue-400/50 transition-all cursor-pointer"
+          onClick={() => {
+            setShowDayExplorer(false);
+            // Show leaderboard for this day
+            alert(`Loading leaderboard for Day ${selectedDayNumber}`);
+            // TODO: Implement leaderboard view
+          }}
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-blue-500/20 rounded-lg">
+              <Trophy className="w-5 h-5 text-blue-400" />
+            </div>
+            <h3 className="font-semibold text-white">Daily Leaderboard</h3>
+          </div>
+          <p className="text-sm text-blue-100">See who's leading today</p>
+        </div>
+
+        {/* Feature 5: Study Groups */}
+        <div 
+          className="bg-gradient-to-br from-emerald-900/50 to-teal-900/50 p-4 rounded-xl border border-emerald-500/30 hover:border-emerald-400/50 transition-all cursor-pointer"
+          onClick={() => {
+            setShowDayExplorer(false);
+            // Show available study groups
+            alert(`Loading study groups for Day ${selectedDayNumber}`);
+            // TODO: Implement study groups view
+          }}
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-emerald-500/20 rounded-lg">
+              <BookOpen className="w-5 h-5 text-emerald-400" />
+            </div>
+            <h3 className="font-semibold text-white">Study Groups</h3>
+          </div>
+          <p className="text-sm text-emerald-100">Learn together in small groups</p>
+        </div>
+
+        {/* Feature 6: Wellness Check-ins */}
+        <div 
+          className="bg-gradient-to-br from-rose-900/50 to-pink-900/50 p-4 rounded-xl border border-rose-500/30 hover:border-rose-400/50 transition-all cursor-pointer"
+          onClick={() => {
+            setShowDayExplorer(false);
+            // Show wellness check-in form
+            alert(`Opening wellness check-in for Day ${selectedDayNumber}`);
+            // TODO: Implement wellness check-in form
+          }}
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-rose-500/20 rounded-lg">
+              <Heart className="w-5 h-5 text-rose-400" />
+            </div>
+            <h3 className="font-semibold text-white">Wellness Check-ins</h3>
+          </div>
+          <p className="text-sm text-rose-100">Track your progress together</p>
+        </div>
+
+        {/* Feature 7: Resource Hub */}
+        <div 
+          className="bg-gradient-to-br from-violet-900/50 to-purple-900/50 p-4 rounded-xl border border-violet-500/30 hover:border-violet-400/50 transition-all cursor-pointer"
+          onClick={() => {
+            setShowDayExplorer(false);
+            // Show resources for this day
+            alert(`Loading resources for Day ${selectedDayNumber}`);
+            // TODO: Implement resource hub view
+          }}
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-violet-500/20 rounded-lg">
+              <FolderOpen className="w-5 h-5 text-violet-400" />
+            </div>
+            <h3 className="font-semibold text-white">Resource Hub</h3>
+          </div>
+          <p className="text-sm text-violet-100">Shared materials and guides</p>
+        </div>
+
+        {/* Feature 8: Virtual Hangout */}
+        <div 
+          className="bg-gradient-to-br from-amber-900/50 to-orange-900/50 p-4 rounded-xl border border-amber-500/30 hover:border-amber-400/50 transition-all cursor-pointer"
+          onClick={() => {
+            setShowDayExplorer(false);
+            // Open virtual hangout room
+            alert(`Joining virtual hangout for Day ${selectedDayNumber}`);
+            // TODO: Implement virtual hangout functionality
+          }}
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-amber-500/20 rounded-lg">
+              <Coffee className="w-5 h-5 text-amber-400" />
+            </div>
+            <h3 className="font-semibold text-white">Virtual Hangout</h3>
+          </div>
+          <p className="text-sm text-amber-100">Relax and chat with others</p>
+        </div>
+
+        {/* Feature 9: Achievement Showcase */}
+        <div 
+          className="bg-gradient-to-br from-cyan-900/50 to-blue-900/50 p-4 rounded-xl border border-cyan-500/30 hover:border-cyan-400/50 transition-all cursor-pointer"
+          onClick={() => {
+            setShowDayExplorer(false);
+            // Show achievements for this day
+            alert(`Loading achievements for Day ${selectedDayNumber}`);
+            // TODO: Implement achievement showcase view
+          }}
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-cyan-500/20 rounded-lg">
+              <Award className="w-5 h-5 text-cyan-400" />
+            </div>
+            <h3 className="font-semibold text-white">Achievement Showcase</h3>
+          </div>
+          <p className="text-sm text-cyan-100">Celebrate community wins</p>
+        </div>
+      </div>
+
+      <div className="mt-6 p-4 bg-purple-800/30 rounded-xl border border-purple-500/30">
+        <h3 className="font-semibold text-purple-200 mb-2">👥 {peopleOnSelectedDay.length} People on Day {selectedDayNumber}</h3>
+        <div className="flex flex-wrap gap-2">
+          {peopleOnSelectedDay.slice(0, 10).map((person, index) => (
+            <div key={index} className="px-3 py-1 bg-purple-700/50 rounded-full text-sm text-purple-100">
+              {person.name || `User ${index + 1}`}
+            </div>
+          ))}
+          {peopleOnSelectedDay.length > 10 && (
+            <div className="px-3 py-1 bg-purple-700/30 rounded-full text-sm text-purple-300">
+              +{peopleOnSelectedDay.length - 10} more
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -3270,6 +4820,927 @@ Join Party
 </div>
 </div>
 )}
+
+{/* Day Explorer Modal */}
+{/* Day Explorer Modal - ENHANCED */}
+{showDayExplorer && selectedDayNumber && (
+  <div 
+    className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    onClick={() => setShowDayExplorer(false)}
+  >
+    <div 
+      className="bg-gradient-to-br from-orange-900/98 to-red-900/98 rounded-2xl border border-orange-500/50 max-w-6xl w-full max-h-[90vh] shadow-2xl flex flex-col"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Header */}
+      <div className="p-6 border-b border-orange-500/30 flex-shrink-0">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="p-3 rounded-xl bg-orange-500/20">
+                <Trophy className="w-8 h-8 text-orange-400" />
+              </div>
+              <div className="absolute -top-1 -right-1 w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                <span className="text-xs font-bold text-white">{selectedDayNumber}</span>
+              </div>
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-white">🏕️ Day {selectedDayNumber} Base Camp</h2>
+              <p className="text-orange-300 text-sm mt-1">
+                {peopleOnSelectedDay.length} adventurers warming up together
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={() => setShowDayExplorer(false)} 
+            className="p-2 hover:bg-orange-800/50 rounded-lg transition-colors"
+          >
+            <X className="w-6 h-6 text-orange-300" />
+          </button>
+        </div>
+
+        {/* Tab Navigation */}
+        {/* Tab Navigation */}
+<div className="flex gap-2">
+  <button
+    onClick={() => setDayExplorerTab('community')}
+    className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all relative ${
+      dayExplorerTab === 'community'
+        ? 'bg-orange-600 text-white shadow-lg'
+        : 'bg-orange-800/30 text-orange-300 hover:bg-orange-800/50'
+    }`}
+  >
+    <div className="flex items-center justify-center gap-2">
+      🔥 Community (Live)
+      {/* NEW: Live indicator dot */}
+      {dayExplorerTab === 'community' && (
+        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse absolute top-2 right-2" />
+      )}
+    </div>
+    {/* NEW: Feature count badge */}
+    <div className="text-xs mt-1 opacity-75">
+      9 active features
+    </div>
+  </button>
+  <button
+    onClick={() => setDayExplorerTab('mission')}
+    className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all ${
+      dayExplorerTab === 'mission'
+        ? 'bg-orange-600 text-white shadow-lg'
+        : 'bg-orange-800/30 text-orange-300 hover:bg-orange-800/50'
+    }`}
+  >
+    📍 Mission Info
+  </button>
+</div>
+      </div>
+
+      {/* Tab Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto">
+        {dayExplorerTab === 'community' ? (
+          /* COMMUNITY TAB */
+          <div className="p-6 space-y-6">
+
+    
+    {/* NEW: Community Features Overview Banner */}
+    <div className="bg-gradient-to-r from-cyan-900/60 to-purple-900/60 rounded-2xl border border-cyan-500/50 p-5">
+      <div className="flex items-center gap-3 mb-4">
+        <Sparkles className="w-6 h-6 text-cyan-400 animate-pulse" />
+        <h3 className="text-xl font-bold text-white">Day {selectedDayNumber} Community Hub - All Features Active!</h3>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="p-3 bg-orange-800/30 rounded-lg border border-orange-500/30 text-center">
+          <div className="text-2xl mb-1">🔥</div>
+          <p className="text-xs text-orange-300 font-semibold">Campfire Wall</p>
+          <p className="text-lg font-bold text-white">{campfireMessages.length}</p>
+        </div>
+        <div className="p-3 bg-purple-800/30 rounded-lg border border-purple-500/30 text-center">
+          <div className="text-2xl mb-1">📊</div>
+          <p className="text-xs text-purple-300 font-semibold">Live Stats</p>
+          <p className="text-lg font-bold text-white">{dayStats.hypeLevel}%</p>
+        </div>
+        <div className="p-3 bg-cyan-800/30 rounded-lg border border-cyan-500/30 text-center">
+          <div className="text-2xl mb-1">📍</div>
+          <p className="text-xs text-cyan-300 font-semibold">At Location</p>
+          <p className="text-lg font-bold text-white">{liveAtLocation.arrived.length}</p>
+        </div>
+        <div className="p-3 bg-green-800/30 rounded-lg border border-green-500/30 text-center">
+          <div className="text-2xl mb-1">🎯</div>
+          <p className="text-xs text-green-300 font-semibold">Buddies</p>
+          <p className="text-lg font-bold text-white">{buddyMatches.length}</p>
+        </div>
+      </div>
+      <p className="text-center text-sm text-cyan-200 mt-4">
+        ⚡ All features are live and updating in real-time
+      </p>
+    </div>
+
+    {/* ⬇️⬇️⬇️ ADD THE QUICK NAVIGATION HERE ⬇️⬇️⬇️ */}
+    <div className="flex gap-2 overflow-x-auto pb-2">
+      <button 
+        onClick={() => document.getElementById('campfire')?.scrollIntoView({ behavior: 'smooth' })}
+        className="px-4 py-2 bg-orange-700/30 hover:bg-orange-700/50 rounded-lg text-sm text-orange-200 whitespace-nowrap transition-all"
+      >
+        🔥 Campfire
+      </button>
+      <button 
+        onClick={() => document.getElementById('hype-meter')?.scrollIntoView({ behavior: 'smooth' })}
+        className="px-4 py-2 bg-purple-700/30 hover:bg-purple-700/50 rounded-lg text-sm text-purple-200 whitespace-nowrap transition-all"
+      >
+        📊 Hype Meter
+      </button>
+      <button 
+        onClick={() => document.getElementById('live-location')?.scrollIntoView({ behavior: 'smooth' })}
+        className="px-4 py-2 bg-cyan-700/30 hover:bg-cyan-700/50 rounded-lg text-sm text-cyan-200 whitespace-nowrap transition-all"
+      >
+        📍 Live Map
+      </button>
+      <button 
+        onClick={() => document.getElementById('champions')?.scrollIntoView({ behavior: 'smooth' })}
+        className="px-4 py-2 bg-yellow-700/30 hover:bg-yellow-700/50 rounded-lg text-sm text-yellow-200 whitespace-nowrap transition-all"
+      >
+        🏆 Champions
+      </button>
+      <button 
+        onClick={() => document.getElementById('encouragement')?.scrollIntoView({ behavior: 'smooth' })}
+        className="px-4 py-2 bg-pink-700/30 hover:bg-pink-700/50 rounded-lg text-sm text-pink-200 whitespace-nowrap transition-all"
+      >
+        💌 Messages
+      </button>
+      <button 
+        onClick={() => document.getElementById('buddy-finder')?.scrollIntoView({ behavior: 'smooth' })}
+        className="px-4 py-2 bg-green-700/30 hover:bg-green-700/50 rounded-lg text-sm text-green-200 whitespace-nowrap transition-all"
+      >
+        🎯 Buddy Finder
+      </button>
+    </div>
+    {/* ⬆️⬆️⬆️ END OF QUICK NAVIGATION ⬆️⬆️⬆️ */}
+
+            
+            {/* THE CAMPFIRE WALL */}
+            <div className="bg-gradient-to-br from-orange-800/40 to-red-800/40 rounded-2xl border border-orange-500/50 p-6">
+              <div className="text-center mb-6">
+                <div className="text-6xl mb-3 animate-pulse">🔥</div>
+                <h3 className="text-2xl font-bold text-white mb-2">The Campfire Wall</h3>
+                <p className="text-orange-200 text-sm">What people are thinking RIGHT NOW</p>
+              </div>
+
+              {/* Live Messages Stream */}
+              <div className="space-y-3 mb-4 max-h-96 overflow-y-auto">
+                {campfireMessages.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-orange-300">Be the first to share your thoughts...</p>
+                  </div>
+                ) : (
+                  campfireMessages.map((msg) => (
+                    <div 
+                      key={msg.id}
+                      className={`p-4 rounded-xl transition-all ${
+                        msg.isVulnerable 
+                          ? 'bg-pink-900/40 border-2 border-pink-500/50' 
+                          : 'bg-orange-900/30 border border-orange-500/30'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+                          {msg.userName[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-white">{msg.userName}</span>
+                            <span className="text-xs text-orange-400">
+                              {msg.timestamp?.toDate ? formatTimeAgo(msg.timestamp.toDate()) : 'now'}
+                            </span>
+                            {msg.isVulnerable && (
+                              <span className="text-xs px-2 py-0.5 bg-pink-500/30 border border-pink-400/50 rounded-full text-pink-200">
+                                vulnerable
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-orange-100 mb-2">{msg.text}</p>
+                          
+                          {/* Reactions */}
+                          <div className="flex items-center gap-3">
+                            {Object.entries(msg.reactions).map(([emoji, count]) => (
+                              <button
+                                key={emoji}
+                                onClick={() => reactToCampfireMessage(msg.id, emoji)}
+                                className="flex items-center gap-1 px-2 py-1 bg-orange-800/30 hover:bg-orange-800/50 rounded-lg transition-all hover:scale-110"
+                              >
+                                <span>{emoji}</span>
+                                <span className="text-xs text-orange-200">{count}</span>
+                              </button>
+                            ))}
+                            {Object.keys(msg.reactions).length === 0 && (
+                              <div className="flex gap-1">
+                                {['💪', '❤️', '👋'].map(emoji => (
+                                  <button
+                                    key={emoji}
+                                    onClick={() => reactToCampfireMessage(msg.id, emoji)}
+                                    className="px-2 py-1 bg-orange-800/20 hover:bg-orange-800/40 rounded-lg text-lg transition-all hover:scale-125"
+                                  >
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Post Input */}
+              <div className="border-t border-orange-500/30 pt-4">
+                <textarea
+                  value={campfireInput}
+                  onChange={(e) => setCampfireInput(e.target.value)}
+                  placeholder="Share what you're feeling... (be real, everyone here gets it)"
+                  className="w-full px-4 py-3 bg-orange-900/30 border border-orange-500/30 rounded-xl text-white placeholder-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                  rows={3}
+                  maxLength={300}
+                />
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-xs text-orange-400">{campfireInput.length}/300</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => postToCampfire(campfireInput, true)}
+                      disabled={!campfireInput.trim()}
+                      className="px-4 py-2 bg-pink-600/50 hover:bg-pink-600/70 disabled:bg-orange-800/30 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-all"
+                    >
+                      😰 Vulnerable Post
+                    </button>
+                    <button
+                      onClick={() => postToCampfire(campfireInput, false)}
+                      disabled={!campfireInput.trim()}
+                      className="px-4 py-2 bg-orange-600 hover:bg-orange-500 disabled:bg-orange-800/30 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-all"
+                    >
+                      Share
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* THE HYPE METER */}
+            <div className="bg-gradient-to-br from-purple-800/40 to-pink-800/40 rounded-2xl border border-purple-500/50 p-6">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <TrendingUp className="w-6 h-6 text-purple-400" />
+                🎯 Day {selectedDayNumber} Energy Today
+              </h3>
+
+              {/* Hype Bar */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-purple-300">HYPE LEVEL</span>
+                  <span className="text-2xl font-bold text-white">{dayStats.hypeLevel}%</span>
+                </div>
+                <div className="w-full bg-purple-900/50 rounded-full h-4 overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500 rounded-full transition-all duration-1000 animate-pulse"
+                    style={{ width: `${dayStats.hypeLevel}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Live Stats Grid */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="p-3 bg-purple-900/30 rounded-lg">
+                  <p className="text-xs text-purple-300 mb-1">Completions Today</p>
+                  <p className="text-2xl font-bold text-white">{dayStats.completionsToday}</p>
+                  <p className="text-xs text-green-400 mt-1">↑ {dayStats.trendPercentage}% from yesterday</p>
+                </div>
+                <div className="p-3 bg-purple-900/30 rounded-lg">
+                  <p className="text-xs text-purple-300 mb-1">Completion Rate</p>
+                  <p className="text-2xl font-bold text-white">{dayStats.completionRate}%</p>
+                </div>
+                <div className="p-3 bg-purple-900/30 rounded-lg">
+                  <p className="text-xs text-purple-300 mb-1">Avg Time</p>
+                  <p className="text-lg font-bold text-white">{dayStats.avgTimeToComplete} mins</p>
+                </div>
+                <div className="p-3 bg-purple-900/30 rounded-lg">
+                  <p className="text-xs text-purple-300 mb-1">Peak Time</p>
+                  <p className="text-lg font-bold text-white">{dayStats.peakTime}</p>
+                </div>
+              </div>
+
+              {/* Momentum Alert */}
+              <div className="p-4 bg-gradient-to-r from-orange-900/40 to-red-900/40 border border-orange-500/50 rounded-xl">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🔥</span>
+                  <div>
+                    <p className="text-sm font-bold text-orange-200">MOMENTUM ALERT</p>
+                    <p className="text-xs text-orange-300">Day {selectedDayNumber} is ON FIRE right now! {dayStats.completionsToday} people completed today!</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* LIVE "WHO'S HERE" MAP */}
+            <div className="bg-gradient-to-br from-cyan-800/40 to-blue-800/40 rounded-2xl border border-cyan-500/50 p-6">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <MapPin className="w-6 h-6 text-cyan-400" />
+                📍 RIGHT NOW AT THE LOCATION
+              </h3>
+
+              {/* Status Groups */}
+              <div className="space-y-4">
+                {/* Arrived */}
+                <div className="p-4 bg-green-900/30 border border-green-500/30 rounded-xl">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+                    <span className="font-bold text-green-300">🟢 ARRIVED ({liveAtLocation.arrived.length} people)</span>
+                  </div>
+                  {liveAtLocation.arrived.length === 0 ? (
+                    <p className="text-sm text-green-400 italic">No one here yet - be the first!</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {liveAtLocation.arrived.map(person => (
+                        <div key={person.id} className="px-3 py-2 bg-green-800/30 rounded-lg border border-green-500/30 flex items-center gap-2">
+                          <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${person.color} flex items-center justify-center text-xs font-bold text-white`}>
+                            {person.name[0]}
+                          </div>
+                          <span className="text-sm text-white">{person.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* On The Way */}
+                <div className="p-4 bg-yellow-900/30 border border-yellow-500/30 rounded-xl">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse" />
+                    <span className="font-bold text-yellow-300">🟡 ON THE WAY ({liveAtLocation.onTheWay.length} people)</span>
+                  </div>
+                  {liveAtLocation.onTheWay.length > 0 && (
+                    <div className="space-y-2">
+                      {liveAtLocation.onTheWay.slice(0, 5).map(person => (
+                        <p key={person.id} className="text-sm text-yellow-200">
+                          • {person.name} - "heading there now..."
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Preparing */}
+                <div className="p-4 bg-blue-900/30 border border-blue-500/30 rounded-xl">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full" />
+                    <span className="font-bold text-blue-300">🔵 PREPARING ({liveAtLocation.preparing.length} people)</span>
+                  </div>
+                  {liveAtLocation.preparing.length > 0 && (
+                    <p className="text-sm text-blue-200">
+                      {liveAtLocation.preparing.map(p => p.name).slice(0, 3).join(', ')}
+                      {liveAtLocation.preparing.length > 3 && ` +${liveAtLocation.preparing.length - 3} more`} getting ready...
+                    </p>
+                  )}
+                </div>
+
+                {/* Just Completed */}
+                <div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Trophy className="w-4 h-4 text-purple-400" />
+                    <span className="font-bold text-purple-300">⚡ JUST COMPLETED ({liveAtLocation.justCompleted.length} in last hour)</span>
+                  </div>
+                  {liveAtLocation.justCompleted.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {liveAtLocation.justCompleted.slice(0, 8).map(person => (
+                        <div key={person.id} className="px-2 py-1 bg-purple-800/30 rounded-lg text-xs text-purple-200">
+                          {person.name} ✅
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* TODAY'S CHAMPIONS */}
+            {(todaysChampions.firstTimer || todaysChampions.bestTip || todaysChampions.biggestBreakthrough) && (
+              <div className="bg-gradient-to-br from-yellow-800/40 to-orange-800/40 rounded-2xl border border-yellow-500/50 p-6">
+                <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                  <Trophy className="w-6 h-6 text-yellow-400" />
+                  🏆 TODAY'S CHAMPIONS
+                </h3>
+
+                <div className="space-y-4">
+                  {todaysChampions.firstTimer && (
+                    <div className="p-4 bg-yellow-900/30 border border-yellow-500/30 rounded-xl">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">⭐</span>
+                        <span className="font-bold text-yellow-300">FIRST TIMER OF THE DAY</span>
+                      </div>
+                      <p className="text-white font-semibold mb-1">{todaysChampions.firstTimer.name} completed at {todaysChampions.firstTimer.time}</p>
+                      <p className="text-yellow-200 italic">"{todaysChampions.firstTimer.message}"</p>
+                      <p className="text-xs text-yellow-400 mt-2">👋 {todaysChampions.firstTimer.reactions} reactions</p>
+                    </div>
+                  )}
+
+                  {todaysChampions.bestTip && (
+                    <div className="p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">🎯</span>
+                        <span className="font-bold text-cyan-300">MOST HELPFUL TIP</span>
+                      </div>
+                      <p className="text-white font-semibold mb-1">{todaysChampions.bestTip.name}:</p>
+                      <p className="text-cyan-200">"{todaysChampions.bestTip.tip}"</p>
+                      <p className="text-xs text-cyan-400 mt-2">⭐ {todaysChampions.bestTip.helpful} people: "This helped!"</p>
+                    </div>
+                  )}
+
+                  {todaysChampions.biggestBreakthrough && (
+                    <div className="p-4 bg-pink-900/30 border border-pink-500/30 rounded-xl">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">💪</span>
+                        <span className="font-bold text-pink-300">BIGGEST BREAKTHROUGH</span>
+                      </div>
+                      <p className="text-white font-semibold mb-1">{todaysChampions.biggestBreakthrough.name}:</p>
+                      <p className="text-pink-200">"{todaysChampions.biggestBreakthrough.story}"</p>
+                      <div className="flex items-center gap-4 mt-2 text-xs text-pink-400">
+                        <span>❤️ {todaysChampions.biggestBreakthrough.reactions} reactions</span>
+                        <span>💬 {todaysChampions.biggestBreakthrough.replies} replies</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* THE ENCOURAGEMENT WALL */}
+            {encouragementNotes.length > 0 && (
+              <div className="bg-gradient-to-br from-pink-800/40 to-purple-800/40 rounded-2xl border border-pink-500/50 p-6">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <Heart className="w-6 h-6 text-pink-400" />
+                  💌 MESSAGES FROM PEOPLE WHO MADE IT
+                </h3>
+
+                <div className="space-y-4">
+                  {encouragementNotes.map(note => (
+                    <div key={note.id} className="p-5 bg-pink-900/30 border border-pink-500/30 rounded-xl">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-sm font-semibold text-pink-200">From: {note.from}</span>
+                        <span className="text-xs text-pink-400">(completed {note.completedAgo})</span>
+                      </div>
+                      <p className="text-pink-100 leading-relaxed mb-3 whitespace-pre-line">
+                        {note.message}
+                      </p>
+                      <p className="text-xs text-pink-400">👋 {note.reactions} people waved back</p>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setShowCampfireWall(true)}
+                  className="w-full mt-4 py-3 bg-pink-600/50 hover:bg-pink-600/70 rounded-xl text-white font-semibold transition-all"
+                >
+                  Leave Your Own Message
+                </button>
+              </div>
+            )}
+
+            {/* THE ANXIETY METER */}
+            <div className="bg-gradient-to-br from-indigo-800/40 to-purple-800/40 rounded-2xl border border-indigo-500/50 p-6">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <TrendingUp className="w-6 h-6 text-indigo-400" />
+                📊 DAY {selectedDayNumber} EMOTIONAL JOURNEY
+              </h3>
+
+              <div className="space-y-4 mb-6">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-indigo-300">BEFORE MISSION:</span>
+                    <span className="text-xl font-bold text-white">{anxietyJourney.beforeAvg}/10</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {['😰','😰','😰','😰','😰','😰','😰','😐','😐','😊'].map((emoji, i) => (
+                      <span key={i} className="text-2xl">{emoji}</span>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-indigo-300">DURING MISSION:</span>
+                    <span className="text-xl font-bold text-white">{anxietyJourney.duringAvg}/10</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {['😰','😰','😰','😐','😐','😊','😊','😄','😄','😄'].map((emoji, i) => (
+                      <span key={i} className="text-2xl">{emoji}</span>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-indigo-300">AFTER MISSION:</span>
+                    <span className="text-xl font-bold text-green-400">{anxietyJourney.afterAvg}/10</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {['😊','😊','😊','😊','😄','😄','😄','😄','😁','😁'].map((emoji, i) => (
+                      <span key={i} className="text-2xl">{emoji}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-indigo-900/30 border border-indigo-500/30 rounded-xl space-y-2">
+                <p className="text-sm text-indigo-200">
+                  <span className="font-semibold">💡 INSIGHT:</span> {anxietyJourney.totalResponses} responses analyzed
+                </p>
+                <p className="text-sm text-indigo-200">
+                  94% of Day {selectedDayNumber}'ers report feeling BETTER after completing than they expected. <span className="font-semibold text-green-400">You will too.</span>
+                </p>
+                <p className="text-sm text-indigo-200">
+                  📈 Average anxiety drops by <span className="font-bold text-green-400">{anxietyJourney.dropRate} points</span>. That's normal!
+                </p>
+              </div>
+            </div>
+
+            {/* NEXT GROUP DEPARTURE */}
+            {groupDepartures.length > 0 && (
+              <div className="bg-gradient-to-br from-green-800/40 to-emerald-800/40 rounded-2xl border border-green-500/50 p-6">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <Users className="w-6 h-6 text-green-400" />
+                  ⏰ NEXT GROUP DEPARTURE
+                </h3>
+
+                {groupDepartures.map(departure => (
+                  <div key={departure.id} className="space-y-4">
+                    {/* Countdown */}
+                    <div className="p-6 bg-green-900/40 border-2 border-green-500/50 rounded-xl text-center">
+                      <p className="text-green-300 text-sm mb-2">Leaving together in:</p>
+                      <p className="text-5xl font-bold text-white mb-2">
+                        {Math.floor((departure.departureTime.getTime() - new Date().getTime()) / 60000)}:{
+                          String(Math.floor(((departure.departureTime.getTime() - new Date().getTime()) % 60000) / 1000)).padStart(2, '0')
+                        }
+                      </p>
+                      <p className="text-green-400 text-sm">
+                        🚀 {departure.participants.length} PEOPLE heading to {
+                          locations.find(l => l.id === departure.locationId)?.name || 'location'
+                        }
+                      </p>
+                    </div>
+
+                    {/* Participants */}
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <span className="text-sm text-green-300 mr-2">Who's joining:</span>
+                      {departure.participants.slice(0, 10).map((_, i) => (
+                        <div 
+                          key={i}
+                          className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 border-2 border-white/30"
+                          style={{ marginLeft: i > 0 ? '-12px' : '0', zIndex: 10 - i }}
+                        />
+                      ))}
+                      {departure.participants.length > 10 && (
+                        <span className="text-sm font-bold text-green-400 ml-2">
+                          +{departure.participants.length - 10} more
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Group Chat Preview */}
+                    {departure.messages.length > 0 && (
+                      <div className="p-4 bg-green-900/20 border border-green-500/30 rounded-xl">
+                        <p className="text-xs text-green-400 mb-2">💬 Group Chat:</p>
+                        <div className="space-y-1">
+                          {departure.messages.map((msg, i) => (
+                            <p key={i} className="text-sm text-green-200">
+                              <span className="font-semibold">{msg.userName}:</span> {msg.text}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Join Button */}
+                    <button
+                      onClick={() => joinGroupDeparture(departure.id)}
+                      className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+                    >
+                      <Users className="w-5 h-5" />
+                      Count Me In!
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* "LIVE FROM THE LOCATION" */}
+            {liveUpdates.length > 0 && (
+              <div className="bg-gradient-to-br from-red-800/40 to-orange-800/40 rounded-2xl border border-red-500/50 p-6">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                  📡 LIVE UPDATES - HAPPENING NOW
+                </h3>
+
+                <div className="space-y-4">
+                  {liveUpdates.map(update => (
+                    <div key={update.id} className="p-4 bg-red-900/30 border border-red-500/30 rounded-xl">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+                          {update.userName[0]}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-bold text-white">{update.userName}:</span>
+                            <span className="text-xs text-red-400">{formatTimeAgo(update.timestamp)}</span>
+                          </div>
+                          <p className="text-red-100 text-lg mb-2">{update.action}</p>
+                          
+                          {/* Reactions */}
+                          {update.reactions > 0 && (
+                            <p className="text-sm text-red-300 mb-2">💪 {update.reactions} reactions</p>
+                          )}
+
+                          {/* Replies */}
+                          {update.replies.length > 0 && (
+                            <div className="mt-3 pl-4 border-l-2 border-red-500/30 space-y-2">
+                              {update.replies.map((reply, i) => (
+                                <div key={i} className="text-sm">
+                                  <span className="font-semibold text-red-200">{reply.userName}:</span>
+                                  <span className="text-red-300 ml-1">{reply.text}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* BUDDY BEACON */}
+            {buddyMatches.length > 0 && (
+              <div className="bg-gradient-to-br from-cyan-800/40 to-blue-800/40 rounded-2xl border border-cyan-500/50 p-6">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <Users className="w-6 h-6 text-cyan-400" />
+                  🎯 FIND YOUR MISSION BUDDY
+                </h3>
+
+                {/* Filters */}
+                <div className="mb-6 p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl">
+                  <p className="text-sm text-cyan-300 mb-3">Filter by:</p>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs text-cyan-400 block mb-1">😰 Anxiety Level: {buddyFilters.anxietyLevel}/10</label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        value={buddyFilters.anxietyLevel}
+                        onChange={(e) => setBuddyFilters({...buddyFilters, anxietyLevel: parseInt(e.target.value)})}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-cyan-400 block mb-1">⏰ Preferred Time</label>
+                      <select
+                        value={buddyFilters.preferredTime}
+                        onChange={(e) => setBuddyFilters({...buddyFilters, preferredTime: e.target.value})}
+                        className="w-full px-3 py-2 bg-cyan-900/30 border border-cyan-500/30 rounded-lg text-white text-sm"
+                      >
+                        <option value="morning">Morning (6-12pm)</option>
+                        <option value="afternoon">Afternoon (12-6pm)</option>
+                        <option value="evening">Evening (6-9pm)</option>
+                        <option value="night">Night (9pm+)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-cyan-400 block mb-1">🎭 Experience</label>
+                      <select
+                        value={buddyFilters.experience}
+                        onChange={(e) => setBuddyFilters({...buddyFilters, experience: e.target.value})}
+                        className="w-full px-3 py-2 bg-cyan-900/30 border border-cyan-500/30 rounded-lg text-white text-sm"
+                      >
+                        <option value="first-timer">First timer</option>
+                        <option value="did-once">Did it once before</option>
+                        <option value="experienced">Experienced</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Perfect Matches */}
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-cyan-300 mb-3">PERFECT MATCHES:</p>
+                  {buddyMatches.map(match => (
+                    <div key={match.id} className="p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl hover:border-cyan-500/60 transition-all">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg">
+                            {match.name[0]}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-white">{match.name}</span>
+                              <div className="px-2 py-0.5 bg-green-500/30 border border-green-400/50 rounded-full">
+                                <span className="text-xs font-bold text-green-200">{match.matchPercentage}% match</span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-cyan-400">Last seen: {match.lastSeen}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Match Details */}
+                      <div className="grid grid-cols-3 gap-2 mb-3 text-xs">
+                        <div className="p-2 bg-cyan-800/30 rounded">
+                          <p className="text-cyan-400">Anxiety</p>
+                          <p className="text-white font-semibold">{match.anxietyLevel}/10</p>
+                        </div>
+                        <div className="p-2 bg-cyan-800/30 rounded">
+                          <p className="text-cyan-400">Time</p>
+                          <p className="text-white font-semibold text-xs">{match.preferredTime}</p>
+                        </div>
+                        <div className="p-2 bg-cyan-800/30 rounded">
+                          <p className="text-cyan-400">Experience</p>
+                          <p className="text-white font-semibold text-xs">{match.experience}</p>
+                        </div>
+                      </div>
+
+                      {/* Their Message */}
+                      <div className="p-3 bg-cyan-900/20 border border-cyan-500/20 rounded-lg mb-3">
+                        <p className="text-sm text-cyan-100 italic">"{match.message}"</p>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2">
+                        <button className="flex-1 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2">
+                          <MessageCircle className="w-4 h-4" />
+                          Message {match.name}
+                        </button>
+                        <button className="flex-1 py-2 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2">
+                          <Users className="w-4 h-4" />
+                          Buddy Up
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setShowBuddyFinder(true)}
+                  className="w-full mt-4 py-3 bg-cyan-600/50 hover:bg-cyan-600/70 rounded-xl text-white font-semibold transition-all"
+                >
+                  See All Matches
+                </button>
+              </div>
+            )}
+
+          </div>
+        ) : (
+          /* MISSION TAB */
+          <div className="p-6 space-y-6">
+            {/* Mission Details */}
+            <div className="bg-gradient-to-br from-purple-800/40 to-indigo-800/40 rounded-2xl border border-purple-500/50 p-6">
+              <div className="flex items-center gap-4 mb-4">
+                {(() => {
+                  const dayLocation = locations.find(l => l.day === selectedDayNumber);
+                  const IconComponent = dayLocation?.icon || MapPin;
+                  return (
+                    <>
+                      <div className="p-4 rounded-xl bg-purple-500/20">
+                        <IconComponent className="w-12 h-12 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-bold text-white">{dayLocation?.name}</h3>
+                        <p className="text-purple-300">{dayLocation?.mission}</p>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+
+              {(() => {
+                const dayLocation = locations.find(l => l.day === selectedDayNumber);
+                return (
+                  <>
+                    <div className="p-4 bg-purple-900/30 rounded-xl mb-4">
+                      <p className="text-purple-200 leading-relaxed">{dayLocation?.description}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-4 bg-yellow-900/30 border border-yellow-500/30 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Star className="w-5 h-5 text-yellow-400" />
+                          <span className="text-sm text-yellow-300">Reward</span>
+                        </div>
+                        <p className="text-2xl font-bold text-white">{dayLocation?.xpReward} XP</p>
+                      </div>
+                      <div className="p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Users className="w-5 h-5 text-cyan-400" />
+                          <span className="text-sm text-cyan-300">Active Now</span>
+                        </div>
+                        <p className="text-2xl font-bold text-white">{dayLocation?.activeUsers}</p>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+
+            {/* People on This Day */}
+            <div className="bg-gradient-to-br from-cyan-800/40 to-blue-800/40 rounded-2xl border border-cyan-500/50 p-6">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <Users className="w-6 h-6 text-cyan-400" />
+                👥 People on Day {selectedDayNumber}
+              </h3>
+
+              {peopleOnSelectedDay.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="w-12 h-12 text-cyan-400/50 mx-auto mb-3" />
+                  <p className="text-cyan-300">No one on this day right now</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {peopleOnSelectedDay.map((person) => (
+                    <div 
+                      key={person.id}
+                      className="p-4 bg-cyan-900/30 border border-cyan-500/20 rounded-xl hover:border-cyan-500/40 transition-all"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${person.color} flex items-center justify-center text-lg font-bold text-white border-2 border-cyan-400/50`}>
+                          {person.name[0]}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-bold text-white">{person.name}</h4>
+                            {person.streak > 5 && (
+                              <div className="px-2 py-0.5 bg-orange-500/30 border border-orange-400/50 rounded-full">
+                                <span className="text-xs font-bold text-orange-200">🔥 Hot Streak!</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="text-cyan-300">🔥 {person.streak} day streak</span>
+                            <span className="text-cyan-400">
+                              📍 {locations.find(l => l.id === person.currentLocation)?.name || 'Exploring'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button className="p-2 bg-cyan-700/30 hover:bg-cyan-700/50 rounded-lg transition-all group">
+                            <span className="text-lg group-hover:scale-125 transition-transform inline-block">👋</span>
+                          </button>
+                          <button className="p-2 bg-cyan-700/30 hover:bg-cyan-700/50 rounded-lg transition-all">
+                            <MessageCircle className="w-5 h-5 text-cyan-300" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-4 bg-green-900/30 border border-green-500/30 rounded-xl">
+                <p className="text-xs text-green-300 mb-1">Completion Rate</p>
+                <p className="text-2xl font-bold text-white">{dayStats.completionRate}%</p>
+              </div>
+              <div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
+                <p className="text-xs text-purple-300 mb-1">Avg Time</p>
+                <p className="text-2xl font-bold text-white">{dayStats.avgTimeToComplete}m</p>
+              </div>
+              <div className="p-4 bg-orange-900/30 border border-orange-500/30 rounded-xl">
+                <p className="text-xs text-orange-300 mb-1">Peak Hour</p>
+                <p className="text-lg font-bold text-white">{dayStats.peakTime}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer Actions */}
+      <div className="p-4 border-t border-orange-500/30 bg-orange-900/20 flex-shrink-0">
+        <div className="flex gap-3">
+          <button
+            onClick={() => {
+              const dayLocation = locations.find(l => l.day === selectedDayNumber);
+              if (dayLocation) {
+                setShowDayExplorer(false);
+                openLocationModal(dayLocation);
+              }
+            }}
+            className="flex-1 py-3 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+          >
+            <Zap className="w-5 h-5" />
+            Start Day {selectedDayNumber} Mission
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
 
 
       <style>{`

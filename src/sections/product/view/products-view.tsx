@@ -678,23 +678,16 @@ const loadChallenges = async (userId) => {
 const loadTabData = async (tabIndex) => {
   const userId = currentUser?.uid;
   if (!userId) return;
-  
-  switch(tabIndex) {
-    case 1: // Challenges tab
-      if (challenges.length === 0) {
-        console.log('📊 Loading challenges...');
-        await loadChallenges(userId);
-      }
-      break;
-      
-    case 2: // Leaderboard tab
+
+  switch (tabIndex) {
+    case 1: // Leaderboard tab
       if (leaderboard.length === 0) {
         console.log('🏆 Loading leaderboard...');
         await loadLeaderboard();
       }
       break;
-      
-    case 3: // Groups tab
+
+    case 2: // Groups tab
       if (groups.length === 0) {
         console.log('👥 Loading groups...');
         await loadGroups();
@@ -702,6 +695,7 @@ const loadTabData = async (tabIndex) => {
       break;
   }
 };
+
 
 // Update your tab click handler:
 const handleTabClick = async (idx) => {
@@ -1277,28 +1271,7 @@ const handleReactToPost = async (postId, reactionType) => {
   // EFFECTS
   // ============================================
   
-  useEffect(() => {
-    const quoteIndex = new Date().getDate() % MOTIVATIONAL_QUOTES.length;
-    setDailyQuote(MOTIVATIONAL_QUOTES[quoteIndex]);
-    
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-  
-  useEffect(() => {
-    if (showPostModal || selectedFriend) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [showPostModal, selectedFriend]);
+ 
   
 
   // Add this useEffect after your other useEffects
@@ -1482,7 +1455,7 @@ const loadChallengeTemplates = async () => {
             </div>
             
             <h1  id="productHeader"  className="text-3xl md:text-5xl lg:text-6xl font-bold mb-3 md:mb-4 bg-gradient-to-r from-purple-200 via-pink-200 to-purple-300 bg-clip-text text-transparent px-4">
-              Purple Learning Hub
+              Community 
             </h1>
             
             <p className="text-purple-200 text-sm md:text-lg lg:text-xl max-w-2xl mx-auto mb-3 md:mb-4 px-4">
@@ -1506,30 +1479,9 @@ const loadChallengeTemplates = async () => {
   <SocialCityMap />
 </div>
 
-<button
-  onClick={() => {
-  console.log('🔍 Button clicked!');
-  console.log('🔍 Current user:', currentUser);
-  navigate('/groups/grp_001'); // Test with hardcoded ID first
-}}
-  className="px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl md:rounded-2xl font-bold text-white hover:scale-105 active:scale-95 transition-transform flex items-center justify-center gap-2 mx-auto shadow-lg shadow-purple-500/50"
-  style={{ touchAction: 'manipulation' }}
->
 
- 
-  <Users size={20} />
-  <span>Your Action Groups</span>
-  <ChevronRight size={20} />
-</button>
 
-  <button
-  onClick={() => setIsHubOpen(true)}
-  className="px-6 py-3 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-2xl hover:scale-105 transition-all duration-300 transform active:scale-95 border-4 border-white/50"
-  title="Open IRL Connections Hub"
->
-  <Users className="w-6 h-6 mr-2 inline" />
-  Open IRL Connections Hub
-</button>
+  
 
 
          
@@ -1562,16 +1514,7 @@ const loadChallengeTemplates = async () => {
                 />
               </div>
               
-              <select
-                value={sortOption}
-                onChange={(e) => setSortOption(e.target.value)}
-                className="px-4 md:px-6 py-3 md:py-4 bg-purple-900/40 border-2 border-purple-500/30 rounded-xl md:rounded-2xl text-white font-semibold cursor-pointer focus:outline-none focus:border-purple-400 text-sm md:text-base min-h-[48px]"
-                style={{ touchAction: 'manipulation' }}
-              >
-                <option value="rank">Sort by Rank</option>
-                <option value="xp">Sort by XP</option>
-                <option value="streak">Sort by Streak</option>
-              </select>
+              
 
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
@@ -1847,9 +1790,8 @@ onClick={() => {
           <div className="flex gap-2 md:gap-3 mb-6 md:mb-8 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
             {[
               { icon: <Users size={18} />, label: 'Friends', count: friends.length },
-              { icon: <Target size={18} />, label: 'Challenges', count: challenges.length },
               { icon: <Trophy size={18} />, label: 'Leaderboard', count: null },
-              { icon: <MessageCircle size={18} />, label: 'Groups', count: groups.length },
+              { icon: <MessageCircle size={18} />, label: 'Leaderboard', count: groups.length },
             ].map((tab, idx) => (
               <button
                 key={idx}
@@ -1878,7 +1820,7 @@ onClick={() => {
             <div>
               <div className="flex justify-between items-center mb-4 md:mb-6">
                 <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent">
-                  Your Squad
+                  Your Friends
                 </h2>
                   <button 
     onClick={handleOpenFriendSearch}
@@ -1983,18 +1925,7 @@ onClick={() => {
     <MessageCircle size={14} />
     <span className="hidden sm:inline">Message</span>
   </button>
-  <button 
-    className="px-2 md:px-3 py-2.5 md:py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-bold hover:scale-105 transition-transform flex items-center justify-center gap-1 min-h-[44px] text-xs md:text-sm"
-    onClick={(e) => {
-      e.stopPropagation();
-      handleOpenChallengeModal(friend);
-    }}
-    style={{ touchAction: 'manipulation' }}
-    title="Send Challenge"
-  >
-    <Trophy size={14} />
-    <span className="hidden sm:inline">Challenge</span>
-  </button>
+  
   <button 
     className="px-2 md:px-3 py-2.5 md:py-3 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl font-bold hover:scale-105 transition-transform flex items-center justify-center gap-1 min-h-[44px] text-xs md:text-sm"
     onClick={(e) => {
@@ -2015,321 +1946,7 @@ onClick={() => {
             </div>
           )}
           
-          {selectedTab === 1 && (
-  <div>
-    <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent flex items-center gap-2 md:gap-3">
-      <Target size={28} />
-      Active Challenges
-    </h2>
-    
-    {loadingChallenges ? (
-      <div className="text-center py-12">
-        <Loader className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-4" />
-        <p className="text-purple-200">Loading challenges...</p>
-      </div>
-    ) : challenges.length === 0 ? (
-      <EmptyState 
-        icon={Target}
-        title="No Active Challenges"
-        description="Complete challenges to earn XP, coins, and unlock achievements!"
-      />
-    ) : (
-      <div className="space-y-6">
-        {/* Friend Challenges Section */}
-        {challenges.filter(c => c.challengeType === 'friend').length > 0 && (
-          <div>
-            <h3 className="text-xl font-bold text-purple-100 mb-4 flex items-center gap-2">
-              <Users size={20} />
-              Friend Challenges
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
-              {challenges.filter(c => c.challengeType === 'friend').map(challenge => {
-
-  if (!challenge || typeof challenge !== 'object') return null;
-  if (!challenge.progress || typeof challenge.progress !== 'object') {
-    console.error('Invalid challenge progress:', challenge);
-    return null;
-  }
-  
-  const isReceived = challenge.toUserId === currentUser.uid;
-  const opponentData = isReceived ? challenge.fromUser : challenge.toUser;
-  
-  if (!opponentData || typeof opponentData !== 'object') {
-    console.error('Invalid opponent data:', challenge);
-    return null;
-  }
-  
-  const opponentName = opponentData?.name || 'Unknown';
-  const opponentAvatar = opponentData?.avatar || '';
-  const opponentId = opponentData?.userId || opponentData?.id || '';
-  
-  // ✅ CRITICAL: Extract progress as NUMBERS
-  const myProgress = Number(challenge.progress?.[currentUser.uid] || 0);
-  const opponentProgress = Number(challenge.progress?.[opponentId] || 0);
-  const myProgressPercent = (myProgress / (challenge.target || 1)) * 100;
-  const opponentProgressPercent = (opponentProgress / (challenge.target || 1)) * 100;
-
-
-// ✅ ADD THIS DEBUG CODE:
-  console.log('🔍 Challenge:', challenge.id);
-  console.log('🔍 challenge.progress:', challenge.progress);
-  console.log('🔍 challenge.fromUser:', challenge.fromUser);
-  console.log('🔍 challenge.toUser:', challenge.toUser);
-  console.log('🔍 Type of progress:', typeof challenge.progress);
-
-
-
-                
-                return (
-                  <div
-    key={`${challenge.id}-${challenge.type || 'friend'}-${challenge.fromUserId}-${challenge.toUserId}`}
-    className={`bg-gradient-to-br from-purple-900/60 to-indigo-900/60 backdrop-blur-sm p-4 md:p-6 rounded-xl md:rounded-2xl border-2 transition-all ${
-      challenge.status === 'pending' ? 'border-yellow-500/50' :
-      challenge.status === 'completed' ? 'border-green-500/50' :
-      'border-purple-500/30'
-    }`}
-  >
-
-    
-                    {/* Challenge Header */}
-                    <div className="flex items-start gap-3 md:gap-4 mb-4">
-                      <div className="text-4xl md:text-5xl flex-shrink-0">{challenge.icon}</div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-lg md:text-xl text-white mb-1">{challenge.title}</h4>
-                        <p className="text-xs md:text-sm text-purple-300 mb-2">{challenge.description}</p>
-                        
-                        {/* Opponent Info */}
-                       {/* Opponent Info */}
-{opponentName && (
-  <div className="flex items-center gap-2 mb-2">
-    <img 
-      src={opponentAvatar} 
-      alt={opponentName}
-      className="w-6 h-6 rounded-full border border-purple-500/50"
-    />
-    <span className="text-sm text-purple-200">
-      {isReceived ? 'From' : 'To'}: <strong>{opponentName}</strong>
-    </span>
-  </div>
-)}
-                        
-                        <div className="flex gap-2 flex-wrap">
-                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                            challenge.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                            challenge.status === 'active' ? 'bg-green-500/20 text-green-400' :
-                            challenge.status === 'completed' ? 'bg-blue-500/20 text-blue-400' :
-                            'bg-red-500/20 text-red-400'
-                          }`}>
-                            {challenge.status.toUpperCase()}
-                          </span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                            challenge.difficulty === 'EASY' ? 'bg-green-500/20 text-green-400' :
-                            challenge.difficulty === 'HARD' ? 'bg-red-500/20 text-red-400' :
-                            'bg-yellow-500/20 text-yellow-400'
-                          }`}>
-                            {challenge.difficulty}
-                          </span>
-                          <span className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded-full text-xs font-bold flex items-center gap-1">
-                            <Zap size={12} />
-                            {challenge.duration} days
-                          </span>
-                          <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-bold flex items-center gap-1">
-                            <Trophy size={12} />
-                            {challenge.reward?.xp && `+${challenge.reward.xp} XP`}
-                            {challenge.reward?.coins && ` · ${challenge.reward.coins} coins`}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Progress Bars - ONLY SHOW IF ACTIVE */}
-                    {challenge.status === 'active' && (
-                      <div className="space-y-3 mb-4">
-                        {/* Your Progress */}
-                        <div>
-                          <div className="flex justify-between text-xs mb-1">
-                            <span className="text-purple-200 font-semibold">You</span>
-                            <span className="text-purple-200 font-bold">{challenge.progress?.[currentUser.uid] || 0}/{challenge.target}</span>
-                          </div>
-                          <div className="h-3 bg-purple-950/50 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500"
-                              style={{ width: `${Math.min(myProgressPercent, 100)}%` }}
-                            />
-                          </div>
-                        </div>
-                        
-                        {/* Opponent Progress */}
-{/* Opponent Progress */}
-{opponentName && (
-  <div>
-    <div className="flex justify-between text-xs mb-1">
-      <span className="text-purple-200 font-semibold">{opponentName}</span>
-      <span className="text-purple-200 font-bold">{Number(opponentProgress) || 0}/{challenge.target || 0}</span>
-    </div>
-
-
-                            <div className="h-3 bg-purple-950/50 rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-gradient-to-r from-orange-500 to-red-500 rounded-full transition-all duration-500"
-                                style={{ width: `${Math.min(opponentProgressPercent, 100)}%` }}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Challenge Actions */}
-                    {challenge.status === 'pending' && isReceived && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleAcceptChallenge(challenge.id)}
-                          className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg font-bold transition-colors"
-                          style={{ touchAction: 'manipulation' }}
-                        >
-                          Accept
-                        </button>
-                        <button
-                          onClick={() => handleDeclineChallenge(challenge.id)}
-                          className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg font-bold transition-colors"
-                          style={{ touchAction: 'manipulation' }}
-                        >
-                          Decline
-                        </button>
-                      </div>
-                    )}
-                    
-                    {challenge.status === 'pending' && !isReceived && (
-  <div className="text-center text-sm text-purple-300 italic">
-    Waiting for {opponentName || 'opponent'} to respond...
-  </div>
-)}
-                    
-                    {challenge.status === 'completed' && challenge.winner && (
-                      <div className={`text-center p-3 rounded-lg ${
-                        challenge.winner === currentUser.uid 
-                          ? 'bg-green-500/20 text-green-400' 
-                          : 'bg-red-500/20 text-red-400'
-                      }`}>
-                        <span className="font-bold">
-                          {challenge.winner === currentUser.uid ? '🏆 You Won!' : '😔 You Lost'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-
-
-        {/* Community Challenges Section */}
-        {challenges.filter(c => c.challengeType === 'community').length > 0 && (
-          <div>
-            <h3 className="text-xl font-bold text-purple-100 mb-4 flex items-center gap-2">
-              <Target size={20} />
-              Community Challenges
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              {challenges.filter(c => c.challengeType === 'community').map(challenge => {
-                const userProgress = challenge.userProgress?.progress || challenge.progress || 0;
-                const progressPercent = (userProgress / challenge.target) * 100;
-                const isComplete = userProgress >= challenge.target;
-                
-                return (
-                  <div
-                    key={`${challenge.id}-${challenge.type || 'friend'}-${challenge.fromUserId || ''}-${challenge.toUserId || ''}`}
-                    className={`bg-gradient-to-br from-purple-900/60 to-indigo-900/60 backdrop-blur-sm p-4 md:p-6 rounded-xl md:rounded-2xl border-2 transition-all active:scale-98 md:hover:-translate-y-2 ${
-                      isComplete ? 'border-green-500/50 shadow-lg shadow-green-500/20' : 'border-purple-500/30 hover:border-purple-400/50'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3 md:gap-4 mb-4">
-                      <div className="text-4xl md:text-5xl flex-shrink-0">{challenge.icon}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start mb-2 gap-2">
-                          <h3 className="font-bold text-lg md:text-xl text-white">{challenge.title}</h3>
-                          <span className={`px-2 md:px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 ${
-                            challenge.type === 'DAILY' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'
-                          }`}>
-                            {challenge.type}
-                          </span>
-                        </div>
-                        <p className="text-xs md:text-sm text-purple-300 mb-3">{challenge.description}</p>
-                        
-                        <div className="flex gap-2 flex-wrap">
-                          <span className={`px-2 md:px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
-                            challenge.difficulty === 'EASY' ? 'bg-green-500/20 text-green-400' :
-                            challenge.difficulty === 'HARD' ? 'bg-red-500/20 text-red-400' :
-                            'bg-yellow-500/20 text-yellow-400'
-                          }`}>
-                            {challenge.difficulty}
-                          </span>
-                          <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-bold flex items-center gap-1">
-                            <Zap size={12} />
-                            {challenge.reward?.xp && `+${challenge.reward.xp} XP`}
-                            {challenge.reward?.coins && ` · ${challenge.reward.coins} coins`}
-                          </span>
-                          {challenge.timeLeft && (
-                            <span className="px-2 md:px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-bold flex items-center gap-1">
-                              <Clock size={12} />
-                              {challenge.timeLeft}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mb-3">
-                      <div className="flex justify-between text-xs md:text-sm mb-2">
-                        <span className="text-purple-300 font-semibold">Progress</span>
-                        <span className="text-purple-200 font-bold">
-  {Number(userProgress) || 0}/{challenge.target || 0} ({Math.round(progressPercent) || 0}%)
-</span>
-                      </div>
-                      <div className="h-3 md:h-4 bg-purple-950/50 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            isComplete 
-                              ? 'bg-gradient-to-r from-green-500 to-emerald-500' 
-                              : 'bg-gradient-to-r from-purple-500 to-pink-500'
-                          }`}
-                          style={{ width: `${Math.min(progressPercent, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between p-3 bg-purple-950/30 rounded-xl">
-                      <span className="text-xs text-purple-300 flex items-center gap-1">
-                        <Users size={12} />
-                        {challenge.participants?.toLocaleString() || 0} participants
-                      </span>
-                      {isComplete ? (
-                        <span className="px-2 md:px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-bold">
-                          ✓ COMPLETED
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => handleJoinChallenge(challenge.id)}
-                          className="px-3 py-1 bg-purple-600 hover:bg-purple-500 rounded-lg text-xs font-bold transition-colors"
-                          style={{ touchAction: 'manipulation' }}
-                        >
-                          Join
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-    )}
-  </div>
-)}
+          
           
           {selectedTab === 2 && (
             <div>
@@ -2863,14 +2480,7 @@ onClick={() => {
                     <MessageCircle size={20} />
                     Send Message
                   </button>
-                  <button 
-  className="px-6 py-3 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-bold hover:scale-105 active:scale-95 transition-transform flex items-center justify-center gap-2 text-white min-h-[48px]"
-  style={{ touchAction: 'manipulation' }}
-  onClick={() => handleOpenChallengeModal(selectedFriend)}  // ✅ Use 'selectedFriend'
->
-  <Trophy size={20} />
-  Send Challenge
-</button>
+                  
 
 <button 
   className="px-6 py-3 md:py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl font-bold hover:scale-105 active:scale-95 transition-transform flex items-center justify-center gap-2 text-white min-h-[48px]"

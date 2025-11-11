@@ -17,6 +17,14 @@ const AppLayout = () => {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    // Add Poppins font globally
+    const link = document.createElement("link");
+    link.href = "https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap";
+    link.rel = "stylesheet";
+    document.head.appendChild(link);
+
+    document.body.style.fontFamily = "'Poppins', sans-serif";
+
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     handleResize();
     window.addEventListener('resize', handleResize);
@@ -48,10 +56,10 @@ const AppLayout = () => {
   }, []);
 
   const mobileWidthStyle: React.CSSProperties = {
-  overflowX: 'hidden',
-  width: '100%',
-  maxWidth: '100vw',
-};
+    overflowX: 'hidden',
+    width: '100%',
+    maxWidth: '100vw',
+  };
 
   const contentStyle: React.CSSProperties = isNavHidden
     ? {}
