@@ -226,7 +226,7 @@ const [isLoadingAI, setIsLoadingAI] = useState(false);
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
+            'Authorization': `Bearer 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`
           },
           body: JSON.stringify({
             user_id: userId,
@@ -361,7 +361,7 @@ const [isLoadingAI, setIsLoadingAI] = useState(false);
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
+            'Authorization': `Bearer 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`
           },
           body: JSON.stringify(payload)
         });
@@ -666,7 +666,7 @@ const handleRemoveTip = (index) => {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${apiKey}`,
+              Authorization: `Bearer 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`,
             },
             body: JSON.stringify({
               user_id: uid,

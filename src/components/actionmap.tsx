@@ -148,6 +148,7 @@ interface Location {
 
 export default function SocialCityMap() {
   // ... existing state ...
+const [viewingDayCommunity, setViewingDayCommunity] = useState<number | null>(null);
 
 
 const [selectedDayNumber, setSelectedDayNumber] = useState<number | null>(null);
@@ -1605,7 +1606,8 @@ const openDayExplorer = (dayNumber: number) => {
   });
   
   setPeopleOnSelectedDay(peopleOnDay);
-  setShowDayExplorer(true);
+  setViewingDayCommunity(dayNumber); // NEW: Set this instead of showDayExplorer
+  // setShowDayExplorer(true); // REMOVE THIS LINE
 };
 
 
@@ -1727,16 +1729,9 @@ useEffect(() => {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <div className="inline-flex items-center gap-2 mb-3 px-4 py-2 bg-purple-800/40 backdrop-blur-sm rounded-full border border-purple-500/30">
-                <Sparkles className="w-4 h-4 text-purple-300 animate-pulse" />
-                <span className="text-sm font-medium text-purple-200">Social Adventure City</span>
-                
-              </div>
-              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-300 via-pink-300 to-purple-400 bg-clip-text text-transparent">
-  Your City of Growth
-</h1>
+              
+             
 
-              <p className="text-purple-300 mt-2">Complete missions, connect with others, level up your social skills</p>
             </div>
             
             {/* User Stats */}
@@ -1762,284 +1757,190 @@ useEffect(() => {
         <div className="grid lg:grid-cols-3 gap-6">
           
           {/* Main City Map */}
-          <div className="lg:col-span-2">
-            <div className="bg-purple-900/40 backdrop-blur-md rounded-2xl border border-purple-500/30 p-6 relative overflow-hidden">
-              
-              {/* Decorative background grid */}
-              <div className="absolute inset-0 opacity-10">
-                <div className="grid grid-cols-8 grid-rows-8 h-full">
-                  {Array.from({ length: 64 }).map((_, i) => (
-                    <div key={i} className="border border-purple-400"></div>
-                  ))}
-                </div>
-              </div>
-
-              {/* SVG Path connecting locations */}
-              
-
-              {/* City Map Container */}
-              {/* City Map Container */}
-<div className="relative w-full h-[500px] md:h-[800px] overflow-y-auto overflow-x-hidden" style={{ zIndex: 2 }}>
-  <div className="relative w-full min-h-[1000px]">
-
-                  <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }} viewBox="0 0 100 100" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#a855f7" stopOpacity="0.8" />
-                    <stop offset="25%" stopColor="#ec4899" stopOpacity="0.7" />
-                    <stop offset="50%" stopColor="#8b5cf6" stopOpacity="0.6" />
-                    <stop offset="75%" stopColor="#ec4899" stopOpacity="0.7" />
-                    <stop offset="100%" stopColor="#a855f7" stopOpacity="0.8" />
-                  </linearGradient>
-                  <filter id="glow">
-                    <feGaussianBlur stdDeviation="0.5" result="coloredBlur"/>
-                    <feMerge>
-                      <feMergeNode in="coloredBlur"/>
-                      <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                  </filter>
-                </defs>
-                {/* Path connecting: Cafe(20,15) -> Library(45,30) -> Park(75,20) -> Market(30,55) -> Plaza(60,65) */}
-                {/* Path connecting: Cafe -> Library -> Park -> Market -> Plaza */}
-<path
-  d="M 15 8 C 10 15, 20 22, 35 28 C 42 32, 58 28, 65 22 C 70 18, 60 35, 50 45 C 40 52, 30 55, 25 58 C 22 62, 30 75, 55 82"
-  fill="none"
-  stroke="url(#pathGradient)"
-  strokeWidth="0.5"
-  strokeLinecap="round"
-  strokeDasharray="3 6"
-  filter="url(#glow)"
-  className="animate-dash"
-/>
-              </svg>
-
-                
-                
-                {/* Locations */}
-                {locations.map((location) => {
-                  const avatarsHere = getAvatarsAtLocation(location.id);
-                  const isHovered = hoveredLocation === location.id;
-                  
-                  return (
-                    <div
-                      key={location.id}
-                      className="absolute transform -translate-x-1/2 -translate-y-1/2"
-                      style={{ 
-                        left: `${location.position.x}%`, 
-                        top: `${location.position.y}%` 
-                      }}
-                    >
-                      {/* Location marker */}
-                      <div
-                        className={`relative cursor-pointer transition-all duration-300 ${
-                          isHovered ? 'scale-110' : 'scale-100'
-                        }`}
-                        onClick={() => openLocationModal(location)}
-                        onMouseEnter={() => setHoveredLocation(location.id)}
-                        onMouseLeave={() => setHoveredLocation(null)}
-                      >
-                        {/* Pulsing ring for active locations */}
-                        {location.status === 'in-progress' && (
-                          <div className="absolute inset-0 w-20 h-20 -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2">
-                            <div className="absolute inset-0 bg-purple-500 rounded-full animate-ping opacity-30"></div>
-                          </div>
-                        )}
-
-                        {/* Main location circle */}
-                        <div className={`w-20 h-20 rounded-full flex items-center justify-center border-4 shadow-2xl transition-all duration-300 ${
-
-                          location.status === 'completed'
-                            ? 'bg-gradient-to-br from-green-500 to-emerald-600 border-green-400 shadow-green-500/50'
-                            : location.status === 'in-progress'
-                            ? 'bg-gradient-to-br from-purple-600 to-pink-600 border-purple-400 shadow-purple-500/50 animate-pulse'
-                            : location.status === 'available'
-                            ? 'bg-gradient-to-br from-indigo-600 to-purple-600 border-indigo-400 shadow-indigo-500/40'
-                            : 'bg-gradient-to-br from-purple-900 to-indigo-900 border-purple-700/30 opacity-60'
-                        }`}>
-                          {location.status === 'locked' ? (
-                            <Lock className="w-7 h-7 text-purple-500" />
-                          ) : (
-                            <location.icon className="w-10 h-10 text-white drop-shadow-lg" />
-
-                          )}
-                        </div>
-
-                        {/* Day Number Badge - TOP LEFT */}
-<button
-  onClick={(e) => {
-    e.stopPropagation();
-    openDayExplorer(location.day);
-  }}
-  className="absolute -top-2 -left-2 bg-gradient-to-br from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white text-xs font-bold rounded-full w-7 h-7 flex items-center justify-center border-2 border-white shadow-lg z-10 transition-all hover:scale-110"
->
-  {location.day}
-</button>
-
-{/* Current user's day indicator */}
-{location.day === currentUserDay && (
-  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-2 py-1 bg-cyan-500 text-white text-xs font-bold rounded-full border-2 border-white shadow-lg animate-pulse">
-    YOUR DAY
-  </div>
-)}
-
-                        {/* Active users badge */}
-                        {location.status !== 'locked' && (
-                          <div className="absolute -top-2 -right-2 bg-pink-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-purple-950 shadow-lg">
-                            {location.activeUsers}
-                          </div>
-                        )}
-
-                        {/* Completed checkmark */}
-                        {location.status === 'completed' && (
-                          <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1 border-2 border-purple-950">
-                            <Check className="w-3 h-3 text-white" />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Location label */}
-<div className={`absolute top-full mt-2 left-1/2 -translate-x-1/2 whitespace-nowrap transition-opacity duration-300 ${
-  isHovered ? 'opacity-100' : 'opacity-80'
-}`}>
-  <div className="bg-purple-900/95 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-purple-500/30 shadow-xl">
-  <div className="flex items-center gap-2 mb-1">
-    <div className="px-2 py-0.5 bg-yellow-500/20 border border-yellow-400/40 rounded-full">
-      <span className="text-[10px] font-bold text-yellow-300">Day {location.day}</span>
-    </div>
-    <p className="text-xs font-bold text-white">{location.name}</p>
-  </div>
-  <p className="text-[10px] text-purple-300">{location.mission}</p>
+         {/* Day Selector Grid */}
+<div className="lg:col-span-2">
+  <div className="bg-purple-900/40 backdrop-blur-md rounded-2xl border border-purple-500/30 p-6">
     
-    {/* ADD THIS: Memory count button */}
-    {location.status !== 'locked' && (
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedMemoryLocation(location.id);
-          setShowMemoryWall(true);
-        }}
-        className="mt-1 w-full flex items-center justify-center gap-1 px-2 py-1 bg-purple-700/50 hover:bg-purple-600/70 rounded text-[10px] transition-colors"
-      >
-        <BookOpen className="w-3 h-3" />
-        <span>{locationMemories[location.id]?.length || 0} memories</span>
-      </button>
-    )}
+    {/* Header */}
+    <div className="mb-6">
+      <h2 className="text-2xl font-bold text-white mb-2">Choose Your Day</h2>
+      <p className="text-purple-300">Select a day to see who's on it and join their community</p>
+    </div>
+
+    {/* Current Day Highlight */}
+    <div className="mb-6 p-4 bg-gradient-to-r from-cyan-900/60 to-blue-900/60 rounded-xl border-2 border-cyan-500/50">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-cyan-500 flex items-center justify-center">
+            <span className="text-2xl font-bold text-white">{currentUserDay}</span>
+          </div>
+          <div>
+            <p className="text-sm text-cyan-300">You are currently on</p>
+            <p className="text-xl font-bold text-white">Day {currentUserDay}</p>
+          </div>
+        </div>
+        <button
+          onClick={() => openDayExplorer(currentUserDay)}
+          className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-white font-semibold transition-all"
+        >
+          Go to Your Day
+        </button>
+      </div>
+    </div>
+
+    {/* Day Grid */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {locations.map((location) => {
+        const peopleOnThisDay = activeAvatars.filter(avatar => {
+          const avatarLocation = locations.find(l => l.id === avatar.currentLocation);
+          return avatarLocation?.day === location.day;
+        });
+        
+        const isYourDay = location.day === currentUserDay;
+        const isCompleted = location.status === 'completed';
+        const isInProgress = location.status === 'in-progress';
+        const isLocked = location.status === 'locked';
+
+        return (
+          <div
+            key={location.id}
+            onClick={() => !isLocked && openDayExplorer(location.day)}
+            className={`relative p-5 rounded-xl border-2 transition-all duration-300 cursor-pointer ${
+              isYourDay
+                ? 'bg-gradient-to-br from-cyan-900/60 to-blue-900/60 border-cyan-500/60 shadow-lg shadow-cyan-500/20'
+                : isLocked
+                ? 'bg-purple-900/20 border-purple-700/30 opacity-60 cursor-not-allowed'
+                : 'bg-purple-900/40 border-purple-500/30 hover:border-purple-400/60 hover:shadow-lg hover:shadow-purple-500/20'
+            }`}
+          >
+            {/* Day Badge */}
+            <div className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg">
+              <span className="text-xl font-bold text-white">{location.day}</span>
+            </div>
+
+            {/* Your Day Indicator */}
+            {isYourDay && (
+              <div className="absolute -top-2 -left-2 px-3 py-1 bg-cyan-500 rounded-full border-2 border-white shadow-lg">
+                <span className="text-xs font-bold text-white">YOUR DAY</span>
+              </div>
+            )}
+
+            {/* Status Badge */}
+            {isCompleted && (
+              <div className="absolute top-2 left-2 px-2 py-1 bg-green-500/80 rounded-full">
+                <span className="text-xs font-bold text-white">✓ Done</span>
+              </div>
+            )}
+            {isInProgress && (
+              <div className="absolute top-2 left-2 px-2 py-1 bg-purple-500/80 rounded-full animate-pulse">
+                <span className="text-xs font-bold text-white">⚡ Active</span>
+              </div>
+            )}
+            {isLocked && (
+              <div className="absolute top-2 left-2 px-2 py-1 bg-purple-700/80 rounded-full">
+                <span className="text-xs font-bold text-white">🔒 Locked</span>
+              </div>
+            )}
+
+            {/* Location Icon & Info */}
+            <div className="flex items-center gap-3 mb-4 mt-2">
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
+                isLocked ? 'bg-purple-800/50' : 'bg-gradient-to-br from-purple-600 to-pink-600'
+              }`}>
+                {isLocked ? (
+                  <Lock className="w-7 h-7 text-purple-400" />
+                ) : (
+                  <location.icon className="w-7 h-7 text-white" />
+                )}
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-white text-lg">{location.name}</h3>
+                <p className="text-sm text-purple-300">{location.mission}</p>
+              </div>
+            </div>
+
+            {/* People Count */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-purple-400" />
+                <span className="text-sm text-purple-300">
+                  {peopleOnThisDay.length} {peopleOnThisDay.length === 1 ? 'person' : 'people'} on this day
+                </span>
+              </div>
+              {!isLocked && (
+                <div className="flex items-center gap-1">
+                  <Star className="w-4 h-4 text-yellow-400" />
+                  <span className="text-sm font-bold text-yellow-300">{location.xpReward} XP</span>
+                </div>
+              )}
+            </div>
+
+            {/* Avatar Preview */}
+            {!isLocked && peopleOnThisDay.length > 0 && (
+              <div className="flex items-center gap-1 mb-3">
+                {peopleOnThisDay.slice(0, 5).map((avatar, i) => (
+                  <div
+                    key={avatar.id}
+                    className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatar.color} border-2 border-white flex items-center justify-center text-xs font-bold text-white`}
+                    style={{ marginLeft: i > 0 ? '-8px' : '0', zIndex: 5 - i }}
+                    title={avatar.name}
+                  >
+                    {avatar.name[0]}
+                  </div>
+                ))}
+                {peopleOnThisDay.length > 5 && (
+                  <div className="w-8 h-8 rounded-full bg-purple-700 border-2 border-white flex items-center justify-center text-xs font-bold text-white ml-[-8px]">
+                    +{peopleOnThisDay.length - 5}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Action Button */}
+            {!isLocked && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openDayExplorer(location.day);
+                }}
+                className={`w-full py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
+                  isYourDay
+                    ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                    : 'bg-purple-700/50 hover:bg-purple-700/70 text-white'
+                }`}
+              >
+                {isYourDay ? (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Your Community
+                  </>
+                ) : (
+                  <>
+                    <Users className="w-4 h-4" />
+                    Visit Day {location.day}
+                  </>
+                )}
+              </button>
+            )}
+
+            {isLocked && (
+              <div className="text-center py-2">
+                <p className="text-xs text-purple-400">Complete Day {location.day - 1} to unlock</p>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+
+    {/* Info Banner */}
+    <div className="mt-6 p-4 bg-gradient-to-r from-pink-900/40 to-purple-900/40 rounded-xl border border-pink-500/30">
+      <p className="text-sm text-pink-200 text-center">
+        💡 <strong>Tip:</strong> Visit any day to see their community, chat in their campfire, find buddies, and get inspired!
+      </p>
+    </div>
   </div>
 </div>
-
-                      {/* Avatars at this location */}
-                      {avatarsHere.length > 0 && (
-                        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex -space-x-2">
-                          {avatarsHere.slice(0, 3).map((avatar) => (
-                            <div
-                              key={avatar.id}
-                              className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatar.color} border-2 border-purple-950 flex items-center justify-center text-xs font-bold text-white shadow-lg`}
-                              title={`${avatar.name} - ${avatar.streak} day streak`}
-                            >
-                              {avatar.name[0]}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Squad members at location indicator */}
-        {userSquad?.members.filter(m => m.currentLocation === location.id && m.id !== 'user').length > 0 && (
-          <div className="absolute -top-3 -left-3 bg-gradient-to-r from-orange-500 to-red-500 rounded-full p-1 border-2 border-purple-950 shadow-lg animate-pulse">
-            <Users className="w-3 h-3 text-white" />
-          </div>
-        )}
-
-        {upcomingParties.some(p => p.locationId === location.id) && (
-  <div className="absolute -top-2 -right-2 animate-pulse">
-    <div className="relative">
-      <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg">
-        <Users className="w-3 h-3 text-white" />
-      </div>
-      <div className="absolute inset-0 bg-pink-500 rounded-full animate-ping opacity-75" />
-    </div>
-  </div>
-)}
-                    </div>
-                  );
-                })}
-                 </div> 
-
-                {/* ⬇️⬇️⬇️ ADD STEP 6 CODE HERE ⬇️⬇️⬇️ */}
-  {/* Live Party Activity Overlay on Map */}
-  {selectedParty && selectedParty.status === 'active' && (
-    <div className="absolute top-4 left-4 right-4 z-30 pointer-events-none">
-      {/* Live Activity Header */}
-      <div className="bg-gradient-to-r from-orange-900/95 to-red-900/95 backdrop-blur-md rounded-2xl border border-orange-500/50 p-4 shadow-2xl pointer-events-auto">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-            <span className="text-white font-bold text-lg">🔴 PARTY LIVE NOW</span>
-          </div>
-          <button
-            onClick={() => setSelectedParty(null)}
-            className="p-1 hover:bg-orange-800/50 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5 text-orange-300" />
-          </button>
-        </div>
-        
-        <div className="grid grid-cols-3 gap-3">
-          <div className="p-2 bg-orange-800/30 rounded-lg">
-            <p className="text-xs text-orange-300">Participants</p>
-            <p className="text-xl font-bold text-white">{selectedParty.participants.length}</p>
-          </div>
-          <div className="p-2 bg-green-800/30 rounded-lg">
-            <p className="text-xs text-green-300">Active Now</p>
-            <p className="text-xl font-bold text-white">{Object.keys(liveParticipantLocations).length}</p>
-          </div>
-          <div className="p-2 bg-yellow-800/30 rounded-lg">
-            <p className="text-xs text-yellow-300">Completed</p>
-            <p className="text-xl font-bold text-white">
-              {Object.values(liveParticipantLocations).filter((l: any) => l.status === 'completed').length}
-            </p>
-          </div>
-        </div>
-
-        {/* Live feed scroll */}
-        <div className="mt-3 max-h-24 overflow-y-auto space-y-1">
-          {Object.values(liveParticipantLocations).slice(0, 5).map((loc: any, i) => (
-            <div key={i} className="text-xs text-orange-100 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-400" />
-              <span className="font-semibold">{loc.userName}</span>
-              <span className="text-orange-300">
-                {loc.status === 'completed' ? '✅ completed!' : loc.status === 'active' ? '⚡ in progress' : '📍 arrived'}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )}
-  {/* ⬆️⬆️⬆️ END OF STEP 6 CODE ⬆️⬆️⬆️ */}
-
-              </div>
-
-              {/* Legend */}
-              <div className="mt-6 flex flex-wrap gap-3 text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-gradient-to-br from-green-500 to-emerald-600"></div>
-                  <span className="text-purple-300">Completed</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-gradient-to-br from-purple-600 to-pink-600"></div>
-                  <span className="text-purple-300">In Progress</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600"></div>
-                  <span className="text-purple-300">Available</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-gradient-to-br from-purple-900 to-indigo-900 opacity-60"></div>
-                  <span className="text-purple-300">Locked</span>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Sidebar - Activity Feed & Stats */}
           <div className="space-y-6">
@@ -2270,917 +2171,333 @@ useEffect(() => {
 
       {/* Location Modal */}
       {/* Location Modal */}
-{modalOpen && selectedLocation && (
+        {modalOpen && selectedLocation && (
   <div 
-    className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-    onClick={() => setShowDayExplorer(false)}
+    className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4"
+    onClick={closeModal}
   >
     <div 
-      className="bg-gradient-to-br from-orange-900/98 to-red-900/98 rounded-2xl border border-orange-500/50 max-w-6xl w-full max-h-[90vh] shadow-2xl flex flex-col"
+      className="bg-gradient-to-br from-purple-900/95 to-indigo-900/95 rounded-3xl border border-purple-500/50 max-w-5xl w-full max-h-[90vh] shadow-2xl flex flex-col"
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Header */}
-      <div className="p-6 border-b border-orange-500/30 flex-shrink-0">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <div className="p-3 rounded-xl bg-orange-500/20">
-                <Trophy className="w-8 h-8 text-orange-400" />
-              </div>
-              <div className="absolute -top-1 -right-1 w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
-                <span className="text-xs font-bold text-white">{selectedDayNumber}</span>
-              </div>
+      {/* STICKY HEADER - Always visible */}
+      <div className="relative p-6 border-b border-purple-500/30 flex-shrink-0 bg-gradient-to-r from-purple-900/98 to-indigo-900/98">
+        <button 
+          onClick={closeModal}
+          className="absolute top-4 right-4 p-2 hover:bg-purple-800/50 rounded-lg transition-colors z-10"
+        >
+          <X className="w-6 h-6 text-purple-300" />
+        </button>
+
+        <div className="flex items-center gap-4">
+          {/* Day badge */}
+          <div className="px-4 py-2 bg-yellow-500/20 border border-yellow-400/40 rounded-full">
+            <span className="text-xl font-bold text-yellow-300">Day {selectedLocation.day}</span>
+          </div>
+
+          {/* Location info */}
+          <div className="flex items-center gap-3 flex-1">
+            <div className="p-3 rounded-xl bg-purple-500/20">
+              <selectedLocation.icon className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h2 className="text-3xl font-bold text-white">🏕️ Day {selectedDayNumber} Base Camp</h2>
-              <p className="text-orange-300 text-sm mt-1">
-                {peopleOnSelectedDay.length} adventurers warming up together
-              </p>
+              <h2 className="text-2xl font-bold text-white">{selectedLocation.name}</h2>
+              <p className="text-purple-300 text-sm">{selectedLocation.mission}</p>
             </div>
           </div>
-          <button 
-            onClick={() => setModalOpen(false)} 
-            className="p-2 hover:bg-orange-800/50 rounded-lg transition-colors"
-          >
-            <X className="w-6 h-6 text-orange-300" />
-          </button>
-        </div>
 
-        {/* Tab Navigation */}
-        {/* Tab Navigation */}
-<div className="flex gap-2">
-  <button
-    onClick={() => setDayExplorerTab('community')}
-    className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all relative ${
-      dayExplorerTab === 'community'
-        ? 'bg-orange-600 text-white shadow-lg'
-        : 'bg-orange-800/30 text-orange-300 hover:bg-orange-800/50'
-    }`}
-  >
-    <div className="flex items-center justify-center gap-2">
-      🔥 Community (Live)
-      {/* NEW: Live indicator dot */}
-      {dayExplorerTab === 'community' && (
-        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse absolute top-2 right-2" />
-      )}
-    </div>
-    {/* NEW: Feature count badge */}
-    <div className="text-xs mt-1 opacity-75">
-      9 active features
-    </div>
-  </button>
-  <button
-    onClick={() => setDayExplorerTab('mission')}
-    className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all ${
-      dayExplorerTab === 'mission'
-        ? 'bg-orange-600 text-white shadow-lg'
-        : 'bg-orange-800/30 text-orange-300 hover:bg-orange-800/50'
-    }`}
-  >
-    📍 Mission Info
-  </button>
-</div>
+          {/* Quick stats */}
+          <div className="flex gap-2">
+            <div className="px-3 py-2 bg-yellow-900/30 border border-yellow-500/30 rounded-lg">
+              <div className="flex items-center gap-1">
+                <Star className="w-4 h-4 text-yellow-400" />
+                <span className="text-sm font-bold text-white">{selectedLocation.xpReward} XP</span>
+              </div>
+            </div>
+            <div className="px-3 py-2 bg-cyan-900/30 border border-cyan-500/30 rounded-lg">
+              <div className="flex items-center gap-1">
+                <Users className="w-4 h-4 text-cyan-400" />
+                <span className="text-sm font-bold text-white">{selectedLocation.activeUsers}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Tab Content - Scrollable */}
+      {/* SCROLLABLE CONTENT */}
       <div className="flex-1 overflow-y-auto">
-        {dayExplorerTab === 'community' ? (
-          /* COMMUNITY TAB */
-          <div className="p-6 space-y-6">
-
-    
-    {/* NEW: Community Features Overview Banner */}
-    <div className="bg-gradient-to-r from-cyan-900/60 to-purple-900/60 rounded-2xl border border-cyan-500/50 p-5">
-      <div className="flex items-center gap-3 mb-4">
-        <Sparkles className="w-6 h-6 text-cyan-400 animate-pulse" />
-        <h3 className="text-xl font-bold text-white">Day {selectedDayNumber} Community Hub - All Features Active!</h3>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="p-3 bg-orange-800/30 rounded-lg border border-orange-500/30 text-center">
-          <div className="text-2xl mb-1">🔥</div>
-          <p className="text-xs text-orange-300 font-semibold">Campfire Wall</p>
-          <p className="text-lg font-bold text-white">{campfireMessages.length}</p>
-        </div>
-        <div className="p-3 bg-purple-800/30 rounded-lg border border-purple-500/30 text-center">
-          <div className="text-2xl mb-1">📊</div>
-          <p className="text-xs text-purple-300 font-semibold">Live Stats</p>
-          <p className="text-lg font-bold text-white">{dayStats.hypeLevel}%</p>
-        </div>
-        <div className="p-3 bg-cyan-800/30 rounded-lg border border-cyan-500/30 text-center">
-          <div className="text-2xl mb-1">📍</div>
-          <p className="text-xs text-cyan-300 font-semibold">At Location</p>
-          <p className="text-lg font-bold text-white">{liveAtLocation.arrived.length}</p>
-        </div>
-        <div className="p-3 bg-green-800/30 rounded-lg border border-green-500/30 text-center">
-          <div className="text-2xl mb-1">🎯</div>
-          <p className="text-xs text-green-300 font-semibold">Buddies</p>
-          <p className="text-lg font-bold text-white">{buddyMatches.length}</p>
-        </div>
-      </div>
-      <p className="text-center text-sm text-cyan-200 mt-4">
-        ⚡ All features are live and updating in real-time
-      </p>
-    </div>
-
-    {/* ⬇️⬇️⬇️ ADD THE QUICK NAVIGATION HERE ⬇️⬇️⬇️ */}
-    <div className="flex gap-2 overflow-x-auto pb-2">
-      <button 
-        onClick={() => document.getElementById('campfire')?.scrollIntoView({ behavior: 'smooth' })}
-        className="px-4 py-2 bg-orange-700/30 hover:bg-orange-700/50 rounded-lg text-sm text-orange-200 whitespace-nowrap transition-all"
-      >
-        🔥 Campfire
-      </button>
-      <button 
-        onClick={() => document.getElementById('hype-meter')?.scrollIntoView({ behavior: 'smooth' })}
-        className="px-4 py-2 bg-purple-700/30 hover:bg-purple-700/50 rounded-lg text-sm text-purple-200 whitespace-nowrap transition-all"
-      >
-        📊 Hype Meter
-      </button>
-      <button 
-        onClick={() => document.getElementById('live-location')?.scrollIntoView({ behavior: 'smooth' })}
-        className="px-4 py-2 bg-cyan-700/30 hover:bg-cyan-700/50 rounded-lg text-sm text-cyan-200 whitespace-nowrap transition-all"
-      >
-        📍 Live Map
-      </button>
-      <button 
-        onClick={() => document.getElementById('champions')?.scrollIntoView({ behavior: 'smooth' })}
-        className="px-4 py-2 bg-yellow-700/30 hover:bg-yellow-700/50 rounded-lg text-sm text-yellow-200 whitespace-nowrap transition-all"
-      >
-        🏆 Champions
-      </button>
-      <button 
-        onClick={() => document.getElementById('encouragement')?.scrollIntoView({ behavior: 'smooth' })}
-        className="px-4 py-2 bg-pink-700/30 hover:bg-pink-700/50 rounded-lg text-sm text-pink-200 whitespace-nowrap transition-all"
-      >
-        💌 Messages
-      </button>
-      <button 
-        onClick={() => document.getElementById('buddy-finder')?.scrollIntoView({ behavior: 'smooth' })}
-        className="px-4 py-2 bg-green-700/30 hover:bg-green-700/50 rounded-lg text-sm text-green-200 whitespace-nowrap transition-all"
-      >
-        🎯 Buddy Finder
-      </button>
-    </div>
-    {/* ⬆️⬆️⬆️ END OF QUICK NAVIGATION ⬆️⬆️⬆️ */}
-
-            
-            {/* THE CAMPFIRE WALL */}
-            <div className="bg-gradient-to-br from-orange-800/40 to-red-800/40 rounded-2xl border border-orange-500/50 p-6">
-              <div className="text-center mb-6">
-                <div className="text-6xl mb-3 animate-pulse">🔥</div>
-                <h3 className="text-2xl font-bold text-white mb-2">The Campfire Wall</h3>
-                <p className="text-orange-200 text-sm">What people are thinking RIGHT NOW</p>
+        <div className="p-6 space-y-6">
+          
+          {/* 🎯 MISSION BRIEF - First thing you see */}
+          <div className="bg-gradient-to-br from-pink-900/40 to-purple-900/40 rounded-2xl border border-pink-500/50 p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 bg-pink-500/20 rounded-lg">
+                <Zap className="w-6 h-6 text-pink-400" />
               </div>
-
-              {/* Live Messages Stream */}
-              <div className="space-y-3 mb-4 max-h-96 overflow-y-auto">
-                {campfireMessages.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-orange-300">Be the first to share your thoughts...</p>
-                  </div>
-                ) : (
-                  campfireMessages.map((msg) => (
-                    <div 
-                      key={msg.id}
-                      className={`p-4 rounded-xl transition-all ${
-                        msg.isVulnerable 
-                          ? 'bg-pink-900/40 border-2 border-pink-500/50' 
-                          : 'bg-orange-900/30 border border-orange-500/30'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white font-bold flex-shrink-0">
-                          {msg.userName[0]}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold text-white">{msg.userName}</span>
-                            <span className="text-xs text-orange-400">
-                              {msg.timestamp?.toDate ? formatTimeAgo(msg.timestamp.toDate()) : 'now'}
-                            </span>
-                            {msg.isVulnerable && (
-                              <span className="text-xs px-2 py-0.5 bg-pink-500/30 border border-pink-400/50 rounded-full text-pink-200">
-                                vulnerable
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-orange-100 mb-2">{msg.text}</p>
-                          
-                          {/* Reactions */}
-                          <div className="flex items-center gap-3">
-                            {Object.entries(msg.reactions).map(([emoji, count]) => (
-                              <button
-                                key={emoji}
-                                onClick={() => reactToCampfireMessage(msg.id, emoji)}
-                                className="flex items-center gap-1 px-2 py-1 bg-orange-800/30 hover:bg-orange-800/50 rounded-lg transition-all hover:scale-110"
-                              >
-                                <span>{emoji}</span>
-                                <span className="text-xs text-orange-200">{count}</span>
-                              </button>
-                            ))}
-                            {Object.keys(msg.reactions).length === 0 && (
-                              <div className="flex gap-1">
-                                {['💪', '❤️', '👋'].map(emoji => (
-                                  <button
-                                    key={emoji}
-                                    onClick={() => reactToCampfireMessage(msg.id, emoji)}
-                                    className="px-2 py-1 bg-orange-800/20 hover:bg-orange-800/40 rounded-lg text-lg transition-all hover:scale-125"
-                                  >
-                                    {emoji}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Post Input */}
-              <div className="border-t border-orange-500/30 pt-4">
-                <textarea
-                  value={campfireInput}
-                  onChange={(e) => setCampfireInput(e.target.value)}
-                  placeholder="Share what you're feeling... (be real, everyone here gets it)"
-                  className="w-full px-4 py-3 bg-orange-900/30 border border-orange-500/30 rounded-xl text-white placeholder-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
-                  rows={3}
-                  maxLength={300}
-                />
-                <div className="flex items-center justify-between mt-2">
-                  <p className="text-xs text-orange-400">{campfireInput.length}/300</p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => postToCampfire(campfireInput, true)}
-                      disabled={!campfireInput.trim()}
-                      className="px-4 py-2 bg-pink-600/50 hover:bg-pink-600/70 disabled:bg-orange-800/30 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-all"
-                    >
-                      😰 Vulnerable Post
-                    </button>
-                    <button
-                      onClick={() => postToCampfire(campfireInput, false)}
-                      disabled={!campfireInput.trim()}
-                      className="px-4 py-2 bg-orange-600 hover:bg-orange-500 disabled:bg-orange-800/30 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-all"
-                    >
-                      Share
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <h3 className="text-xl font-bold text-white">Your Mission</h3>
             </div>
-
-            {/* THE HYPE METER */}
-            <div className="bg-gradient-to-br from-purple-800/40 to-pink-800/40 rounded-2xl border border-purple-500/50 p-6">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <TrendingUp className="w-6 h-6 text-purple-400" />
-                🎯 Day {selectedDayNumber} Energy Today
-              </h3>
-
-              {/* Hype Bar */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-purple-300">HYPE LEVEL</span>
-                  <span className="text-2xl font-bold text-white">{dayStats.hypeLevel}%</span>
-                </div>
-                <div className="w-full bg-purple-900/50 rounded-full h-4 overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500 rounded-full transition-all duration-1000 animate-pulse"
-                    style={{ width: `${dayStats.hypeLevel}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Live Stats Grid */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="p-3 bg-purple-900/30 rounded-lg">
-                  <p className="text-xs text-purple-300 mb-1">Completions Today</p>
-                  <p className="text-2xl font-bold text-white">{dayStats.completionsToday}</p>
-                  <p className="text-xs text-green-400 mt-1">↑ {dayStats.trendPercentage}% from yesterday</p>
-                </div>
-                <div className="p-3 bg-purple-900/30 rounded-lg">
-                  <p className="text-xs text-purple-300 mb-1">Completion Rate</p>
-                  <p className="text-2xl font-bold text-white">{dayStats.completionRate}%</p>
-                </div>
-                <div className="p-3 bg-purple-900/30 rounded-lg">
-                  <p className="text-xs text-purple-300 mb-1">Avg Time</p>
-                  <p className="text-lg font-bold text-white">{dayStats.avgTimeToComplete} mins</p>
-                </div>
-                <div className="p-3 bg-purple-900/30 rounded-lg">
-                  <p className="text-xs text-purple-300 mb-1">Peak Time</p>
-                  <p className="text-lg font-bold text-white">{dayStats.peakTime}</p>
-                </div>
-              </div>
-
-              {/* Momentum Alert */}
-              <div className="p-4 bg-gradient-to-r from-orange-900/40 to-red-900/40 border border-orange-500/50 rounded-xl">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">🔥</span>
-                  <div>
-                    <p className="text-sm font-bold text-orange-200">MOMENTUM ALERT</p>
-                    <p className="text-xs text-orange-300">Day {selectedDayNumber} is ON FIRE right now! {dayStats.completionsToday} people completed today!</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* LIVE "WHO'S HERE" MAP */}
-            <div className="bg-gradient-to-br from-cyan-800/40 to-blue-800/40 rounded-2xl border border-cyan-500/50 p-6">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <MapPin className="w-6 h-6 text-cyan-400" />
-                📍 RIGHT NOW AT THE LOCATION
-              </h3>
-
-              {/* Status Groups */}
-              <div className="space-y-4">
-                {/* Arrived */}
-                <div className="p-4 bg-green-900/30 border border-green-500/30 rounded-xl">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
-                    <span className="font-bold text-green-300">🟢 ARRIVED ({liveAtLocation.arrived.length} people)</span>
-                  </div>
-                  {liveAtLocation.arrived.length === 0 ? (
-                    <p className="text-sm text-green-400 italic">No one here yet - be the first!</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {liveAtLocation.arrived.map(person => (
-                        <div key={person.id} className="px-3 py-2 bg-green-800/30 rounded-lg border border-green-500/30 flex items-center gap-2">
-                          <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${person.color} flex items-center justify-center text-xs font-bold text-white`}>
-                            {person.name[0]}
-                          </div>
-                          <span className="text-sm text-white">{person.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* On The Way */}
-                <div className="p-4 bg-yellow-900/30 border border-yellow-500/30 rounded-xl">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse" />
-                    <span className="font-bold text-yellow-300">🟡 ON THE WAY ({liveAtLocation.onTheWay.length} people)</span>
-                  </div>
-                  {liveAtLocation.onTheWay.length > 0 && (
-                    <div className="space-y-2">
-                      {liveAtLocation.onTheWay.slice(0, 5).map(person => (
-                        <p key={person.id} className="text-sm text-yellow-200">
-                          • {person.name} - "heading there now..."
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Preparing */}
-                <div className="p-4 bg-blue-900/30 border border-blue-500/30 rounded-xl">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full" />
-                    <span className="font-bold text-blue-300">🔵 PREPARING ({liveAtLocation.preparing.length} people)</span>
-                  </div>
-                  {liveAtLocation.preparing.length > 0 && (
-                    <p className="text-sm text-blue-200">
-                      {liveAtLocation.preparing.map(p => p.name).slice(0, 3).join(', ')}
-                      {liveAtLocation.preparing.length > 3 && ` +${liveAtLocation.preparing.length - 3} more`} getting ready...
-                    </p>
-                  )}
-                </div>
-
-                {/* Just Completed */}
-                <div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Trophy className="w-4 h-4 text-purple-400" />
-                    <span className="font-bold text-purple-300">⚡ JUST COMPLETED ({liveAtLocation.justCompleted.length} in last hour)</span>
-                  </div>
-                  {liveAtLocation.justCompleted.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {liveAtLocation.justCompleted.slice(0, 8).map(person => (
-                        <div key={person.id} className="px-2 py-1 bg-purple-800/30 rounded-lg text-xs text-purple-200">
-                          {person.name} ✅
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* TODAY'S CHAMPIONS */}
-            {(todaysChampions.firstTimer || todaysChampions.bestTip || todaysChampions.biggestBreakthrough) && (
-              <div className="bg-gradient-to-br from-yellow-800/40 to-orange-800/40 rounded-2xl border border-yellow-500/50 p-6">
-                <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-                  <Trophy className="w-6 h-6 text-yellow-400" />
-                  🏆 TODAY'S CHAMPIONS
-                </h3>
-
-                <div className="space-y-4">
-                  {todaysChampions.firstTimer && (
-                    <div className="p-4 bg-yellow-900/30 border border-yellow-500/30 rounded-xl">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-2xl">⭐</span>
-                        <span className="font-bold text-yellow-300">FIRST TIMER OF THE DAY</span>
-                      </div>
-                      <p className="text-white font-semibold mb-1">{todaysChampions.firstTimer.name} completed at {todaysChampions.firstTimer.time}</p>
-                      <p className="text-yellow-200 italic">"{todaysChampions.firstTimer.message}"</p>
-                      <p className="text-xs text-yellow-400 mt-2">👋 {todaysChampions.firstTimer.reactions} reactions</p>
-                    </div>
-                  )}
-
-                  {todaysChampions.bestTip && (
-                    <div className="p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-2xl">🎯</span>
-                        <span className="font-bold text-cyan-300">MOST HELPFUL TIP</span>
-                      </div>
-                      <p className="text-white font-semibold mb-1">{todaysChampions.bestTip.name}:</p>
-                      <p className="text-cyan-200">"{todaysChampions.bestTip.tip}"</p>
-                      <p className="text-xs text-cyan-400 mt-2">⭐ {todaysChampions.bestTip.helpful} people: "This helped!"</p>
-                    </div>
-                  )}
-
-                  {todaysChampions.biggestBreakthrough && (
-                    <div className="p-4 bg-pink-900/30 border border-pink-500/30 rounded-xl">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-2xl">💪</span>
-                        <span className="font-bold text-pink-300">BIGGEST BREAKTHROUGH</span>
-                      </div>
-                      <p className="text-white font-semibold mb-1">{todaysChampions.biggestBreakthrough.name}:</p>
-                      <p className="text-pink-200">"{todaysChampions.biggestBreakthrough.story}"</p>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-pink-400">
-                        <span>❤️ {todaysChampions.biggestBreakthrough.reactions} reactions</span>
-                        <span>💬 {todaysChampions.biggestBreakthrough.replies} replies</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* THE ENCOURAGEMENT WALL */}
-            {encouragementNotes.length > 0 && (
-              <div className="bg-gradient-to-br from-pink-800/40 to-purple-800/40 rounded-2xl border border-pink-500/50 p-6">
-                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <Heart className="w-6 h-6 text-pink-400" />
-                  💌 MESSAGES FROM PEOPLE WHO MADE IT
-                </h3>
-
-                <div className="space-y-4">
-                  {encouragementNotes.map(note => (
-                    <div key={note.id} className="p-5 bg-pink-900/30 border border-pink-500/30 rounded-xl">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-sm font-semibold text-pink-200">From: {note.from}</span>
-                        <span className="text-xs text-pink-400">(completed {note.completedAgo})</span>
-                      </div>
-                      <p className="text-pink-100 leading-relaxed mb-3 whitespace-pre-line">
-                        {note.message}
-                      </p>
-                      <p className="text-xs text-pink-400">👋 {note.reactions} people waved back</p>
-                    </div>
-                  ))}
-                </div>
-
+            <p className="text-pink-100 text-lg leading-relaxed mb-4">
+              {selectedLocation.description}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={startMission}
+                className="flex-1 py-3 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+              >
+                <Zap className="w-5 h-5" />
+                Start Solo Mission
+              </button>
+              {selectedLocation.activeUsers > 3 && (
                 <button
-                  onClick={() => setShowCampfireWall(true)}
-                  className="w-full mt-4 py-3 bg-pink-600/50 hover:bg-pink-600/70 rounded-xl text-white font-semibold transition-all"
+                  onClick={startExperiment}
+                  className="flex-1 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
                 >
-                  Leave Your Own Message
+                  <Users className="w-5 h-5" />
+                  Find a Buddy
                 </button>
+              )}
+            </div>
+          </div>
+
+          {/* 📊 LIVE ENERGY - See the vibe */}
+          <div className="bg-gradient-to-br from-purple-800/40 to-indigo-800/40 rounded-2xl border border-purple-500/50 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-6 h-6 text-purple-400" />
+                <h3 className="text-xl font-bold text-white">Day {selectedLocation.day} Energy</h3>
               </div>
-            )}
-
-            {/* THE ANXIETY METER */}
-            <div className="bg-gradient-to-br from-indigo-800/40 to-purple-800/40 rounded-2xl border border-indigo-500/50 p-6">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <TrendingUp className="w-6 h-6 text-indigo-400" />
-                📊 DAY {selectedDayNumber} EMOTIONAL JOURNEY
-              </h3>
-
-              <div className="space-y-4 mb-6">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-indigo-300">BEFORE MISSION:</span>
-                    <span className="text-xl font-bold text-white">{anxietyJourney.beforeAvg}/10</span>
-                  </div>
-                  <div className="flex gap-1">
-                    {['😰','😰','😰','😰','😰','😰','😰','😐','😐','😊'].map((emoji, i) => (
-                      <span key={i} className="text-2xl">{emoji}</span>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-indigo-300">DURING MISSION:</span>
-                    <span className="text-xl font-bold text-white">{anxietyJourney.duringAvg}/10</span>
-                  </div>
-                  <div className="flex gap-1">
-                    {['😰','😰','😰','😐','😐','😊','😊','😄','😄','😄'].map((emoji, i) => (
-                      <span key={i} className="text-2xl">{emoji}</span>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-indigo-300">AFTER MISSION:</span>
-                    <span className="text-xl font-bold text-green-400">{anxietyJourney.afterAvg}/10</span>
-                  </div>
-                  <div className="flex gap-1">
-                    {['😊','😊','😊','😊','😄','😄','😄','😄','😁','😁'].map((emoji, i) => (
-                      <span key={i} className="text-2xl">{emoji}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-indigo-900/30 border border-indigo-500/30 rounded-xl space-y-2">
-                <p className="text-sm text-indigo-200">
-                  <span className="font-semibold">💡 INSIGHT:</span> {anxietyJourney.totalResponses} responses analyzed
-                </p>
-                <p className="text-sm text-indigo-200">
-                  94% of Day {selectedDayNumber}'ers report feeling BETTER after completing than they expected. <span className="font-semibold text-green-400">You will too.</span>
-                </p>
-                <p className="text-sm text-indigo-200">
-                  📈 Average anxiety drops by <span className="font-bold text-green-400">{anxietyJourney.dropRate} points</span>. That's normal!
-                </p>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                <span className="text-sm text-purple-300">Live</span>
               </div>
             </div>
 
-            {/* NEXT GROUP DEPARTURE */}
-            {groupDepartures.length > 0 && (
-              <div className="bg-gradient-to-br from-green-800/40 to-emerald-800/40 rounded-2xl border border-green-500/50 p-6">
-                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <Users className="w-6 h-6 text-green-400" />
-                  ⏰ NEXT GROUP DEPARTURE
-                </h3>
+            {/* Hype meter */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-purple-300">HYPE LEVEL</span>
+                <span className="text-2xl font-bold text-white">{dayStats.hypeLevel}%</span>
+              </div>
+              <div className="w-full bg-purple-900/50 rounded-full h-3 overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500 rounded-full transition-all duration-1000"
+                  style={{ width: `${dayStats.hypeLevel}%` }}
+                />
+              </div>
+            </div>
 
-                {groupDepartures.map(departure => (
-                  <div key={departure.id} className="space-y-4">
-                    {/* Countdown */}
-                    <div className="p-6 bg-green-900/40 border-2 border-green-500/50 rounded-xl text-center">
-                      <p className="text-green-300 text-sm mb-2">Leaving together in:</p>
-                      <p className="text-5xl font-bold text-white mb-2">
-                        {Math.floor((departure.departureTime.getTime() - new Date().getTime()) / 60000)}:{
-                          String(Math.floor(((departure.departureTime.getTime() - new Date().getTime()) % 60000) / 1000)).padStart(2, '0')
-                        }
-                      </p>
-                      <p className="text-green-400 text-sm">
-                        🚀 {departure.participants.length} PEOPLE heading to {
-                          locations.find(l => l.id === departure.locationId)?.name || 'location'
-                        }
-                      </p>
+            {/* Quick stats grid */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3 bg-purple-900/30 rounded-lg text-center">
+                <p className="text-xs text-purple-300 mb-1">Completed Today</p>
+                <p className="text-xl font-bold text-white">{dayStats.completionsToday}</p>
+              </div>
+              <div className="p-3 bg-purple-900/30 rounded-lg text-center">
+                <p className="text-xs text-purple-300 mb-1">Completion Rate</p>
+                <p className="text-xl font-bold text-white">{dayStats.completionRate}%</p>
+              </div>
+              <div className="p-3 bg-purple-900/30 rounded-lg text-center">
+                <p className="text-xs text-purple-300 mb-1">Peak Time</p>
+                <p className="text-sm font-bold text-white">{dayStats.peakTime}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 👥 WHO'S HERE RIGHT NOW */}
+          <div className="bg-gradient-to-br from-cyan-800/40 to-blue-800/40 rounded-2xl border border-cyan-500/50 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <Users className="w-6 h-6 text-cyan-400" />
+                Who's Here Now
+              </h3>
+              <span className="text-sm text-cyan-300">{getAvatarsAtLocation(selectedLocation.id).length} online</span>
+            </div>
+
+            {getAvatarsAtLocation(selectedLocation.id).length === 0 ? (
+              <div className="text-center py-6">
+                <p className="text-cyan-300 mb-2">Be the first one here! 🌟</p>
+                <p className="text-sm text-cyan-400">Others will join soon</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {getAvatarsAtLocation(selectedLocation.id).slice(0, 6).map((avatar) => (
+                  <div key={avatar.id} className="p-3 bg-cyan-900/30 border border-cyan-500/20 rounded-xl flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatar.color} flex items-center justify-center text-sm font-bold text-white`}>
+                      {avatar.name[0]}
                     </div>
-
-                    {/* Participants */}
-                    <div className="flex flex-wrap gap-2 items-center">
-                      <span className="text-sm text-green-300 mr-2">Who's joining:</span>
-                      {departure.participants.slice(0, 10).map((_, i) => (
-                        <div 
-                          key={i}
-                          className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 border-2 border-white/30"
-                          style={{ marginLeft: i > 0 ? '-12px' : '0', zIndex: 10 - i }}
-                        />
-                      ))}
-                      {departure.participants.length > 10 && (
-                        <span className="text-sm font-bold text-green-400 ml-2">
-                          +{departure.participants.length - 10} more
-                        </span>
-                      )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-semibold truncate">{avatar.name}</p>
+                      <p className="text-xs text-cyan-400">🔥 {avatar.streak} day streak</p>
                     </div>
-
-                    {/* Group Chat Preview */}
-                    {departure.messages.length > 0 && (
-                      <div className="p-4 bg-green-900/20 border border-green-500/30 rounded-xl">
-                        <p className="text-xs text-green-400 mb-2">💬 Group Chat:</p>
-                        <div className="space-y-1">
-                          {departure.messages.map((msg, i) => (
-                            <p key={i} className="text-sm text-green-200">
-                              <span className="font-semibold">{msg.userName}:</span> {msg.text}
-                            </p>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Join Button */}
-                    <button
-                      onClick={() => joinGroupDeparture(departure.id)}
-                      className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
-                    >
-                      <Users className="w-5 h-5" />
-                      Count Me In!
-                    </button>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* "LIVE FROM THE LOCATION" */}
-            {liveUpdates.length > 0 && (
-              <div className="bg-gradient-to-br from-red-800/40 to-orange-800/40 rounded-2xl border border-red-500/50 p-6">
-                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                  📡 LIVE UPDATES - HAPPENING NOW
-                </h3>
-
-                <div className="space-y-4">
-                  {liveUpdates.map(update => (
-                    <div key={update.id} className="p-4 bg-red-900/30 border border-red-500/30 rounded-xl">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-white font-bold flex-shrink-0">
-                          {update.userName[0]}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-bold text-white">{update.userName}:</span>
-                            <span className="text-xs text-red-400">{formatTimeAgo(update.timestamp)}</span>
-                          </div>
-                          <p className="text-red-100 text-lg mb-2">{update.action}</p>
-                          
-                          {/* Reactions */}
-                          {update.reactions > 0 && (
-                            <p className="text-sm text-red-300 mb-2">💪 {update.reactions} reactions</p>
-                          )}
-
-                          {/* Replies */}
-                          {update.replies.length > 0 && (
-                            <div className="mt-3 pl-4 border-l-2 border-red-500/30 space-y-2">
-                              {update.replies.map((reply, i) => (
-                                <div key={i} className="text-sm">
-                                  <span className="font-semibold text-red-200">{reply.userName}:</span>
-                                  <span className="text-red-300 ml-1">{reply.text}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            {getAvatarsAtLocation(selectedLocation.id).length > 6 && (
+              <button className="w-full mt-3 py-2 bg-cyan-700/30 hover:bg-cyan-700/50 rounded-lg text-sm text-cyan-200 transition-colors">
+                See all {getAvatarsAtLocation(selectedLocation.id).length} people
+              </button>
             )}
+          </div>
 
-            {/* BUDDY BEACON */}
-            {buddyMatches.length > 0 && (
-              <div className="bg-gradient-to-br from-cyan-800/40 to-blue-800/40 rounded-2xl border border-cyan-500/50 p-6">
-                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <Users className="w-6 h-6 text-cyan-400" />
-                  🎯 FIND YOUR MISSION BUDDY
-                </h3>
-
-                {/* Filters */}
-                <div className="mb-6 p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl">
-                  <p className="text-sm text-cyan-300 mb-3">Filter by:</p>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-xs text-cyan-400 block mb-1">😰 Anxiety Level: {buddyFilters.anxietyLevel}/10</label>
-                      <input
-                        type="range"
-                        min="1"
-                        max="10"
-                        value={buddyFilters.anxietyLevel}
-                        onChange={(e) => setBuddyFilters({...buddyFilters, anxietyLevel: parseInt(e.target.value)})}
-                        className="w-full"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-cyan-400 block mb-1">⏰ Preferred Time</label>
-                      <select
-                        value={buddyFilters.preferredTime}
-                        onChange={(e) => setBuddyFilters({...buddyFilters, preferredTime: e.target.value})}
-                        className="w-full px-3 py-2 bg-cyan-900/30 border border-cyan-500/30 rounded-lg text-white text-sm"
-                      >
-                        <option value="morning">Morning (6-12pm)</option>
-                        <option value="afternoon">Afternoon (12-6pm)</option>
-                        <option value="evening">Evening (6-9pm)</option>
-                        <option value="night">Night (9pm+)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs text-cyan-400 block mb-1">🎭 Experience</label>
-                      <select
-                        value={buddyFilters.experience}
-                        onChange={(e) => setBuddyFilters({...buddyFilters, experience: e.target.value})}
-                        className="w-full px-3 py-2 bg-cyan-900/30 border border-cyan-500/30 rounded-lg text-white text-sm"
-                      >
-                        <option value="first-timer">First timer</option>
-                        <option value="did-once">Did it once before</option>
-                        <option value="experienced">Experienced</option>
-                      </select>
+          {/* 🔥 CAMPFIRE WALL - Recent thoughts */}
+          {campfireMessages.length > 0 && (
+            <div className="bg-gradient-to-br from-orange-800/40 to-red-800/40 rounded-2xl border border-orange-500/50 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="text-3xl">🔥</div>
+                <h3 className="text-xl font-bold text-white">Campfire Wall</h3>
+              </div>
+              
+              <div className="space-y-3 mb-4">
+                {campfireMessages.slice(0, 3).map((msg) => (
+                  <div 
+                    key={msg.id}
+                    className={`p-4 rounded-xl ${
+                      msg.isVulnerable 
+                        ? 'bg-pink-900/40 border border-pink-500/50' 
+                        : 'bg-orange-900/30 border border-orange-500/30'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
+                        {msg.userName[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-white text-sm">{msg.userName}</span>
+                          <span className="text-xs text-orange-400">
+                            {msg.timestamp?.toDate ? formatTimeAgo(msg.timestamp.toDate()) : 'now'}
+                          </span>
+                        </div>
+                        <p className="text-orange-100 text-sm">{msg.text}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-
-                {/* Perfect Matches */}
-                <div className="space-y-3">
-                  <p className="text-sm font-semibold text-cyan-300 mb-3">PERFECT MATCHES:</p>
-                  {buddyMatches.map(match => (
-                    <div key={match.id} className="p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl hover:border-cyan-500/60 transition-all">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg">
-                            {match.name[0]}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-white">{match.name}</span>
-                              <div className="px-2 py-0.5 bg-green-500/30 border border-green-400/50 rounded-full">
-                                <span className="text-xs font-bold text-green-200">{match.matchPercentage}% match</span>
-                              </div>
-                            </div>
-                            <p className="text-xs text-cyan-400">Last seen: {match.lastSeen}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Match Details */}
-                      <div className="grid grid-cols-3 gap-2 mb-3 text-xs">
-                        <div className="p-2 bg-cyan-800/30 rounded">
-                          <p className="text-cyan-400">Anxiety</p>
-                          <p className="text-white font-semibold">{match.anxietyLevel}/10</p>
-                        </div>
-                        <div className="p-2 bg-cyan-800/30 rounded">
-                          <p className="text-cyan-400">Time</p>
-                          <p className="text-white font-semibold text-xs">{match.preferredTime}</p>
-                        </div>
-                        <div className="p-2 bg-cyan-800/30 rounded">
-                          <p className="text-cyan-400">Experience</p>
-                          <p className="text-white font-semibold text-xs">{match.experience}</p>
-                        </div>
-                      </div>
-
-                      {/* Their Message */}
-                      <div className="p-3 bg-cyan-900/20 border border-cyan-500/20 rounded-lg mb-3">
-                        <p className="text-sm text-cyan-100 italic">"{match.message}"</p>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-2">
-                        <button className="flex-1 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2">
-                          <MessageCircle className="w-4 h-4" />
-                          Message {match.name}
-                        </button>
-                        <button className="flex-1 py-2 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2">
-                          <Users className="w-4 h-4" />
-                          Buddy Up
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  onClick={() => setShowBuddyFinder(true)}
-                  className="w-full mt-4 py-3 bg-cyan-600/50 hover:bg-cyan-600/70 rounded-xl text-white font-semibold transition-all"
-                >
-                  See All Matches
-                </button>
+                ))}
               </div>
-            )}
 
+              <button
+                onClick={() => {
+                  closeModal();
+                  openDayExplorer(selectedLocation.day);
+                }}
+                className="w-full py-2 bg-orange-700/30 hover:bg-orange-700/50 rounded-lg text-sm text-orange-200 transition-colors font-semibold"
+              >
+                Read More & Share Your Thoughts
+              </button>
+            </div>
+          )}
+
+          {/* 🏆 TODAY'S CHAMPIONS */}
+          {(todaysChampions.firstTimer || todaysChampions.bestTip) && (
+            <div className="bg-gradient-to-br from-yellow-800/40 to-orange-800/40 rounded-2xl border border-yellow-500/50 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Trophy className="w-6 h-6 text-yellow-400" />
+                <h3 className="text-xl font-bold text-white">Today's Champions</h3>
+              </div>
+
+              <div className="space-y-3">
+                {todaysChampions.firstTimer && (
+                  <div className="p-4 bg-yellow-900/30 border border-yellow-500/30 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xl">⭐</span>
+                      <span className="font-bold text-yellow-300 text-sm">FIRST TIMER</span>
+                    </div>
+                    <p className="text-white font-semibold text-sm">{todaysChampions.firstTimer.name}</p>
+                    <p className="text-yellow-200 text-sm italic mt-1">"{todaysChampions.firstTimer.message}"</p>
+                  </div>
+                )}
+
+                {todaysChampions.bestTip && (
+                  <div className="p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xl">💡</span>
+                      <span className="font-bold text-cyan-300 text-sm">BEST TIP</span>
+                    </div>
+                    <p className="text-white font-semibold text-sm">{todaysChampions.bestTip.name}</p>
+                    <p className="text-cyan-200 text-sm mt-1">"{todaysChampions.bestTip.tip}"</p>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => {
+                  closeModal();
+                  openDayExplorer(selectedLocation.day);
+                }}
+                className="w-full mt-3 py-2 bg-yellow-700/30 hover:bg-yellow-700/50 rounded-lg text-sm text-yellow-200 transition-colors font-semibold"
+              >
+                See All Champions & Stories
+              </button>
+            </div>
+          )}
+
+          {/* 📈 ANXIETY JOURNEY */}
+          <div className="bg-gradient-to-br from-indigo-800/40 to-purple-800/40 rounded-2xl border border-indigo-500/50 p-6">
+            <h3 className="text-xl font-bold text-white mb-4">Emotional Journey</h3>
+            
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-indigo-300">Before Mission</span>
+                <span className="text-lg font-bold text-white">{anxietyJourney.beforeAvg}/10</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-indigo-300">After Mission</span>
+                <span className="text-lg font-bold text-green-400">{anxietyJourney.afterAvg}/10</span>
+              </div>
+            </div>
+
+            <div className="mt-4 p-3 bg-indigo-900/30 border border-indigo-500/30 rounded-lg">
+              <p className="text-sm text-indigo-200">
+                <span className="font-semibold text-green-400">94%</span> of people feel BETTER after completing. 
+                Average anxiety drops by <span className="font-bold text-green-400">{anxietyJourney.dropRate} points</span>.
+              </p>
+            </div>
+
+            <button
+              onClick={() => {
+                closeModal();
+                openDayExplorer(selectedLocation.day);
+              }}
+              className="w-full mt-3 py-2 bg-indigo-700/30 hover:bg-indigo-700/50 rounded-lg text-sm text-indigo-200 transition-colors font-semibold"
+              >
+              See Full Emotional Journey Data
+            </button>
           </div>
-        ) : (
-          /* MISSION TAB */
-          <div className="p-6 space-y-6">
-            {/* Mission Details */}
-            <div className="bg-gradient-to-br from-purple-800/40 to-indigo-800/40 rounded-2xl border border-purple-500/50 p-6">
-              <div className="flex items-center gap-4 mb-4">
-                {(() => {
-                  const dayLocation = locations.find(l => l.day === selectedDayNumber);
-                  const IconComponent = dayLocation?.icon || MapPin;
-                  return (
-                    <>
-                      <div className="p-4 rounded-xl bg-purple-500/20">
-                        <IconComponent className="w-12 h-12 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-bold text-white">{dayLocation?.name}</h3>
-                        <p className="text-purple-300">{dayLocation?.mission}</p>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
 
-              {(() => {
-                const dayLocation = locations.find(l => l.day === selectedDayNumber);
-                return (
-                  <>
-                    <div className="p-4 bg-purple-900/30 rounded-xl mb-4">
-                      <p className="text-purple-200 leading-relaxed">{dayLocation?.description}</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="p-4 bg-yellow-900/30 border border-yellow-500/30 rounded-xl">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Star className="w-5 h-5 text-yellow-400" />
-                          <span className="text-sm text-yellow-300">Reward</span>
-                        </div>
-                        <p className="text-2xl font-bold text-white">{dayLocation?.xpReward} XP</p>
-                      </div>
-                      <div className="p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Users className="w-5 h-5 text-cyan-400" />
-                          <span className="text-sm text-cyan-300">Active Now</span>
-                        </div>
-                        <p className="text-2xl font-bold text-white">{dayLocation?.activeUsers}</p>
-                      </div>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-
-            {/* People on This Day */}
-            <div className="bg-gradient-to-br from-cyan-800/40 to-blue-800/40 rounded-2xl border border-cyan-500/50 p-6">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <Users className="w-6 h-6 text-cyan-400" />
-                👥 People on Day {selectedDayNumber}
-              </h3>
-
-              {peopleOnSelectedDay.length === 0 ? (
-                <div className="text-center py-8">
-                  <Users className="w-12 h-12 text-cyan-400/50 mx-auto mb-3" />
-                  <p className="text-cyan-300">No one on this day right now</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {peopleOnSelectedDay.map((person) => (
-                    <div 
-                      key={person.id}
-                      className="p-4 bg-cyan-900/30 border border-cyan-500/20 rounded-xl hover:border-cyan-500/40 transition-all"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${person.color} flex items-center justify-center text-lg font-bold text-white border-2 border-cyan-400/50`}>
-                          {person.name[0]}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-bold text-white">{person.name}</h4>
-                            {person.streak > 5 && (
-                              <div className="px-2 py-0.5 bg-orange-500/30 border border-orange-400/50 rounded-full">
-                                <span className="text-xs font-bold text-orange-200">🔥 Hot Streak!</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-4 text-sm">
-                            <span className="text-cyan-300">🔥 {person.streak} day streak</span>
-                            <span className="text-cyan-400">
-                              📍 {locations.find(l => l.id === person.currentLocation)?.name || 'Exploring'}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <button className="p-2 bg-cyan-700/30 hover:bg-cyan-700/50 rounded-lg transition-all group">
-                            <span className="text-lg group-hover:scale-125 transition-transform inline-block">👋</span>
-                          </button>
-                          <button className="p-2 bg-cyan-700/30 hover:bg-cyan-700/50 rounded-lg transition-all">
-                            <MessageCircle className="w-5 h-5 text-cyan-300" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Quick Stats */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="p-4 bg-green-900/30 border border-green-500/30 rounded-xl">
-                <p className="text-xs text-green-300 mb-1">Completion Rate</p>
-                <p className="text-2xl font-bold text-white">{dayStats.completionRate}%</p>
-              </div>
-              <div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
-                <p className="text-xs text-purple-300 mb-1">Avg Time</p>
-                <p className="text-2xl font-bold text-white">{dayStats.avgTimeToComplete}m</p>
-              </div>
-              <div className="p-4 bg-orange-900/30 border border-orange-500/30 rounded-xl">
-                <p className="text-xs text-orange-300 mb-1">Peak Hour</p>
-                <p className="text-lg font-bold text-white">{dayStats.peakTime}</p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Footer Actions */}
-      <div className="p-4 border-t border-orange-500/30 bg-orange-900/20 flex-shrink-0">
-        <div className="flex gap-3">
+          {/* 💬 EXPLORE MORE BUTTON */}
           <button
             onClick={() => {
-              const dayLocation = locations.find(l => l.day === selectedDayNumber);
-              if (dayLocation) {
-                setShowDayExplorer(false);
-                openLocationModal(dayLocation);
-              }
+              closeModal();
+              //openDayExplorer(selectedLocation.day);
+              setShowDayExplorer(true);
             }}
-            className="flex-1 py-3 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+            className="w-full py-4 bg-gradient-to-r from-purple-700/50 to-pink-700/50 hover:from-purple-700/70 hover:to-pink-700/70 border-2 border-purple-500/50 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+          >
+            <Sparkles className="w-5 h-5" />
+            Explore Full Day {selectedLocation.day} Community Hub
+            <ChevronRight className="w-5 h-5" />
+          </button>
+
+        </div>
+      </div>
+
+      {/* STICKY FOOTER - Action buttons always visible */}
+      <div className="p-4 border-t border-purple-500/30 bg-gradient-to-r from-purple-900/98 to-indigo-900/98 flex-shrink-0">
+        <div className="flex gap-3">
+          <button
+            onClick={closeModal}
+            className="px-6 py-3 bg-purple-800/50 hover:bg-purple-800/70 text-white font-semibold rounded-xl transition-colors"
+          >
+            Close
+          </button>
+          <button
+            onClick={startMission}
+            className="flex-1 py-3 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-pink-500/50 flex items-center justify-center gap-2"
           >
             <Zap className="w-5 h-5" />
-            Start Day {selectedDayNumber} Mission
+            Start Mission Now
           </button>
         </div>
       </div>
@@ -3758,210 +3075,491 @@ useEffect(() => {
   </div>
 )}
 
+{/* Day Explorer Modal - UNIFIED FEED */}
 {showDayExplorer && selectedDayNumber && (
-  <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-    <div className="bg-purple-900/90 p-6 rounded-2xl border border-purple-500/40 w-[90%] md:w-[600px] max-h-[90vh] overflow-y-auto">
-      <button
-        onClick={() => setShowDayExplorer(false)}
-        className="absolute top-4 right-4 text-purple-200 hover:text-white"
-      >
-        ✕
-      </button>
-      <h2 className="text-2xl font-bold mb-4 text-purple-200">
-        🌅 Day {selectedDayNumber} Explorer
-      </h2>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-        {/* Feature 1: Campfire Wall */}
-        <div 
-          className="bg-gradient-to-br from-orange-900/50 to-amber-900/50 p-4 rounded-xl border border-amber-500/30 hover:border-amber-400/50 transition-all cursor-pointer"
-          onClick={() => {
-            setShowDayExplorer(false);
-            // Set the selected location to show the memory wall
-            const firstLocation = locations.find(loc => loc.day === selectedDayNumber);
-            if (firstLocation) {
-              setSelectedMemoryLocation(firstLocation.id);
-              setShowMemoryWall(true);
-            }
-          }}
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-amber-500/20 rounded-lg">
-              <MessageCircle className="w-5 h-5 text-amber-400" />
+  <div 
+    className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    onClick={() => setShowDayExplorer(false)}
+  >
+    <div 
+      className="bg-gradient-to-br from-orange-900/98 to-red-900/98 rounded-2xl border border-orange-500/50 max-w-3xl w-full max-h-[90vh] shadow-2xl flex flex-col"
+      onClick={(e) => e.stopPropagation()}
+    >
+      
+      {/* HEADER - Fixed at top */}
+      <div className="p-6 border-b border-orange-500/30 flex-shrink-0">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="p-3 rounded-xl bg-orange-500/20">
+                <Trophy className="w-8 h-8 text-orange-400" />
+              </div>
+              <div className="absolute -top-1 -right-1 w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                <span className="text-xs font-bold text-white">{selectedDayNumber}</span>
+              </div>
             </div>
-            <h3 className="font-semibold text-white">Campfire Wall</h3>
+            <div>
+              <h2 className="text-3xl font-bold text-white">Day {selectedDayNumber} Community</h2>
+              <p className="text-orange-300 text-sm mt-1">
+                {peopleOnSelectedDay.length} people on this journey right now
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-amber-100">Share experiences and cheer others on</p>
+          <button 
+            onClick={() => setShowDayExplorer(false)} 
+            className="p-2 hover:bg-orange-800/50 rounded-lg transition-colors"
+          >
+            <X className="w-6 h-6 text-orange-300" />
+          </button>
         </div>
 
-        {/* Feature 2: Group Challenges */}
-        <div 
-          className="bg-gradient-to-br from-purple-900/50 to-indigo-900/50 p-4 rounded-xl border border-purple-500/30 hover:border-purple-400/50 transition-all cursor-pointer"
-          onClick={() => {
-            setShowDayExplorer(false);
-            // Show group challenges for this day
-            alert(`Loading group challenges for Day ${selectedDayNumber}`);
-            // TODO: Implement group challenges view
-          }}
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-purple-500/20 rounded-lg">
-              <Users className="w-5 h-5 text-purple-400" />
+        {/* Mission Quick Info */}
+        {(() => {
+          const dayLocation = locations.find(l => l.day === selectedDayNumber);
+          return dayLocation ? (
+            <div className="mt-4 p-4 bg-orange-800/30 rounded-xl border border-orange-500/30 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {React.createElement(dayLocation.icon, { className: "w-6 h-6 text-orange-300" })}
+                <div>
+                  <p className="text-sm text-orange-400">Today's Mission</p>
+                  <p className="font-semibold text-white">{dayLocation.mission}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowDayExplorer(false);
+                  openLocationModal(dayLocation);
+                }}
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-500 rounded-lg text-white text-sm font-semibold transition-all"
+              >
+                Start Mission
+              </button>
             </div>
-            <h3 className="font-semibold text-white">Group Challenges</h3>
-          </div>
-          <p className="text-sm text-purple-100">Team up for special missions</p>
-        </div>
-
-        {/* Feature 3: Live Events */}
-        <div 
-          className="bg-gradient-to-br from-pink-900/50 to-rose-900/50 p-4 rounded-xl border border-pink-500/30 hover:border-pink-400/50 transition-all cursor-pointer"
-          onClick={() => {
-            setShowDayExplorer(false);
-            // Show live events for this day
-            alert(`Loading live events for Day ${selectedDayNumber}`);
-            // TODO: Implement live events view
-          }}
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-pink-500/20 rounded-lg">
-              <Zap className="w-5 h-5 text-pink-400" />
-            </div>
-            <h3 className="font-semibold text-white">Live Events</h3>
-          </div>
-          <p className="text-sm text-pink-100">Join real-time activities</p>
-        </div>
-
-        {/* Feature 4: Daily Leaderboard */}
-        <div 
-          className="bg-gradient-to-br from-blue-900/50 to-cyan-900/50 p-4 rounded-xl border border-blue-500/30 hover:border-blue-400/50 transition-all cursor-pointer"
-          onClick={() => {
-            setShowDayExplorer(false);
-            // Show leaderboard for this day
-            alert(`Loading leaderboard for Day ${selectedDayNumber}`);
-            // TODO: Implement leaderboard view
-          }}
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-blue-500/20 rounded-lg">
-              <Trophy className="w-5 h-5 text-blue-400" />
-            </div>
-            <h3 className="font-semibold text-white">Daily Leaderboard</h3>
-          </div>
-          <p className="text-sm text-blue-100">See who's leading today</p>
-        </div>
-
-        {/* Feature 5: Study Groups */}
-        <div 
-          className="bg-gradient-to-br from-emerald-900/50 to-teal-900/50 p-4 rounded-xl border border-emerald-500/30 hover:border-emerald-400/50 transition-all cursor-pointer"
-          onClick={() => {
-            setShowDayExplorer(false);
-            // Show available study groups
-            alert(`Loading study groups for Day ${selectedDayNumber}`);
-            // TODO: Implement study groups view
-          }}
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-emerald-500/20 rounded-lg">
-              <BookOpen className="w-5 h-5 text-emerald-400" />
-            </div>
-            <h3 className="font-semibold text-white">Study Groups</h3>
-          </div>
-          <p className="text-sm text-emerald-100">Learn together in small groups</p>
-        </div>
-
-        {/* Feature 6: Wellness Check-ins */}
-        <div 
-          className="bg-gradient-to-br from-rose-900/50 to-pink-900/50 p-4 rounded-xl border border-rose-500/30 hover:border-rose-400/50 transition-all cursor-pointer"
-          onClick={() => {
-            setShowDayExplorer(false);
-            // Show wellness check-in form
-            alert(`Opening wellness check-in for Day ${selectedDayNumber}`);
-            // TODO: Implement wellness check-in form
-          }}
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-rose-500/20 rounded-lg">
-              <Heart className="w-5 h-5 text-rose-400" />
-            </div>
-            <h3 className="font-semibold text-white">Wellness Check-ins</h3>
-          </div>
-          <p className="text-sm text-rose-100">Track your progress together</p>
-        </div>
-
-        {/* Feature 7: Resource Hub */}
-        <div 
-          className="bg-gradient-to-br from-violet-900/50 to-purple-900/50 p-4 rounded-xl border border-violet-500/30 hover:border-violet-400/50 transition-all cursor-pointer"
-          onClick={() => {
-            setShowDayExplorer(false);
-            // Show resources for this day
-            alert(`Loading resources for Day ${selectedDayNumber}`);
-            // TODO: Implement resource hub view
-          }}
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-violet-500/20 rounded-lg">
-              <FolderOpen className="w-5 h-5 text-violet-400" />
-            </div>
-            <h3 className="font-semibold text-white">Resource Hub</h3>
-          </div>
-          <p className="text-sm text-violet-100">Shared materials and guides</p>
-        </div>
-
-        {/* Feature 8: Virtual Hangout */}
-        <div 
-          className="bg-gradient-to-br from-amber-900/50 to-orange-900/50 p-4 rounded-xl border border-amber-500/30 hover:border-amber-400/50 transition-all cursor-pointer"
-          onClick={() => {
-            setShowDayExplorer(false);
-            // Open virtual hangout room
-            alert(`Joining virtual hangout for Day ${selectedDayNumber}`);
-            // TODO: Implement virtual hangout functionality
-          }}
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-amber-500/20 rounded-lg">
-              <Coffee className="w-5 h-5 text-amber-400" />
-            </div>
-            <h3 className="font-semibold text-white">Virtual Hangout</h3>
-          </div>
-          <p className="text-sm text-amber-100">Relax and chat with others</p>
-        </div>
-
-        {/* Feature 9: Achievement Showcase */}
-        <div 
-          className="bg-gradient-to-br from-cyan-900/50 to-blue-900/50 p-4 rounded-xl border border-cyan-500/30 hover:border-cyan-400/50 transition-all cursor-pointer"
-          onClick={() => {
-            setShowDayExplorer(false);
-            // Show achievements for this day
-            alert(`Loading achievements for Day ${selectedDayNumber}`);
-            // TODO: Implement achievement showcase view
-          }}
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-cyan-500/20 rounded-lg">
-              <Award className="w-5 h-5 text-cyan-400" />
-            </div>
-            <h3 className="font-semibold text-white">Achievement Showcase</h3>
-          </div>
-          <p className="text-sm text-cyan-100">Celebrate community wins</p>
-        </div>
+          ) : null;
+        })()}
       </div>
 
-      <div className="mt-6 p-4 bg-purple-800/30 rounded-xl border border-purple-500/30">
-        <h3 className="font-semibold text-purple-200 mb-2">👥 {peopleOnSelectedDay.length} People on Day {selectedDayNumber}</h3>
-        <div className="flex flex-wrap gap-2">
-          {peopleOnSelectedDay.slice(0, 10).map((person, index) => (
-            <div key={index} className="px-3 py-1 bg-purple-700/50 rounded-full text-sm text-purple-100">
-              {person.name || `User ${index + 1}`}
+      {/* ONE CONTINUOUS SCROLLABLE FEED */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-6 space-y-6">
+
+          {/* ========== SECTION 1: LIVE RIGHT NOW ========== */}
+          <div id="live-presence" className="scroll-mt-6">
+            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
+              🟢 Right Now at the Location
+            </h3>
+
+            <div className="space-y-3">
+              {/* Arrived */}
+              {liveAtLocation.arrived.length > 0 && (
+                <div className="p-4 bg-green-900/30 border border-green-500/30 rounded-xl">
+                  <p className="text-sm font-semibold text-green-300 mb-3">
+                    ✅ ARRIVED ({liveAtLocation.arrived.length})
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {liveAtLocation.arrived.map(person => (
+                      <div key={person.id} className="px-3 py-2 bg-green-800/30 rounded-lg border border-green-500/30 flex items-center gap-2">
+                        <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${person.color} flex items-center justify-center text-xs font-bold text-white`}>
+                          {person.name[0]}
+                        </div>
+                        <span className="text-sm text-white">{person.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* On The Way */}
+              {liveAtLocation.onTheWay.length > 0 && (
+                <div className="p-4 bg-yellow-900/30 border border-yellow-500/30 rounded-xl">
+                  <p className="text-sm font-semibold text-yellow-300 mb-2">
+                    🚶 ON THE WAY ({liveAtLocation.onTheWay.length})
+                  </p>
+                  <p className="text-sm text-yellow-200">
+                    {liveAtLocation.onTheWay.slice(0, 3).map(p => p.name).join(', ')}
+                    {liveAtLocation.onTheWay.length > 3 && ` +${liveAtLocation.onTheWay.length - 3} more`}
+                  </p>
+                </div>
+              )}
+
+              {/* Empty state */}
+              {liveAtLocation.arrived.length === 0 && liveAtLocation.onTheWay.length === 0 && (
+                <div className="p-6 bg-orange-900/20 border border-orange-500/20 rounded-xl text-center">
+                  <p className="text-orange-300">No one at location right now - be the first! 🌟</p>
+                </div>
+              )}
             </div>
-          ))}
-          {peopleOnSelectedDay.length > 10 && (
-            <div className="px-3 py-1 bg-purple-700/30 rounded-full text-sm text-purple-300">
-              +{peopleOnSelectedDay.length - 10} more
+          </div>
+
+          {/* ========== SECTION 2: CAMPFIRE WALL ========== */}
+          <div id="campfire" className="scroll-mt-6">
+            <div className="text-center mb-4">
+              <div className="text-4xl mb-2 animate-pulse">🔥</div>
+              <h3 className="text-xl font-bold text-white">The Campfire Wall</h3>
+              <p className="text-orange-300 text-sm">Raw thoughts from your Day {selectedDayNumber} tribe</p>
+            </div>
+
+            <div className="space-y-3 mb-4">
+              {campfireMessages.length === 0 ? (
+                <div className="p-6 bg-orange-900/20 border border-orange-500/20 rounded-xl text-center">
+                  <p className="text-orange-300">Be the first to share what you're feeling...</p>
+                </div>
+              ) : (
+                campfireMessages.slice(0, 10).map((msg) => (
+                  <div 
+                    key={msg.id}
+                    className={`p-4 rounded-xl transition-all ${
+                      msg.isVulnerable 
+                        ? 'bg-pink-900/40 border-2 border-pink-500/50' 
+                        : 'bg-orange-900/30 border border-orange-500/30'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+                        {msg.userName[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-white text-sm">{msg.userName}</span>
+                          <span className="text-xs text-orange-400">
+                            {msg.timestamp?.toDate ? formatTimeAgo(msg.timestamp.toDate()) : 'now'}
+                          </span>
+                          {msg.isVulnerable && (
+                            <span className="text-xs px-2 py-0.5 bg-pink-500/30 border border-pink-400/50 rounded-full text-pink-200">
+                              vulnerable
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-orange-100 text-sm mb-2">{msg.text}</p>
+                        
+                        {/* Reactions */}
+                        <div className="flex items-center gap-2">
+                          {Object.entries(msg.reactions || {}).map(([emoji, count]) => (
+                            <button
+                              key={emoji}
+                              onClick={() => reactToCampfireMessage(msg.id, emoji)}
+                              className="flex items-center gap-1 px-2 py-1 bg-orange-800/30 hover:bg-orange-800/50 rounded-lg transition-all hover:scale-110"
+                            >
+                              <span>{emoji}</span>
+                              <span className="text-xs text-orange-200">{count}</span>
+                            </button>
+                          ))}
+                          {Object.keys(msg.reactions || {}).length === 0 && (
+                            <div className="flex gap-1">
+                              {['💪', '❤️', '👋'].map(emoji => (
+                                <button
+                                  key={emoji}
+                                  onClick={() => reactToCampfireMessage(msg.id, emoji)}
+                                  className="px-2 py-1 bg-orange-800/20 hover:bg-orange-800/40 rounded-lg text-lg transition-all hover:scale-125"
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Post Input - Always visible */}
+            <div className="p-4 bg-orange-800/30 border border-orange-500/30 rounded-xl">
+              <textarea
+                value={campfireInput}
+                onChange={(e) => setCampfireInput(e.target.value)}
+                placeholder="Share what you're feeling... (everyone here gets it)"
+                className="w-full px-4 py-3 bg-orange-900/30 border border-orange-500/30 rounded-xl text-white placeholder-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                rows={2}
+                maxLength={300}
+              />
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-xs text-orange-400">{campfireInput.length}/300</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      postToCampfire(campfireInput, true);
+                      setCampfireInput('');
+                    }}
+                    disabled={!campfireInput.trim()}
+                    className="px-4 py-2 bg-pink-600/50 hover:bg-pink-600/70 disabled:bg-orange-800/30 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-all"
+                  >
+                    😰 Vulnerable
+                  </button>
+                  <button
+                    onClick={() => {
+                      postToCampfire(campfireInput, false);
+                      setCampfireInput('');
+                    }}
+                    disabled={!campfireInput.trim()}
+                    className="px-4 py-2 bg-orange-600 hover:bg-orange-500 disabled:bg-orange-800/30 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-all"
+                  >
+                    Share
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ========== SECTION 3: JUST COMPLETED ========== */}
+          <div id="completions" className="scroll-mt-6">
+            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              <Trophy className="w-6 h-6 text-purple-400" />
+              ✅ Just Completed (Last Hour)
+            </h3>
+
+            <div className="space-y-3">
+              {liveAtLocation.justCompleted.length === 0 ? (
+                <div className="p-6 bg-purple-900/20 border border-purple-500/20 rounded-xl text-center">
+                  <p className="text-purple-300">No recent completions - be the first today!</p>
+                </div>
+              ) : (
+                liveAtLocation.justCompleted.slice(0, 5).map((person) => (
+                  <div key={person.id} className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${person.color} flex items-center justify-center text-white font-bold`}>
+                        {person.name[0]}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-white">{person.name}</p>
+                        <p className="text-xs text-purple-400">Completed 15m ago</p>
+                      </div>
+                      <div className="text-2xl">🎉</div>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="px-3 py-1 bg-red-900/30 rounded-lg">
+                        <span className="text-red-300">Before: 8/10</span>
+                      </div>
+                      <span className="text-purple-400">→</span>
+                      <div className="px-3 py-1 bg-green-900/30 rounded-lg">
+                        <span className="text-green-300">After: 3/10</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* ========== SECTION 4: TODAY'S CHAMPIONS ========== */}
+          {(todaysChampions.firstTimer || todaysChampions.bestTip || todaysChampions.biggestBreakthrough) && (
+            <div id="champions" className="scroll-mt-6">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <Trophy className="w-6 h-6 text-yellow-400" />
+                🏆 Today's Champions
+              </h3>
+
+              <div className="space-y-3">
+                {todaysChampions.firstTimer && (
+                  <div className="p-4 bg-yellow-900/30 border border-yellow-500/30 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-2xl">⭐</span>
+                      <span className="font-bold text-yellow-300 text-sm">FIRST OF THE DAY</span>
+                    </div>
+                    <p className="text-white font-semibold mb-1">
+                      {todaysChampions.firstTimer.name} at {todaysChampions.firstTimer.time}
+                    </p>
+                    <p className="text-yellow-200 text-sm italic">"{todaysChampions.firstTimer.message}"</p>
+                    <p className="text-xs text-yellow-400 mt-2">
+                      👋 {todaysChampions.firstTimer.reactions} reactions
+                    </p>
+                  </div>
+                )}
+
+                {todaysChampions.bestTip && (
+                  <div className="p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-2xl">💡</span>
+                      <span className="font-bold text-cyan-300 text-sm">MOST HELPFUL TIP</span>
+                    </div>
+                    <p className="text-white font-semibold mb-1">{todaysChampions.bestTip.name}:</p>
+                    <p className="text-cyan-200 text-sm">"{todaysChampions.bestTip.tip}"</p>
+                    <p className="text-xs text-cyan-400 mt-2">
+                      ⭐ {todaysChampions.bestTip.helpful} found this helpful
+                    </p>
+                  </div>
+                )}
+
+                {todaysChampions.biggestBreakthrough && (
+                  <div className="p-4 bg-pink-900/30 border border-pink-500/30 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-2xl">💪</span>
+                      <span className="font-bold text-pink-300 text-sm">BIGGEST BREAKTHROUGH</span>
+                    </div>
+                    <p className="text-white font-semibold mb-1">{todaysChampions.biggestBreakthrough.name}:</p>
+                    <p className="text-pink-200 text-sm">"{todaysChampions.biggestBreakthrough.story}"</p>
+                    <div className="flex items-center gap-4 mt-2 text-xs text-pink-400">
+                      <span>❤️ {todaysChampions.biggestBreakthrough.reactions}</span>
+                      <span>💬 {todaysChampions.biggestBreakthrough.replies} replies</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
+
+          {/* ========== SECTION 5: ENCOURAGEMENT ========== */}
+          {encouragementNotes.length > 0 && (
+            <div id="encouragement" className="scroll-mt-6">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <Heart className="w-6 h-6 text-pink-400" />
+                💌 Messages From People Who Made It
+              </h3>
+
+              <div className="space-y-3">
+                {encouragementNotes.slice(0, 3).map(note => (
+                  <div key={note.id} className="p-5 bg-pink-900/30 border border-pink-500/30 rounded-xl">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-sm font-semibold text-pink-200">From: {note.from}</span>
+                      <span className="text-xs text-pink-400">(completed {note.completedAgo})</span>
+                    </div>
+                    <p className="text-pink-100 text-sm leading-relaxed mb-3 whitespace-pre-line">
+                      {note.message}
+                    </p>
+                    <p className="text-xs text-pink-400">👋 {note.reactions} people waved back</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ========== SECTION 6: DAY STATS ========== */}
+          <div id="stats" className="scroll-mt-6">
+            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 text-purple-400" />
+              📊 Day {selectedDayNumber} Stats
+            </h3>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
+                <p className="text-xs text-purple-300 mb-1">Completions Today</p>
+                <p className="text-3xl font-bold text-white">{dayStats.completionsToday}</p>
+                <p className="text-xs text-green-400 mt-1">↑ {dayStats.trendPercentage}% vs yesterday</p>
+              </div>
+              <div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
+                <p className="text-xs text-purple-300 mb-1">Success Rate</p>
+                <p className="text-3xl font-bold text-white">{dayStats.completionRate}%</p>
+              </div>
+              <div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
+                <p className="text-xs text-purple-300 mb-1">Avg Time</p>
+                <p className="text-2xl font-bold text-white">{dayStats.avgTimeToComplete}m</p>
+              </div>
+              <div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
+                <p className="text-xs text-purple-300 mb-1">Peak Time</p>
+                <p className="text-2xl font-bold text-white">{dayStats.peakTime}</p>
+              </div>
+            </div>
+
+            {/* Hype Meter */}
+            <div className="mt-4 p-4 bg-gradient-to-r from-purple-900/40 to-pink-900/40 border border-purple-500/30 rounded-xl">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-purple-300">🔥 HYPE LEVEL</span>
+                <span className="text-2xl font-bold text-white">{dayStats.hypeLevel}%</span>
+              </div>
+              <div className="w-full bg-purple-900/50 rounded-full h-3 overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500 rounded-full transition-all duration-1000"
+                  style={{ width: `${dayStats.hypeLevel}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ========== SECTION 7: BUDDY FINDER ========== */}
+          {buddyMatches.length > 0 && (
+            <div id="buddy-finder" className="scroll-mt-6">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <Users className="w-6 h-6 text-cyan-400" />
+                🎯 Find Your Mission Buddy
+              </h3>
+
+              <div className="space-y-3">
+                {buddyMatches.slice(0, 2).map(match => (
+                  <div key={match.id} className="p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg">
+                          {match.name[0]}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white">{match.name}</span>
+                            <div className="px-2 py-0.5 bg-green-500/30 border border-green-400/50 rounded-full">
+                              <span className="text-xs font-bold text-green-200">{match.matchPercentage}% match</span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-cyan-400">Last seen: {match.lastSeen}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 mb-3 text-xs">
+                      <div className="p-2 bg-cyan-800/30 rounded text-center">
+                        <p className="text-cyan-400">Anxiety</p>
+                        <p className="text-white font-semibold">{match.anxietyLevel}/10</p>
+                      </div>
+                      <div className="p-2 bg-cyan-800/30 rounded text-center">
+                        <p className="text-cyan-400">Time</p>
+                        <p className="text-white font-semibold text-[10px]">{match.preferredTime}</p>
+                      </div>
+                      <div className="p-2 bg-cyan-800/30 rounded text-center">
+                        <p className="text-cyan-400">Level</p>
+                        <p className="text-white font-semibold text-[10px]">{match.experience}</p>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-cyan-900/20 border border-cyan-500/20 rounded-lg mb-3">
+                      <p className="text-sm text-cyan-100 italic">"{match.message}"</p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button className="flex-1 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 text-sm">
+                        <MessageCircle className="w-4 h-4" />
+                        Message
+                      </button>
+                      <button className="flex-1 py-2 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 text-sm">
+                        <Users className="w-4 h-4" />
+                        Buddy Up
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {buddyMatches.length > 2 && (
+                <button className="w-full mt-3 py-3 bg-cyan-600/50 hover:bg-cyan-600/70 rounded-xl text-white font-semibold transition-all">
+                  See All {buddyMatches.length} Matches
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* ========== BOTTOM SPACER ========== */}
+          <div className="h-4"></div>
+
         </div>
       </div>
+
+      {/* FOOTER - Fixed at bottom */}
+      <div className="p-4 border-t border-orange-500/30 bg-orange-900/20 flex-shrink-0">
+        <button
+          onClick={() => {
+            const dayLocation = locations.find(l => l.day === selectedDayNumber);
+            if (dayLocation) {
+              setShowDayExplorer(false);
+              openLocationModal(dayLocation);
+            }
+          }}
+          className="w-full py-3 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+        >
+          <Zap className="w-5 h-5" />
+          StDDart Day {selectedDayNumber} Mission
+        </button>
+      </div>
+
     </div>
   </div>
 )}
@@ -4565,71 +4163,7 @@ Live Activity
 </div>
 </div>
 
-{/* Action Buttons */}
-<div className="flex gap-3">
-{isCompleted ? (
-<button
-onClick={() => {
-setSelectedParty(party);
-setShowPartyStats(true);
-}}
-className="w-full py-3 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-white font-bold rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
->
-<Trophy className="w-5 h-5" />
-View Results
-</button>
-) : isActive && isJoined ? (
-<>
-<button
-onClick={() => {
-setSelectedParty(party);
-setShowPartyLobby(true);
-}}
-className="flex-1 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
->
-<MessageCircle className="w-5 h-5" />
-Lobby & Chat
-</button>
-<button
-onClick={() => {
-setSelectedParty(party);
-// In real implementation, open live action view
-}}
-className="flex-1 py-3 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold rounded-xl transition-all duration-300 shadow-lg animate-pulse flex items-center justify-center gap-2"
->
-<Zap className="w-5 h-5" />
-Live Action
-</button>
-</>
-) : isJoined ? (
-
-<>
-<button
-onClick={() => {
-setSelectedParty(party);
-setShowPartyLobby(true);
-}}
-className="flex-1 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
->
-<MessageCircle className="w-5 h-5" />
-Open Lobby
-</button>
-<button
-onClick={() => leaveMissionParty(party.id)}
-className="flex-1 py-3 bg-purple-800/50 hover:bg-purple-800/70 text-white font-semibold rounded-xl transition-colors"
->
-Leave
-</button>
-</>
-) : (
-<button
-onClick={() => joinMissionParty(party.id)}
-className="w-full py-3 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold rounded-xl transition-all duration-300 shadow-lg hover:shadow-pink-500/50"
->
-Join Party
-</button>
-)}
-</div>
+ 
 </div>
 );
 })}
@@ -4825,917 +4359,439 @@ Join Party
 {/* Day Explorer Modal - ENHANCED */}
 {showDayExplorer && selectedDayNumber && (
   <div 
-    className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center"
     onClick={() => setShowDayExplorer(false)}
   >
     <div 
-      className="bg-gradient-to-br from-orange-900/98 to-red-900/98 rounded-2xl border border-orange-500/50 max-w-6xl w-full max-h-[90vh] shadow-2xl flex flex-col"
+      className="bg-gradient-to-br from-orange-900/98 to-red-900/98 rounded-t-3xl sm:rounded-2xl border-t sm:border border-orange-500/50 w-full sm:max-w-2xl h-[95vh] sm:h-[90vh] shadow-2xl flex flex-col"
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Header */}
-      <div className="p-6 border-b border-orange-500/30 flex-shrink-0">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div className="flex items-center gap-4">
+      
+      {/* STICKY HEADER */}
+      <div className="p-4 border-b border-orange-500/30 flex-shrink-0 bg-gradient-to-r from-orange-900/98 to-red-900/98">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="p-3 rounded-xl bg-orange-500/20">
-                <Trophy className="w-8 h-8 text-orange-400" />
+              <div className="p-2 rounded-xl bg-orange-500/20">
+                {(() => {
+                  const dayLocation = locations.find(l => l.day === selectedDayNumber);
+                  const IconComponent = dayLocation?.icon || Trophy;
+                  return <IconComponent className="w-6 h-6 text-orange-400" />;
+                })()}
               </div>
-              <div className="absolute -top-1 -right-1 w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+              <div className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center">
                 <span className="text-xs font-bold text-white">{selectedDayNumber}</span>
               </div>
             </div>
             <div>
-              <h2 className="text-3xl font-bold text-white">🏕️ Day {selectedDayNumber} Base Camp</h2>
-              <p className="text-orange-300 text-sm mt-1">
-                {peopleOnSelectedDay.length} adventurers warming up together
+              <h2 className="text-xl font-bold text-white">Day {selectedDayNumber} Hub</h2>
+              <p className="text-orange-300 text-xs">
+                {peopleOnSelectedDay.length} online • {dayStats.completionsToday} today
               </p>
             </div>
           </div>
           <button 
             onClick={() => setShowDayExplorer(false)} 
-            className="p-2 hover:bg-orange-800/50 rounded-lg transition-colors"
+            className="p-2 hover:bg-orange-800/50 rounded-lg transition-colors flex-shrink-0"
           >
-            <X className="w-6 h-6 text-orange-300" />
+            <X className="w-5 h-5 text-orange-300" />
           </button>
         </div>
 
         {/* Tab Navigation */}
-        {/* Tab Navigation */}
-<div className="flex gap-2">
-  <button
-    onClick={() => setDayExplorerTab('community')}
-    className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all relative ${
-      dayExplorerTab === 'community'
-        ? 'bg-orange-600 text-white shadow-lg'
-        : 'bg-orange-800/30 text-orange-300 hover:bg-orange-800/50'
-    }`}
-  >
-    <div className="flex items-center justify-center gap-2">
-      🔥 Community (Live)
-      {/* NEW: Live indicator dot */}
-      {dayExplorerTab === 'community' && (
-        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse absolute top-2 right-2" />
-      )}
-    </div>
-    {/* NEW: Feature count badge */}
-    <div className="text-xs mt-1 opacity-75">
-      9 active features
-    </div>
-  </button>
-  <button
-    onClick={() => setDayExplorerTab('mission')}
-    className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all ${
-      dayExplorerTab === 'mission'
-        ? 'bg-orange-600 text-white shadow-lg'
-        : 'bg-orange-800/30 text-orange-300 hover:bg-orange-800/50'
-    }`}
-  >
-    📍 Mission Info
-  </button>
-</div>
-      </div>
-
-      {/* Tab Content - Scrollable */}
-      <div className="flex-1 overflow-y-auto">
-        {dayExplorerTab === 'community' ? (
-          /* COMMUNITY TAB */
-          <div className="p-6 space-y-6">
-
-    
-    {/* NEW: Community Features Overview Banner */}
-    <div className="bg-gradient-to-r from-cyan-900/60 to-purple-900/60 rounded-2xl border border-cyan-500/50 p-5">
-      <div className="flex items-center gap-3 mb-4">
-        <Sparkles className="w-6 h-6 text-cyan-400 animate-pulse" />
-        <h3 className="text-xl font-bold text-white">Day {selectedDayNumber} Community Hub - All Features Active!</h3>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="p-3 bg-orange-800/30 rounded-lg border border-orange-500/30 text-center">
-          <div className="text-2xl mb-1">🔥</div>
-          <p className="text-xs text-orange-300 font-semibold">Campfire Wall</p>
-          <p className="text-lg font-bold text-white">{campfireMessages.length}</p>
-        </div>
-        <div className="p-3 bg-purple-800/30 rounded-lg border border-purple-500/30 text-center">
-          <div className="text-2xl mb-1">📊</div>
-          <p className="text-xs text-purple-300 font-semibold">Live Stats</p>
-          <p className="text-lg font-bold text-white">{dayStats.hypeLevel}%</p>
-        </div>
-        <div className="p-3 bg-cyan-800/30 rounded-lg border border-cyan-500/30 text-center">
-          <div className="text-2xl mb-1">📍</div>
-          <p className="text-xs text-cyan-300 font-semibold">At Location</p>
-          <p className="text-lg font-bold text-white">{liveAtLocation.arrived.length}</p>
-        </div>
-        <div className="p-3 bg-green-800/30 rounded-lg border border-green-500/30 text-center">
-          <div className="text-2xl mb-1">🎯</div>
-          <p className="text-xs text-green-300 font-semibold">Buddies</p>
-          <p className="text-lg font-bold text-white">{buddyMatches.length}</p>
-        </div>
-      </div>
-      <p className="text-center text-sm text-cyan-200 mt-4">
-        ⚡ All features are live and updating in real-time
-      </p>
-    </div>
-
-    {/* ⬇️⬇️⬇️ ADD THE QUICK NAVIGATION HERE ⬇️⬇️⬇️ */}
-    <div className="flex gap-2 overflow-x-auto pb-2">
-      <button 
-        onClick={() => document.getElementById('campfire')?.scrollIntoView({ behavior: 'smooth' })}
-        className="px-4 py-2 bg-orange-700/30 hover:bg-orange-700/50 rounded-lg text-sm text-orange-200 whitespace-nowrap transition-all"
-      >
-        🔥 Campfire
-      </button>
-      <button 
-        onClick={() => document.getElementById('hype-meter')?.scrollIntoView({ behavior: 'smooth' })}
-        className="px-4 py-2 bg-purple-700/30 hover:bg-purple-700/50 rounded-lg text-sm text-purple-200 whitespace-nowrap transition-all"
-      >
-        📊 Hype Meter
-      </button>
-      <button 
-        onClick={() => document.getElementById('live-location')?.scrollIntoView({ behavior: 'smooth' })}
-        className="px-4 py-2 bg-cyan-700/30 hover:bg-cyan-700/50 rounded-lg text-sm text-cyan-200 whitespace-nowrap transition-all"
-      >
-        📍 Live Map
-      </button>
-      <button 
-        onClick={() => document.getElementById('champions')?.scrollIntoView({ behavior: 'smooth' })}
-        className="px-4 py-2 bg-yellow-700/30 hover:bg-yellow-700/50 rounded-lg text-sm text-yellow-200 whitespace-nowrap transition-all"
-      >
-        🏆 Champions
-      </button>
-      <button 
-        onClick={() => document.getElementById('encouragement')?.scrollIntoView({ behavior: 'smooth' })}
-        className="px-4 py-2 bg-pink-700/30 hover:bg-pink-700/50 rounded-lg text-sm text-pink-200 whitespace-nowrap transition-all"
-      >
-        💌 Messages
-      </button>
-      <button 
-        onClick={() => document.getElementById('buddy-finder')?.scrollIntoView({ behavior: 'smooth' })}
-        className="px-4 py-2 bg-green-700/30 hover:bg-green-700/50 rounded-lg text-sm text-green-200 whitespace-nowrap transition-all"
-      >
-        🎯 Buddy Finder
-      </button>
-    </div>
-    {/* ⬆️⬆️⬆️ END OF QUICK NAVIGATION ⬆️⬆️⬆️ */}
-
-            
-            {/* THE CAMPFIRE WALL */}
-            <div className="bg-gradient-to-br from-orange-800/40 to-red-800/40 rounded-2xl border border-orange-500/50 p-6">
-              <div className="text-center mb-6">
-                <div className="text-6xl mb-3 animate-pulse">🔥</div>
-                <h3 className="text-2xl font-bold text-white mb-2">The Campfire Wall</h3>
-                <p className="text-orange-200 text-sm">What people are thinking RIGHT NOW</p>
-              </div>
-
-              {/* Live Messages Stream */}
-              <div className="space-y-3 mb-4 max-h-96 overflow-y-auto">
-                {campfireMessages.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-orange-300">Be the first to share your thoughts...</p>
-                  </div>
+        <div className="flex gap-1 mt-4 overflow-x-auto pb-2 scrollbar-hide">
+          {[
+            { id: 'overview', icon: Sparkles, label: 'Overview' },
+            { id: 'people', icon: Users, label: `People (${peopleOnSelectedDay.length})` },
+            { id: 'campfire', icon: '🔥', label: `Campfire (${campfireMessages.length})` },
+            { id: 'stats', icon: TrendingUp, label: 'Stats' },
+            { id: 'champions', icon: Trophy, label: 'Champions' },
+            { id: 'encouragement', icon: Heart, label: 'Messages' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setDayExplorerTab(tab.id)}
+              className={`px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 ${
+                dayExplorerTab === tab.id
+                  ? 'bg-orange-600 text-white'
+                  : 'bg-orange-900/30 text-orange-200'
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
+                {typeof tab.icon === 'string' ? (
+                  <span className="text-sm">{tab.icon}</span>
                 ) : (
-                  campfireMessages.map((msg) => (
-                    <div 
-                      key={msg.id}
-                      className={`p-4 rounded-xl transition-all ${
-                        msg.isVulnerable 
-                          ? 'bg-pink-900/40 border-2 border-pink-500/50' 
-                          : 'bg-orange-900/30 border border-orange-500/30'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white font-bold flex-shrink-0">
-                          {msg.userName[0]}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold text-white">{msg.userName}</span>
-                            <span className="text-xs text-orange-400">
-                              {msg.timestamp?.toDate ? formatTimeAgo(msg.timestamp.toDate()) : 'now'}
-                            </span>
-                            {msg.isVulnerable && (
-                              <span className="text-xs px-2 py-0.5 bg-pink-500/30 border border-pink-400/50 rounded-full text-pink-200">
-                                vulnerable
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-orange-100 mb-2">{msg.text}</p>
-                          
-                          {/* Reactions */}
-                          <div className="flex items-center gap-3">
-                            {Object.entries(msg.reactions).map(([emoji, count]) => (
-                              <button
-                                key={emoji}
-                                onClick={() => reactToCampfireMessage(msg.id, emoji)}
-                                className="flex items-center gap-1 px-2 py-1 bg-orange-800/30 hover:bg-orange-800/50 rounded-lg transition-all hover:scale-110"
-                              >
-                                <span>{emoji}</span>
-                                <span className="text-xs text-orange-200">{count}</span>
-                              </button>
-                            ))}
-                            {Object.keys(msg.reactions).length === 0 && (
-                              <div className="flex gap-1">
-                                {['💪', '❤️', '👋'].map(emoji => (
-                                  <button
-                                    key={emoji}
-                                    onClick={() => reactToCampfireMessage(msg.id, emoji)}
-                                    className="px-2 py-1 bg-orange-800/20 hover:bg-orange-800/40 rounded-lg text-lg transition-all hover:scale-125"
-                                  >
-                                    {emoji}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
+                  <tab.icon className="w-3.5 h-3.5" />
                 )}
+                <span>{tab.label}</span>
               </div>
+            </button>
+          ))}
+        </div>
+      </div>
 
-              {/* Post Input */}
-              <div className="border-t border-orange-500/30 pt-4">
-                <textarea
-                  value={campfireInput}
-                  onChange={(e) => setCampfireInput(e.target.value)}
-                  placeholder="Share what you're feeling... (be real, everyone here gets it)"
-                  className="w-full px-4 py-3 bg-orange-900/30 border border-orange-500/30 rounded-xl text-white placeholder-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
-                  rows={3}
-                  maxLength={300}
-                />
-                <div className="flex items-center justify-between mt-2">
-                  <p className="text-xs text-orange-400">{campfireInput.length}/300</p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => postToCampfire(campfireInput, true)}
-                      disabled={!campfireInput.trim()}
-                      className="px-4 py-2 bg-pink-600/50 hover:bg-pink-600/70 disabled:bg-orange-800/30 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-all"
-                    >
-                      😰 Vulnerable Post
-                    </button>
-                    <button
-                      onClick={() => postToCampfire(campfireInput, false)}
-                      disabled={!campfireInput.trim()}
-                      className="px-4 py-2 bg-orange-600 hover:bg-orange-500 disabled:bg-orange-800/30 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-all"
-                    >
-                      Share
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* THE HYPE METER */}
-            <div className="bg-gradient-to-br from-purple-800/40 to-pink-800/40 rounded-2xl border border-purple-500/50 p-6">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <TrendingUp className="w-6 h-6 text-purple-400" />
-                🎯 Day {selectedDayNumber} Energy Today
-              </h3>
-
-              {/* Hype Bar */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-purple-300">HYPE LEVEL</span>
-                  <span className="text-2xl font-bold text-white">{dayStats.hypeLevel}%</span>
-                </div>
-                <div className="w-full bg-purple-900/50 rounded-full h-4 overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500 rounded-full transition-all duration-1000 animate-pulse"
-                    style={{ width: `${dayStats.hypeLevel}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Live Stats Grid */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="p-3 bg-purple-900/30 rounded-lg">
-                  <p className="text-xs text-purple-300 mb-1">Completions Today</p>
-                  <p className="text-2xl font-bold text-white">{dayStats.completionsToday}</p>
-                  <p className="text-xs text-green-400 mt-1">↑ {dayStats.trendPercentage}% from yesterday</p>
-                </div>
-                <div className="p-3 bg-purple-900/30 rounded-lg">
-                  <p className="text-xs text-purple-300 mb-1">Completion Rate</p>
-                  <p className="text-2xl font-bold text-white">{dayStats.completionRate}%</p>
-                </div>
-                <div className="p-3 bg-purple-900/30 rounded-lg">
-                  <p className="text-xs text-purple-300 mb-1">Avg Time</p>
-                  <p className="text-lg font-bold text-white">{dayStats.avgTimeToComplete} mins</p>
-                </div>
-                <div className="p-3 bg-purple-900/30 rounded-lg">
-                  <p className="text-xs text-purple-300 mb-1">Peak Time</p>
-                  <p className="text-lg font-bold text-white">{dayStats.peakTime}</p>
-                </div>
-              </div>
-
-              {/* Momentum Alert */}
-              <div className="p-4 bg-gradient-to-r from-orange-900/40 to-red-900/40 border border-orange-500/50 rounded-xl">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">🔥</span>
-                  <div>
-                    <p className="text-sm font-bold text-orange-200">MOMENTUM ALERT</p>
-                    <p className="text-xs text-orange-300">Day {selectedDayNumber} is ON FIRE right now! {dayStats.completionsToday} people completed today!</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* LIVE "WHO'S HERE" MAP */}
-            <div className="bg-gradient-to-br from-cyan-800/40 to-blue-800/40 rounded-2xl border border-cyan-500/50 p-6">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <MapPin className="w-6 h-6 text-cyan-400" />
-                📍 RIGHT NOW AT THE LOCATION
-              </h3>
-
-              {/* Status Groups */}
-              <div className="space-y-4">
-                {/* Arrived */}
-                <div className="p-4 bg-green-900/30 border border-green-500/30 rounded-xl">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
-                    <span className="font-bold text-green-300">🟢 ARRIVED ({liveAtLocation.arrived.length} people)</span>
-                  </div>
-                  {liveAtLocation.arrived.length === 0 ? (
-                    <p className="text-sm text-green-400 italic">No one here yet - be the first!</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {liveAtLocation.arrived.map(person => (
-                        <div key={person.id} className="px-3 py-2 bg-green-800/30 rounded-lg border border-green-500/30 flex items-center gap-2">
-                          <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${person.color} flex items-center justify-center text-xs font-bold text-white`}>
-                            {person.name[0]}
-                          </div>
-                          <span className="text-sm text-white">{person.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* On The Way */}
-                <div className="p-4 bg-yellow-900/30 border border-yellow-500/30 rounded-xl">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse" />
-                    <span className="font-bold text-yellow-300">🟡 ON THE WAY ({liveAtLocation.onTheWay.length} people)</span>
-                  </div>
-                  {liveAtLocation.onTheWay.length > 0 && (
-                    <div className="space-y-2">
-                      {liveAtLocation.onTheWay.slice(0, 5).map(person => (
-                        <p key={person.id} className="text-sm text-yellow-200">
-                          • {person.name} - "heading there now..."
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Preparing */}
-                <div className="p-4 bg-blue-900/30 border border-blue-500/30 rounded-xl">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full" />
-                    <span className="font-bold text-blue-300">🔵 PREPARING ({liveAtLocation.preparing.length} people)</span>
-                  </div>
-                  {liveAtLocation.preparing.length > 0 && (
-                    <p className="text-sm text-blue-200">
-                      {liveAtLocation.preparing.map(p => p.name).slice(0, 3).join(', ')}
-                      {liveAtLocation.preparing.length > 3 && ` +${liveAtLocation.preparing.length - 3} more`} getting ready...
-                    </p>
-                  )}
-                </div>
-
-                {/* Just Completed */}
-                <div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Trophy className="w-4 h-4 text-purple-400" />
-                    <span className="font-bold text-purple-300">⚡ JUST COMPLETED ({liveAtLocation.justCompleted.length} in last hour)</span>
-                  </div>
-                  {liveAtLocation.justCompleted.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {liveAtLocation.justCompleted.slice(0, 8).map(person => (
-                        <div key={person.id} className="px-2 py-1 bg-purple-800/30 rounded-lg text-xs text-purple-200">
-                          {person.name} ✅
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* TODAY'S CHAMPIONS */}
-            {(todaysChampions.firstTimer || todaysChampions.bestTip || todaysChampions.biggestBreakthrough) && (
-              <div className="bg-gradient-to-br from-yellow-800/40 to-orange-800/40 rounded-2xl border border-yellow-500/50 p-6">
-                <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-                  <Trophy className="w-6 h-6 text-yellow-400" />
-                  🏆 TODAY'S CHAMPIONS
-                </h3>
-
-                <div className="space-y-4">
-                  {todaysChampions.firstTimer && (
-                    <div className="p-4 bg-yellow-900/30 border border-yellow-500/30 rounded-xl">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-2xl">⭐</span>
-                        <span className="font-bold text-yellow-300">FIRST TIMER OF THE DAY</span>
-                      </div>
-                      <p className="text-white font-semibold mb-1">{todaysChampions.firstTimer.name} completed at {todaysChampions.firstTimer.time}</p>
-                      <p className="text-yellow-200 italic">"{todaysChampions.firstTimer.message}"</p>
-                      <p className="text-xs text-yellow-400 mt-2">👋 {todaysChampions.firstTimer.reactions} reactions</p>
-                    </div>
-                  )}
-
-                  {todaysChampions.bestTip && (
-                    <div className="p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-2xl">🎯</span>
-                        <span className="font-bold text-cyan-300">MOST HELPFUL TIP</span>
-                      </div>
-                      <p className="text-white font-semibold mb-1">{todaysChampions.bestTip.name}:</p>
-                      <p className="text-cyan-200">"{todaysChampions.bestTip.tip}"</p>
-                      <p className="text-xs text-cyan-400 mt-2">⭐ {todaysChampions.bestTip.helpful} people: "This helped!"</p>
-                    </div>
-                  )}
-
-                  {todaysChampions.biggestBreakthrough && (
-                    <div className="p-4 bg-pink-900/30 border border-pink-500/30 rounded-xl">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-2xl">💪</span>
-                        <span className="font-bold text-pink-300">BIGGEST BREAKTHROUGH</span>
-                      </div>
-                      <p className="text-white font-semibold mb-1">{todaysChampions.biggestBreakthrough.name}:</p>
-                      <p className="text-pink-200">"{todaysChampions.biggestBreakthrough.story}"</p>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-pink-400">
-                        <span>❤️ {todaysChampions.biggestBreakthrough.reactions} reactions</span>
-                        <span>💬 {todaysChampions.biggestBreakthrough.replies} replies</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* THE ENCOURAGEMENT WALL */}
-            {encouragementNotes.length > 0 && (
-              <div className="bg-gradient-to-br from-pink-800/40 to-purple-800/40 rounded-2xl border border-pink-500/50 p-6">
-                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <Heart className="w-6 h-6 text-pink-400" />
-                  💌 MESSAGES FROM PEOPLE WHO MADE IT
-                </h3>
-
-                <div className="space-y-4">
-                  {encouragementNotes.map(note => (
-                    <div key={note.id} className="p-5 bg-pink-900/30 border border-pink-500/30 rounded-xl">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-sm font-semibold text-pink-200">From: {note.from}</span>
-                        <span className="text-xs text-pink-400">(completed {note.completedAgo})</span>
-                      </div>
-                      <p className="text-pink-100 leading-relaxed mb-3 whitespace-pre-line">
-                        {note.message}
-                      </p>
-                      <p className="text-xs text-pink-400">👋 {note.reactions} people waved back</p>
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  onClick={() => setShowCampfireWall(true)}
-                  className="w-full mt-4 py-3 bg-pink-600/50 hover:bg-pink-600/70 rounded-xl text-white font-semibold transition-all"
-                >
-                  Leave Your Own Message
-                </button>
-              </div>
-            )}
-
-            {/* THE ANXIETY METER */}
-            <div className="bg-gradient-to-br from-indigo-800/40 to-purple-800/40 rounded-2xl border border-indigo-500/50 p-6">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <TrendingUp className="w-6 h-6 text-indigo-400" />
-                📊 DAY {selectedDayNumber} EMOTIONAL JOURNEY
-              </h3>
-
-              <div className="space-y-4 mb-6">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-indigo-300">BEFORE MISSION:</span>
-                    <span className="text-xl font-bold text-white">{anxietyJourney.beforeAvg}/10</span>
-                  </div>
-                  <div className="flex gap-1">
-                    {['😰','😰','😰','😰','😰','😰','😰','😐','😐','😊'].map((emoji, i) => (
-                      <span key={i} className="text-2xl">{emoji}</span>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-indigo-300">DURING MISSION:</span>
-                    <span className="text-xl font-bold text-white">{anxietyJourney.duringAvg}/10</span>
-                  </div>
-                  <div className="flex gap-1">
-                    {['😰','😰','😰','😐','😐','😊','😊','😄','😄','😄'].map((emoji, i) => (
-                      <span key={i} className="text-2xl">{emoji}</span>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-indigo-300">AFTER MISSION:</span>
-                    <span className="text-xl font-bold text-green-400">{anxietyJourney.afterAvg}/10</span>
-                  </div>
-                  <div className="flex gap-1">
-                    {['😊','😊','😊','😊','😄','😄','😄','😄','😁','😁'].map((emoji, i) => (
-                      <span key={i} className="text-2xl">{emoji}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-indigo-900/30 border border-indigo-500/30 rounded-xl space-y-2">
-                <p className="text-sm text-indigo-200">
-                  <span className="font-semibold">💡 INSIGHT:</span> {anxietyJourney.totalResponses} responses analyzed
-                </p>
-                <p className="text-sm text-indigo-200">
-                  94% of Day {selectedDayNumber}'ers report feeling BETTER after completing than they expected. <span className="font-semibold text-green-400">You will too.</span>
-                </p>
-                <p className="text-sm text-indigo-200">
-                  📈 Average anxiety drops by <span className="font-bold text-green-400">{anxietyJourney.dropRate} points</span>. That's normal!
-                </p>
-              </div>
-            </div>
-
-            {/* NEXT GROUP DEPARTURE */}
-            {groupDepartures.length > 0 && (
-              <div className="bg-gradient-to-br from-green-800/40 to-emerald-800/40 rounded-2xl border border-green-500/50 p-6">
-                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <Users className="w-6 h-6 text-green-400" />
-                  ⏰ NEXT GROUP DEPARTURE
-                </h3>
-
-                {groupDepartures.map(departure => (
-                  <div key={departure.id} className="space-y-4">
-                    {/* Countdown */}
-                    <div className="p-6 bg-green-900/40 border-2 border-green-500/50 rounded-xl text-center">
-                      <p className="text-green-300 text-sm mb-2">Leaving together in:</p>
-                      <p className="text-5xl font-bold text-white mb-2">
-                        {Math.floor((departure.departureTime.getTime() - new Date().getTime()) / 60000)}:{
-                          String(Math.floor(((departure.departureTime.getTime() - new Date().getTime()) % 60000) / 1000)).padStart(2, '0')
-                        }
-                      </p>
-                      <p className="text-green-400 text-sm">
-                        🚀 {departure.participants.length} PEOPLE heading to {
-                          locations.find(l => l.id === departure.locationId)?.name || 'location'
-                        }
-                      </p>
-                    </div>
-
-                    {/* Participants */}
-                    <div className="flex flex-wrap gap-2 items-center">
-                      <span className="text-sm text-green-300 mr-2">Who's joining:</span>
-                      {departure.participants.slice(0, 10).map((_, i) => (
-                        <div 
-                          key={i}
-                          className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 border-2 border-white/30"
-                          style={{ marginLeft: i > 0 ? '-12px' : '0', zIndex: 10 - i }}
-                        />
-                      ))}
-                      {departure.participants.length > 10 && (
-                        <span className="text-sm font-bold text-green-400 ml-2">
-                          +{departure.participants.length - 10} more
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Group Chat Preview */}
-                    {departure.messages.length > 0 && (
-                      <div className="p-4 bg-green-900/20 border border-green-500/30 rounded-xl">
-                        <p className="text-xs text-green-400 mb-2">💬 Group Chat:</p>
-                        <div className="space-y-1">
-                          {departure.messages.map((msg, i) => (
-                            <p key={i} className="text-sm text-green-200">
-                              <span className="font-semibold">{msg.userName}:</span> {msg.text}
-                            </p>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Join Button */}
-                    <button
-                      onClick={() => joinGroupDeparture(departure.id)}
-                      className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
-                    >
-                      <Users className="w-5 h-5" />
-                      Count Me In!
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* "LIVE FROM THE LOCATION" */}
-            {liveUpdates.length > 0 && (
-              <div className="bg-gradient-to-br from-red-800/40 to-orange-800/40 rounded-2xl border border-red-500/50 p-6">
-                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                  📡 LIVE UPDATES - HAPPENING NOW
-                </h3>
-
-                <div className="space-y-4">
-                  {liveUpdates.map(update => (
-                    <div key={update.id} className="p-4 bg-red-900/30 border border-red-500/30 rounded-xl">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-white font-bold flex-shrink-0">
-                          {update.userName[0]}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-bold text-white">{update.userName}:</span>
-                            <span className="text-xs text-red-400">{formatTimeAgo(update.timestamp)}</span>
-                          </div>
-                          <p className="text-red-100 text-lg mb-2">{update.action}</p>
-                          
-                          {/* Reactions */}
-                          {update.reactions > 0 && (
-                            <p className="text-sm text-red-300 mb-2">💪 {update.reactions} reactions</p>
-                          )}
-
-                          {/* Replies */}
-                          {update.replies.length > 0 && (
-                            <div className="mt-3 pl-4 border-l-2 border-red-500/30 space-y-2">
-                              {update.replies.map((reply, i) => (
-                                <div key={i} className="text-sm">
-                                  <span className="font-semibold text-red-200">{reply.userName}:</span>
-                                  <span className="text-red-300 ml-1">{reply.text}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* BUDDY BEACON */}
-            {buddyMatches.length > 0 && (
-              <div className="bg-gradient-to-br from-cyan-800/40 to-blue-800/40 rounded-2xl border border-cyan-500/50 p-6">
-                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <Users className="w-6 h-6 text-cyan-400" />
-                  🎯 FIND YOUR MISSION BUDDY
-                </h3>
-
-                {/* Filters */}
-                <div className="mb-6 p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl">
-                  <p className="text-sm text-cyan-300 mb-3">Filter by:</p>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-xs text-cyan-400 block mb-1">😰 Anxiety Level: {buddyFilters.anxietyLevel}/10</label>
-                      <input
-                        type="range"
-                        min="1"
-                        max="10"
-                        value={buddyFilters.anxietyLevel}
-                        onChange={(e) => setBuddyFilters({...buddyFilters, anxietyLevel: parseInt(e.target.value)})}
-                        className="w-full"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-cyan-400 block mb-1">⏰ Preferred Time</label>
-                      <select
-                        value={buddyFilters.preferredTime}
-                        onChange={(e) => setBuddyFilters({...buddyFilters, preferredTime: e.target.value})}
-                        className="w-full px-3 py-2 bg-cyan-900/30 border border-cyan-500/30 rounded-lg text-white text-sm"
-                      >
-                        <option value="morning">Morning (6-12pm)</option>
-                        <option value="afternoon">Afternoon (12-6pm)</option>
-                        <option value="evening">Evening (6-9pm)</option>
-                        <option value="night">Night (9pm+)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs text-cyan-400 block mb-1">🎭 Experience</label>
-                      <select
-                        value={buddyFilters.experience}
-                        onChange={(e) => setBuddyFilters({...buddyFilters, experience: e.target.value})}
-                        className="w-full px-3 py-2 bg-cyan-900/30 border border-cyan-500/30 rounded-lg text-white text-sm"
-                      >
-                        <option value="first-timer">First timer</option>
-                        <option value="did-once">Did it once before</option>
-                        <option value="experienced">Experienced</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Perfect Matches */}
-                <div className="space-y-3">
-                  <p className="text-sm font-semibold text-cyan-300 mb-3">PERFECT MATCHES:</p>
-                  {buddyMatches.map(match => (
-                    <div key={match.id} className="p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl hover:border-cyan-500/60 transition-all">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg">
-                            {match.name[0]}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-white">{match.name}</span>
-                              <div className="px-2 py-0.5 bg-green-500/30 border border-green-400/50 rounded-full">
-                                <span className="text-xs font-bold text-green-200">{match.matchPercentage}% match</span>
-                              </div>
-                            </div>
-                            <p className="text-xs text-cyan-400">Last seen: {match.lastSeen}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Match Details */}
-                      <div className="grid grid-cols-3 gap-2 mb-3 text-xs">
-                        <div className="p-2 bg-cyan-800/30 rounded">
-                          <p className="text-cyan-400">Anxiety</p>
-                          <p className="text-white font-semibold">{match.anxietyLevel}/10</p>
-                        </div>
-                        <div className="p-2 bg-cyan-800/30 rounded">
-                          <p className="text-cyan-400">Time</p>
-                          <p className="text-white font-semibold text-xs">{match.preferredTime}</p>
-                        </div>
-                        <div className="p-2 bg-cyan-800/30 rounded">
-                          <p className="text-cyan-400">Experience</p>
-                          <p className="text-white font-semibold text-xs">{match.experience}</p>
-                        </div>
-                      </div>
-
-                      {/* Their Message */}
-                      <div className="p-3 bg-cyan-900/20 border border-cyan-500/20 rounded-lg mb-3">
-                        <p className="text-sm text-cyan-100 italic">"{match.message}"</p>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-2">
-                        <button className="flex-1 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2">
-                          <MessageCircle className="w-4 h-4" />
-                          Message {match.name}
-                        </button>
-                        <button className="flex-1 py-2 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2">
-                          <Users className="w-4 h-4" />
-                          Buddy Up
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  onClick={() => setShowBuddyFinder(true)}
-                  className="w-full mt-4 py-3 bg-cyan-600/50 hover:bg-cyan-600/70 rounded-xl text-white font-semibold transition-all"
-                >
-                  See All Matches
-                </button>
-              </div>
-            )}
-
-          </div>
-        ) : (
-          /* MISSION TAB */
-          <div className="p-6 space-y-6">
-            {/* Mission Details */}
-            <div className="bg-gradient-to-br from-purple-800/40 to-indigo-800/40 rounded-2xl border border-purple-500/50 p-6">
-              <div className="flex items-center gap-4 mb-4">
-                {(() => {
-                  const dayLocation = locations.find(l => l.day === selectedDayNumber);
-                  const IconComponent = dayLocation?.icon || MapPin;
-                  return (
-                    <>
-                      <div className="p-4 rounded-xl bg-purple-500/20">
-                        <IconComponent className="w-12 h-12 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-bold text-white">{dayLocation?.name}</h3>
-                        <p className="text-purple-300">{dayLocation?.mission}</p>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-
+      {/* SCROLLABLE CONTENT */}
+      <div className="flex-1 overflow-y-auto p-4">
+        
+        {/* OVERVIEW TAB */}
+        {dayExplorerTab === 'overview' && (
+          <div className="space-y-4">
+            {/* Mission Card */}
+            <div className="bg-gradient-to-br from-purple-900/60 to-indigo-900/60 rounded-xl border border-purple-500/50 p-4">
               {(() => {
                 const dayLocation = locations.find(l => l.day === selectedDayNumber);
+                const IconComponent = dayLocation?.icon || MapPin;
                 return (
                   <>
-                    <div className="p-4 bg-purple-900/30 rounded-xl mb-4">
-                      <p className="text-purple-200 leading-relaxed">{dayLocation?.description}</p>
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="p-3 rounded-xl bg-purple-500/20">
+                        <IconComponent className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-bold text-white">{dayLocation?.name}</h3>
+                        <p className="text-purple-300 text-sm">{dayLocation?.mission}</p>
+                      </div>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="p-4 bg-yellow-900/30 border border-yellow-500/30 rounded-xl">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Star className="w-5 h-5 text-yellow-400" />
-                          <span className="text-sm text-yellow-300">Reward</span>
-                        </div>
-                        <p className="text-2xl font-bold text-white">{dayLocation?.xpReward} XP</p>
-                      </div>
-                      <div className="p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Users className="w-5 h-5 text-cyan-400" />
-                          <span className="text-sm text-cyan-300">Active Now</span>
-                        </div>
-                        <p className="text-2xl font-bold text-white">{dayLocation?.activeUsers}</p>
-                      </div>
+                    <div className="p-3 bg-purple-900/30 rounded-lg mb-3">
+                      <p className="text-purple-100 text-sm leading-relaxed">{dayLocation?.description}</p>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-yellow-500/20 border border-yellow-400/40 rounded-lg">
+                      <span className="text-sm text-yellow-300">Mission Reward</span>
+                      <span className="text-xl font-bold text-yellow-400">{dayLocation?.xpReward} XP</span>
                     </div>
                   </>
                 );
               })()}
             </div>
 
-            {/* People on This Day */}
-            <div className="bg-gradient-to-br from-cyan-800/40 to-blue-800/40 rounded-2xl border border-cyan-500/50 p-6">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <Users className="w-6 h-6 text-cyan-400" />
-                👥 People on Day {selectedDayNumber}
-              </h3>
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-cyan-900/40 border border-cyan-500/30 rounded-lg">
+                <div className="text-xl mb-1">👥</div>
+                <p className="text-xs text-cyan-300">People Online</p>
+                <p className="text-xl font-bold text-white">{peopleOnSelectedDay.length}</p>
+              </div>
+              <div className="p-3 bg-green-900/40 border border-green-500/30 rounded-lg">
+                <div className="text-xl mb-1">✅</div>
+                <p className="text-xs text-green-300">Done Today</p>
+                <p className="text-xl font-bold text-white">{dayStats.completionsToday}</p>
+              </div>
+              <div className="p-3 bg-purple-900/40 border border-purple-500/30 rounded-lg">
+                <div className="text-xl mb-1">📈</div>
+                <p className="text-xs text-purple-300">Success Rate</p>
+                <p className="text-xl font-bold text-white">{dayStats.completionRate}%</p>
+              </div>
+              <div className="p-3 bg-orange-900/40 border border-orange-500/30 rounded-lg">
+                <div className="text-xl mb-1">⏱️</div>
+                <p className="text-xs text-orange-300">Avg Time</p>
+                <p className="text-xl font-bold text-white">{dayStats.avgTimeToComplete}m</p>
+              </div>
+            </div>
 
-              {peopleOnSelectedDay.length === 0 ? (
-                <div className="text-center py-8">
-                  <Users className="w-12 h-12 text-cyan-400/50 mx-auto mb-3" />
-                  <p className="text-cyan-300">No one on this day right now</p>
+            {/* Start Mission Button */}
+            <button
+              onClick={() => {
+                const dayLocation = locations.find(l => l.day === selectedDayNumber);
+                if (dayLocation) {
+                  setShowDayExplorer(false);
+                  openLocationModal(dayLocation);
+                }
+              }}
+              className="w-full py-4 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+            >
+              <Zap className="w-5 h-5" />
+              <span>Start Mission Now</span>
+            </button>
+          </div>
+        )}
+
+        {/* PEOPLE TAB */}
+        {dayExplorerTab === 'people' && (
+          <div className="space-y-4">
+            <div className="text-center mb-4">
+              <Users className="w-8 h-8 text-cyan-400 mx-auto mb-2" />
+              <h3 className="text-lg font-bold text-white">Who's on Day {selectedDayNumber}</h3>
+            </div>
+
+            {peopleOnSelectedDay.length === 0 ? (
+              <div className="text-center py-12 bg-cyan-900/20 border border-cyan-500/30 rounded-xl">
+                <Users className="w-12 h-12 text-cyan-400/50 mx-auto mb-3" />
+                <p className="text-cyan-300">No one here yet</p>
+                <p className="text-sm text-cyan-400 mt-2">Be the pioneer!</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {peopleOnSelectedDay.map((person) => (
+                  <div 
+                    key={person.id}
+                    className="p-4 bg-cyan-900/30 border border-cyan-500/20 rounded-xl"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${person.color} flex items-center justify-center text-lg font-bold text-white border-2 border-cyan-400/50`}>
+                        {person.name[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-white truncate">{person.name}</h4>
+                        <p className="text-xs text-cyan-300">🔥 {person.streak} day streak</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button className="py-2.5 bg-cyan-700/30 active:bg-cyan-700/50 rounded-lg transition-all text-sm text-white font-medium">
+                        👋 Wave
+                      </button>
+                      <button className="py-2.5 bg-cyan-700/30 active:bg-cyan-700/50 rounded-lg transition-all text-sm text-white font-medium flex items-center justify-center gap-1">
+                        <MessageCircle className="w-4 h-4" />
+                        Chat
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* CAMPFIRE TAB */}
+        {dayExplorerTab === 'campfire' && (
+          <div className="space-y-4">
+            <div className="text-center mb-4">
+              <div className="text-4xl mb-2 animate-pulse">🔥</div>
+              <h3 className="text-lg font-bold text-white">The Campfire Wall</h3>
+              <p className="text-sm text-orange-200">Share your thoughts</p>
+            </div>
+
+            {/* Post Input */}
+            <div className="p-4 bg-orange-800/30 border border-orange-500/30 rounded-xl">
+              <textarea
+                value={campfireInput}
+                onChange={(e) => setCampfireInput(e.target.value)}
+                placeholder="What's on your mind?"
+                className="w-full px-3 py-2 bg-orange-900/30 border border-orange-500/30 rounded-lg text-white placeholder-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none text-sm"
+                rows={3}
+                maxLength={300}
+              />
+              <div className="flex items-center justify-between mt-3">
+                <p className="text-xs text-orange-400">{campfireInput.length}/300</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      postToCampfire(campfireInput, true);
+                      setCampfireInput('');
+                    }}
+                    disabled={!campfireInput.trim()}
+                    className="px-3 py-2 bg-pink-600/50 active:bg-pink-600/70 disabled:bg-orange-800/30 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-all"
+                  >
+                    😰 Vulnerable
+                  </button>
+                  <button
+                    onClick={() => {
+                      postToCampfire(campfireInput, false);
+                      setCampfireInput('');
+                    }}
+                    disabled={!campfireInput.trim()}
+                    className="px-4 py-2 bg-orange-600 active:bg-orange-500 disabled:bg-orange-800/30 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-all"
+                  >
+                    Post
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="space-y-3">
+              {campfireMessages.length === 0 ? (
+                <div className="text-center py-12 bg-orange-900/20 border border-orange-500/30 rounded-xl">
+                  <p className="text-orange-300 text-sm">Be the first to share...</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {peopleOnSelectedDay.map((person) => (
-                    <div 
-                      key={person.id}
-                      className="p-4 bg-cyan-900/30 border border-cyan-500/20 rounded-xl hover:border-cyan-500/40 transition-all"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${person.color} flex items-center justify-center text-lg font-bold text-white border-2 border-cyan-400/50`}>
-                          {person.name[0]}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-bold text-white">{person.name}</h4>
-                            {person.streak > 5 && (
-                              <div className="px-2 py-0.5 bg-orange-500/30 border border-orange-400/50 rounded-full">
-                                <span className="text-xs font-bold text-orange-200">🔥 Hot Streak!</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-4 text-sm">
-                            <span className="text-cyan-300">🔥 {person.streak} day streak</span>
-                            <span className="text-cyan-400">
-                              📍 {locations.find(l => l.id === person.currentLocation)?.name || 'Exploring'}
+                campfireMessages.map((msg) => (
+                  <div 
+                    key={msg.id}
+                    className={`p-3 rounded-xl ${
+                      msg.isVulnerable 
+                        ? 'bg-pink-900/40 border-2 border-pink-500/50' 
+                        : 'bg-orange-900/30 border border-orange-500/30'
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                        {msg.userName[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="font-semibold text-white text-sm">{msg.userName}</span>
+                          <span className="text-xs text-orange-400">
+                            {msg.timestamp?.toDate ? formatTimeAgo(msg.timestamp.toDate()) : 'now'}
+                          </span>
+                          {msg.isVulnerable && (
+                            <span className="text-xs px-2 py-0.5 bg-pink-500/30 border border-pink-400/50 rounded-full text-pink-200">
+                              vulnerable
                             </span>
-                          </div>
+                          )}
                         </div>
-                        <div className="flex gap-2">
-                          <button className="p-2 bg-cyan-700/30 hover:bg-cyan-700/50 rounded-lg transition-all group">
-                            <span className="text-lg group-hover:scale-125 transition-transform inline-block">👋</span>
-                          </button>
-                          <button className="p-2 bg-cyan-700/30 hover:bg-cyan-700/50 rounded-lg transition-all">
-                            <MessageCircle className="w-5 h-5 text-cyan-300" />
-                          </button>
+                        <p className="text-orange-100 text-sm mb-2">{msg.text}</p>
+                        
+                        {/* Reactions */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {Object.entries(msg.reactions).length > 0 ? (
+                            Object.entries(msg.reactions).map(([emoji, count]) => (
+                              <button
+                                key={emoji}
+                                onClick={() => reactToCampfireMessage(msg.id, emoji)}
+                                className="flex items-center gap-1 px-2 py-1 bg-orange-800/30 active:bg-orange-800/50 rounded-lg transition-all"
+                              >
+                                <span className="text-sm">{emoji}</span>
+                                <span className="text-xs text-orange-200">{count}</span>
+                              </button>
+                            ))
+                          ) : (
+                            ['💪', '❤️', '👋'].map(emoji => (
+                              <button
+                                key={emoji}
+                                onClick={() => reactToCampfireMessage(msg.id, emoji)}
+                                className="px-2 py-1 bg-orange-800/20 active:bg-orange-800/40 rounded-lg text-base transition-all"
+                              >
+                                {emoji}
+                              </button>
+                            ))
+                          )}
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))
               )}
             </div>
+          </div>
+        )}
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="p-4 bg-green-900/30 border border-green-500/30 rounded-xl">
-                <p className="text-xs text-green-300 mb-1">Completion Rate</p>
-                <p className="text-2xl font-bold text-white">{dayStats.completionRate}%</p>
+        {/* STATS TAB */}
+        {dayExplorerTab === 'stats' && (
+          <div className="space-y-4">
+            <div className="text-center mb-4">
+              <TrendingUp className="w-8 h-8 text-purple-400 mx-auto mb-2" />
+              <h3 className="text-lg font-bold text-white">Stats & Insights</h3>
+            </div>
+
+            {/* Hype Meter */}
+            <div className="bg-gradient-to-br from-purple-900/40 to-pink-900/40 rounded-xl border border-purple-500/30 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-semibold text-purple-300">DAY {selectedDayNumber} ENERGY</span>
+                <span className="text-2xl font-bold text-white">{dayStats.hypeLevel}%</span>
               </div>
-              <div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
-                <p className="text-xs text-purple-300 mb-1">Avg Time</p>
-                <p className="text-2xl font-bold text-white">{dayStats.avgTimeToComplete}m</p>
+              <div className="w-full bg-purple-900/50 rounded-full h-3 overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500 rounded-full transition-all duration-1000 animate-pulse"
+                  style={{ width: `${dayStats.hypeLevel}%` }}
+                />
               </div>
-              <div className="p-4 bg-orange-900/30 border border-orange-500/30 rounded-xl">
-                <p className="text-xs text-orange-300 mb-1">Peak Hour</p>
-                <p className="text-lg font-bold text-white">{dayStats.peakTime}</p>
+            </div>
+
+            {/* Anxiety Journey */}
+            <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 rounded-xl border border-indigo-500/30 p-5">
+              <h4 className="text-base font-bold text-white mb-4">Emotional Journey</h4>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-indigo-300">Before Mission</span>
+                  <span className="text-xl font-bold text-red-400">{anxietyJourney.beforeAvg}/10</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-indigo-300">After Mission</span>
+                  <span className="text-xl font-bold text-green-400">{anxietyJourney.afterAvg}/10</span>
+                </div>
+              </div>
+              <div className="mt-4 p-3 bg-indigo-900/30 border border-indigo-500/30 rounded-lg">
+                <p className="text-xs text-indigo-200">
+                  📊 Average anxiety drops by <span className="font-bold text-green-400">{anxietyJourney.dropRate} points</span>
+                </p>
               </div>
             </div>
           </div>
         )}
-      </div>
 
-      {/* Footer Actions */}
-      <div className="p-4 border-t border-orange-500/30 bg-orange-900/20 flex-shrink-0">
-        <div className="flex gap-3">
-          <button
-            onClick={() => {
-              const dayLocation = locations.find(l => l.day === selectedDayNumber);
-              if (dayLocation) {
-                setShowDayExplorer(false);
-                openLocationModal(dayLocation);
-              }
-            }}
-            className="flex-1 py-3 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
-          >
-            <Zap className="w-5 h-5" />
-            Start Day {selectedDayNumber} Mission
-          </button>
-        </div>
+        {/* CHAMPIONS TAB */}
+        {dayExplorerTab === 'champions' && (
+          <div className="space-y-4">
+            <div className="text-center mb-4">
+              <Trophy className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
+              <h3 className="text-lg font-bold text-white">Today's Champions</h3>
+            </div>
+
+            {!todaysChampions.firstTimer && !todaysChampions.bestTip && !todaysChampions.biggestBreakthrough ? (
+              <div className="text-center py-12 bg-yellow-900/20 border border-yellow-500/30 rounded-xl">
+                <Trophy className="w-12 h-12 text-yellow-400/50 mx-auto mb-3" />
+                <p className="text-yellow-300 text-sm">No champions yet today</p>
+              </div>
+            ) : (
+              <>
+                {todaysChampions.firstTimer && (
+                  <div className="p-4 bg-yellow-900/30 border border-yellow-500/30 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xl">⭐</span>
+                      <span className="text-xs font-bold text-yellow-300">FIRST OF THE DAY</span>
+                    </div>
+                    <p className="text-white font-semibold text-sm mb-1">
+                      {todaysChampions.firstTimer.name} at {todaysChampions.firstTimer.time}
+                    </p>
+                    <p className="text-yellow-200 italic text-sm">"{todaysChampions.firstTimer.message}"</p>
+                  </div>
+                )}
+
+                {todaysChampions.bestTip && (
+                  <div className="p-4 bg-cyan-900/30 border border-cyan-500/30 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xl">💡</span>
+                      <span className="text-xs font-bold text-cyan-300">MOST HELPFUL TIP</span>
+                    </div>
+                    <p className="text-white font-semibold text-sm mb-1">{todaysChampions.bestTip.name}:</p>
+                    <p className="text-cyan-200 text-sm">"{todaysChampions.bestTip.tip}"</p>
+                  </div>
+                )}
+
+                {todaysChampions.biggestBreakthrough && (
+                  <div className="p-4 bg-pink-900/30 border border-pink-500/30 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xl">💪</span>
+                      <span className="text-xs font-bold text-pink-300">BIGGEST BREAKTHROUGH</span>
+                    </div>
+                    <p className="text-white font-semibold text-sm mb-1">{todaysChampions.biggestBreakthrough.name}:</p>
+                    <p className="text-pink-200 text-sm">"{todaysChampions.biggestBreakthrough.story}"</p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ENCOURAGEMENT TAB */}
+        {dayExplorerTab === 'encouragement' && (
+          <div className="space-y-4">
+            <div className="text-center mb-4">
+              <Heart className="w-8 h-8 text-pink-400 mx-auto mb-2" />
+              <h3 className="text-lg font-bold text-white">Messages From Those Who Made It</h3>
+            </div>
+
+            {encouragementNotes.length === 0 ? (
+              <div className="text-center py-12 bg-pink-900/20 border border-pink-500/30 rounded-xl">
+                <Heart className="w-12 h-12 text-pink-400/50 mx-auto mb-3" />
+                <p className="text-pink-300 text-sm">No messages yet</p>
+              </div>
+            ) : (
+              encouragementNotes.map(note => (
+                <div key={note.id} className="p-4 bg-pink-900/30 border border-pink-500/30 rounded-xl">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <span className="text-xs font-semibold text-pink-200">From: {note.from}</span>
+                    <span className="text-xs text-pink-400">(completed {note.completedAgo})</span>
+                  </div>
+                  <p className="text-pink-100 text-sm leading-relaxed whitespace-pre-line">
+                    {note.message}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
       </div>
     </div>
   </div>

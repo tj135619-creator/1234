@@ -6,7 +6,8 @@ import FindAPlace01 from "src/components/DAY_01/FINDAPLACE/01";
 import SetYourTimes02 from "src/components/DAY_01/SETYOURTIMES/02";
 import HelpWithAnxiety03 from "src/components/DAY_01/HELPWITHTHEIRANXIETY/03";
 import YouAreNotAlone from "src/components/DAY_01/YOUARENOTALONE/youarenotalone";
-
+import SocialReflectionPage from "src/components/DAY_01/ANALYZEPASTDAYS/analysetasksupdate";
+import AIChatInterface from "src/components/AIBRAIN";
 // Skills
 
 import OpenBodyLanguage from "src/components/DAY_01/SKELETAL COMPONENTS/01";
@@ -133,8 +134,10 @@ const Day1Navigator = forwardRef(({ onCompleteNavigator }, ref) => {
   };
 
   const pages = [
+    
     <FullScreenWrapper key="youarenotalone"><YouAreNotAlone onComplete={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="find"><FindAPlace01 onComplete={nextPage} /></FullScreenWrapper>,
+    <FullScreenWrapper key="reflection"><SocialReflectionPage onComplete={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="times"><SetYourTimes02 onComplete={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="anxiety"><HelpWithAnxiety03 onComplete={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="body"><OpenBodyLanguage onNext={nextPage} /></FullScreenWrapper>,
@@ -143,12 +146,15 @@ const Day1Navigator = forwardRef(({ onCompleteNavigator }, ref) => {
     <FullScreenWrapper key="approach"><ApproachOpener onNext={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="listen"><ActiveListening onNext={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="appreciation"><GenuineAppreciation onNext={nextPage} /></FullScreenWrapper>,
+    <FullScreenWrapper key="aibrain"><AIChatInterface onComplete={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="silence"><HandleSilence onNext={handleComplete} /></FullScreenWrapper>,
   ];
 
   const pageNames = [
+    "aibrain",
     "You Are Not Alone",
     "Find A Place",
+    "Social Reflection",
     "Set Your Times",
     "Help With Anxiety",
     "Eye Contact Trainer",

@@ -1447,14 +1447,13 @@ const loadChallengeTemplates = async () => {
         
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 md:py-8 relative z-10 pb-32 md:pb-12">
           
-          
           <header className="mb-6 md:mb-8 text-center">
             <div className="inline-flex items-center gap-2 mb-2 md:mb-3 px-3 md:px-4 py-1.5 md:py-2 bg-purple-800/40 backdrop-blur-sm rounded-full border border-purple-500/30">
               <Sparkles className="w-3 h-3 md:w-4 md:h-4 text-purple-300" />
               <span className="text-xs md:text-sm font-medium text-purple-200">Social Skills Mastery Platform</span>
             </div>
             
-            <h1  id="productHeader"  className="text-3xl md:text-5xl lg:text-6xl font-bold mb-3 md:mb-4 bg-gradient-to-r from-purple-200 via-pink-200 to-purple-300 bg-clip-text text-transparent px-4">
+            <h1 id="productHeader" className="text-3xl md:text-5xl lg:text-6xl font-bold mb-3 md:mb-4 bg-gradient-to-r from-purple-200 via-pink-200 to-purple-300 bg-clip-text text-transparent px-4">
               Community 
             </h1>
             
@@ -1462,12 +1461,11 @@ const loadChallengeTemplates = async () => {
               Transform your skills through community, track progress, and unlock your potential
             </p>
             
-
             <CommunityStories 
-  userId={currentUser?.uid} 
-  userName={userProfile?.name}
-  userAvatar={userProfile?.avatar}
-/>
+              userId={currentUser?.uid} 
+              userName={userProfile?.name}
+              userAvatar={userProfile?.avatar}
+            />
 
             <div className="flex items-center justify-center gap-2 text-purple-300 italic px-4">
               <Sparkles className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
@@ -1475,149 +1473,191 @@ const loadChallengeTemplates = async () => {
               <Sparkles className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
             </div>
 
-           <div className="mb-12">
-  <SocialCityMap />
-</div>
-
-
-
-  
-
-
-         
+            <div className="mb-12">
+              <SocialCityMap />
+            </div>
           </header>
 
+          {/* 🔥 MOBILE-OPTIMIZED HERO STATS SECTION */}
+          <div className="mb-6 bg-gradient-to-br from-purple-900/60 to-indigo-900/60 backdrop-blur-sm rounded-2xl border-2 border-purple-500/30 p-6">
+            {/* User Quick Stats */}
+            <div className="flex items-center gap-4 mb-6">
+              <img
+                src={userProfile?.avatar}
+                alt={userProfile?.name}
+                className="w-16 h-16 rounded-full border-4 border-purple-500/50"
+              />
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-white">{userProfile?.name}</h3>
+                <p className="text-sm text-purple-300">@{userProfile?.username}</p>
+                <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${
+                  userProfile?.league === 'GOLD' ? 'bg-yellow-500/20 text-yellow-400' :
+                  userProfile?.league === 'SILVER' ? 'bg-gray-400/20 text-gray-300' :
+                  userProfile?.league === 'DIAMOND' ? 'bg-blue-400/20 text-blue-300' :
+                  userProfile?.league === 'PLATINUM' ? 'bg-gray-300/20 text-gray-200' :
+                  'bg-orange-500/20 text-orange-400'
+                }`}>
+                  {LEAGUES[userProfile?.league]?.name || 'Bronze'} League
+                </span>
+              </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <div className="bg-purple-950/40 p-3 rounded-xl text-center">
+                <div className="text-2xl font-bold text-yellow-400">{userProfile?.stats?.totalXP || 0}</div>
+                <div className="text-xs text-purple-300">Total XP</div>
+              </div>
+              <div className="bg-purple-950/40 p-3 rounded-xl text-center">
+                <div className="text-2xl font-bold text-orange-400 flex items-center justify-center gap-1">
+                  <Flame size={16} />
+                  {userProfile?.stats?.streak || 0}
+                </div>
+                <div className="text-xs text-purple-300">Streak</div>
+              </div>
+              <div className="bg-purple-950/40 p-3 rounded-xl text-center">
+                <div className="text-2xl font-bold text-pink-400">{userProfile?.stats?.friendsCount || 0}</div>
+                <div className="text-xs text-purple-300">Friends</div>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={handleOpenFriendSearch}
+                className="px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-bold hover:scale-105 transition-transform flex items-center justify-center gap-2 text-sm"
+                style={{ touchAction: 'manipulation' }}
+              >
+                <Search size={16} />
+                Find Friends
+              </button>
+              <button
+                onClick={() => {
+                  setShowDiscoverModal(true);
+                  handleLoadAllUsers();
+                }}
+                className="px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl font-bold hover:scale-105 transition-transform flex items-center justify-center gap-2 text-sm"
+                style={{ touchAction: 'manipulation' }}
+              >
+                <Users size={16} />
+                Discover
+              </button>
+            </div>
           </div>
 
-           
-           
-          
-
-          {/* Action Groups Button */}
-          <div className="mb-6 md:mb-4 text-center">
-
-            
-         
-          <div className="mb-6 md:mb-6">
-            <div className="flex gap-2 md:gap-3 flex-wrap">
-              
-              <div className="flex-1 min-w-[200px] relative">
-
-                
-                <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-purple-400 pointer-events-none" />
+          {/* 🔥 CLEAN SEARCH + NOTIFICATIONS BAR */}
+          <div className="mb-6">
+            <div className="flex gap-3">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-400 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Search friends, groups..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 md:pl-12 pr-4 py-3 md:py-4 bg-purple-900/40 border-2 border-purple-500/30 rounded-xl md:rounded-2xl text-white placeholder-purple-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 backdrop-blur-sm transition-all text-sm md:text-base"
+                  className="w-full pl-11 pr-4 py-3 bg-purple-900/40 border-2 border-purple-500/30 rounded-xl text-white placeholder-purple-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 backdrop-blur-sm transition-all text-sm"
                 />
               </div>
               
-              
-
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="relative px-4 md:px-6 py-3 md:py-4 bg-purple-900/40 border-2 border-purple-500/30 rounded-xl md:rounded-2xl text-white font-semibold hover:border-purple-400 transition-all flex items-center gap-2 min-h-[48px]"
+                className="relative px-4 py-3 bg-purple-900/40 border-2 border-purple-500/30 rounded-xl text-white font-semibold hover:border-purple-400 transition-all flex items-center justify-center flex-shrink-0"
                 style={{ touchAction: 'manipulation' }}
               >
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 md:-top-2 md:-right-2 w-5 h-5 md:w-6 md:h-6 bg-red-500 rounded-full text-xs flex items-center justify-center font-bold">
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center font-bold">
                     {unreadCount}
                   </span>
                 )}
               </button>
             </div>
 
+            {/* Notifications Dropdown */}
             {showNotifications && (
-  <div className="mt-4 p-4 md:p-6 bg-purple-900/40 backdrop-blur-sm rounded-xl md:rounded-2xl border border-purple-500/30 max-h-80 overflow-y-auto">
-    <div className="flex justify-between items-center mb-4">
-      <h4 className="text-base md:text-lg font-bold text-purple-100">Notifications</h4>
-      {unreadCount > 0 && (
-        <button
-          onClick={handleMarkAllNotificationsRead}
-          className="text-xs text-purple-400 hover:text-purple-200 underline"
-        >
-          Mark all as read
-        </button>
-      )}
-    </div>
-    
-    {notifications.length === 0 ? (
-      <EmptyState 
-        icon={Bell}
-        title="No Notifications"
-        description="You're all caught up!"
-      />
-    ) : (
-      <div className="space-y-2">
-        {notifications.map(notif => (
-          <div
-            key={notif.id}
-            className={`p-3 md:p-4 rounded-xl transition-all min-h-[56px] ${
-  notif.read ? 'bg-purple-950/20' : 'bg-purple-800/30'
-} ${(notif.type === 'friend' && notif.message.includes('sent you a friend request')) || (notif.type === 'challenge' && notif.message.includes('challenged you')) ? '' : 'cursor-pointer active:bg-purple-800/50'}`}
-onClick={() => {
-  if (!((notif.type === 'friend' && notif.message.includes('sent you a friend request')) || (notif.type === 'challenge' && notif.message.includes('challenged you')))) {
-    handleMarkNotificationRead(notif.id);
-  }
-}}
-            style={{ touchAction: 'manipulation' }}
-          >
-            <div className="flex gap-3">
-              <div className="text-xl md:text-2xl flex-shrink-0">{notif.icon}</div>
-              <div className="flex-1 min-w-0">
-	       
-         
-
-
-                <p className={`text-xs md:text-sm ${notif.read ? 'text-purple-300' : 'text-purple-100 font-semibold'}`}>
-                  {notif.message}
-                </p>
-                <span className="text-xs text-purple-400">
-                  {notif.createdAt ? new Date(notif.createdAt.seconds * 1000).toLocaleString() : 'Just now'}
-                </span>
+              <div className="mt-4 p-4 md:p-6 bg-purple-900/40 backdrop-blur-sm rounded-xl md:rounded-2xl border border-purple-500/30 max-h-80 overflow-y-auto">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="text-base md:text-lg font-bold text-purple-100">Notifications</h4>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={handleMarkAllNotificationsRead}
+                      className="text-xs text-purple-400 hover:text-purple-200 underline"
+                    >
+                      Mark all as read
+                    </button>
+                  )}
+                </div>
                 
-                {/* Friend Request Action Buttons */}
-                {notif.type === 'friend' && notif.message.includes('sent you a friend request') && !notif.read && (
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        const request = pendingRequests.find(r => r.fromUserId === notif.relatedId);
-                        if (request) {
-                          await handleAcceptFriendRequest(request.id);
-                          await handleMarkNotificationRead(notif.id);
-                        } else {
-                          alert('Friend request not found');
-                        }
-                      }}
-                      className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1"
-                      style={{ touchAction: 'manipulation' }}
-                    >
-                      <CheckCircle size={14} />
-                      Accept
-                    </button>
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        const request = pendingRequests.find(r => r.fromUserId === notif.relatedId);
-                        if (request) {
-                          await handleRejectFriendRequest(request.id);
-                          await handleMarkNotificationRead(notif.id);
-                        } else {
-                          alert('Friend request not found');
-                        }
-                      }}
-                      className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1"
-                      style={{ touchAction: 'manipulation' }}
-                    >
-                      <X size={14} />
-                      Reject
-                    </button>
-                  </div>
-                )}
+                {notifications.length === 0 ? (
+                  <EmptyState 
+                    icon={Bell}
+                    title="No Notifications"
+                    description="You're all caught up!"
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    {notifications.map(notif => (
+                      <div
+                        key={notif.id}
+                        className={`p-3 md:p-4 rounded-xl transition-all min-h-[56px] ${
+                          notif.read ? 'bg-purple-950/20' : 'bg-purple-800/30'
+                        } ${(notif.type === 'friend' && notif.message.includes('sent you a friend request')) || (notif.type === 'challenge' && notif.message.includes('challenged you')) ? '' : 'cursor-pointer active:bg-purple-800/50'}`}
+                        onClick={() => {
+                          if (!((notif.type === 'friend' && notif.message.includes('sent you a friend request')) || (notif.type === 'challenge' && notif.message.includes('challenged you')))) {
+                            handleMarkNotificationRead(notif.id);
+                          }
+                        }}
+                        style={{ touchAction: 'manipulation' }}
+                      >
+                        <div className="flex gap-3">
+                          <div className="text-xl md:text-2xl flex-shrink-0">{notif.icon}</div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs md:text-sm ${notif.read ? 'text-purple-300' : 'text-purple-100 font-semibold'}`}>
+                              {notif.message}
+                            </p>
+                            <span className="text-xs text-purple-400">
+                              {notif.createdAt ? new Date(notif.createdAt.seconds * 1000).toLocaleString() : 'Just now'}
+                            </span>
+                            
+                            {/* Friend Request Action Buttons */}
+                            {notif.type === 'friend' && notif.message.includes('sent you a friend request') && !notif.read && (
+                              <div className="flex gap-2 mt-3">
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    const request = pendingRequests.find(r => r.fromUserId === notif.relatedId);
+                                    if (request) {
+                                      await handleAcceptFriendRequest(request.id);
+                                      await handleMarkNotificationRead(notif.id);
+                                    } else {
+                                      alert('Friend request not found');
+                                    }
+                                  }}
+                                  className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1"
+                                  style={{ touchAction: 'manipulation' }}
+                                >
+                                  <CheckCircle size={14} />
+                                  Accept
+                                </button>
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    const request = pendingRequests.find(r => r.fromUserId === notif.relatedId);
+                                    if (request) {
+                                      await handleRejectFriendRequest(request.id);
+                                      await handleMarkNotificationRead(notif.id);
+                                    } else {
+                                      alert('Friend request not found');
+                                    }
+                                  }}
+                                  className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1"
+                                  style={{ touchAction: 'manipulation' }}
+                                >
+                                  <X size={14} />
+                                  Reject
+                                </button>
+                              </div>
+                            )}
 
 		{/* Challenge Request Action Buttons */}
 {notif.type === 'challenge' && notif.message.includes('challenged you') && !notif.read && (
@@ -1787,32 +1827,32 @@ onClick={() => {
 )}
 </div>
         
-          <div className="flex gap-2 md:gap-3 mb-6 md:mb-8 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
-            {[
-              { icon: <Users size={18} />, label: 'Friends', count: friends.length },
-              { icon: <Trophy size={18} />, label: 'Leaderboard', count: null },
-              { icon: <MessageCircle size={18} />, label: 'Leaderboard', count: groups.length },
-            ].map((tab, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleTabClick(idx)}
-                className={`flex items-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold transition-all whitespace-nowrap min-h-[48px] ${
-                  selectedTab === idx
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg scale-105'
-                    : 'bg-purple-900/40 text-purple-300 border border-purple-700/30 active:bg-purple-800/50'
-                }`}
-                style={{ touchAction: 'manipulation' }}
-              >
-                {tab.icon}
-                <span className="text-sm md:text-base">{tab.label}</span>
-                {tab.count !== null && (
-                  <span className={`px-2 py-0.5 md:py-1 rounded-lg text-xs font-bold ${
-                    selectedTab === idx ? 'bg-white/20' : 'bg-purple-800/50'
-                  }`}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
+          <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide sticky top-0 z-20 bg-gradient-to-br backdrop-blur-xl pt-4 -mx-4 px-4 md:mx-0 md:px-0">
+  {[
+    { icon: <Users size={16} />, label: 'Friends', count: friends.length },
+    { icon: <Trophy size={16} />, label: 'Leaderboard', count: null },
+    { icon: <MessageCircle size={16} />, label: 'Leaderboard', count: groups.length },
+  ].map((tab, idx) => (
+    <button
+      key={idx}
+      onClick={() => handleTabClick(idx)}
+      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl font-bold transition-all whitespace-nowrap flex-shrink-0 text-sm ${
+        selectedTab === idx
+          ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+          : 'bg-purple-900/40 text-purple-300 border border-purple-700/30 active:bg-purple-800/50'
+      }`}
+      style={{ touchAction: 'manipulation' }}
+    >
+      {tab.icon}
+      <span>{tab.label}</span>
+      {tab.count !== null && (
+        <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${
+          selectedTab === idx ? 'bg-white/20' : 'bg-purple-800/50'
+        }`}>
+          {tab.count}
+        </span>
+      )}
+    </button>
             ))}
           </div>
 

@@ -361,6 +361,20 @@ console.error("❌ Error marking plan as created:", error);
 
 // Replace your handleGeneratePlan function (around lines 353-467) with this:
 
+const MOCK_PLAN = {
+  // Structure to mimic the expected successful overview response
+  overview: {
+    days: [
+      { day: 1, title: "Understand Fundamentals", task: "Read and summarize 3 key articles on social skills." },
+      { day: 2, title: "Active Listening Practice", task: "Engage in a 15-minute conversation focusing only on listening and asking follow-up questions." },
+      { day: 3, title: "Body Language Awareness", task: "Spend 30 minutes observing non-verbal cues in public or from a video." },
+      { day: 4, title: "Initiate Small Talk", task: "Start a brief, friendly conversation with a stranger (e.g., barista, neighbor)." },
+      { day: 5, title: "Reflection & Planning", task: "Journal about the week's experiences and set one social goal for next week." },
+    ]
+  },
+  success: true,
+};
+
 const handleGeneratePlan = async () => {
   console.log("🚀 Starting 5-day task overview generation...");
   setIsGeneratingPlan(true);
@@ -389,10 +403,13 @@ const handleGeneratePlan = async () => {
     });
   }, 1200);
 
-  try {
-    let data: any;
-    let success = false;
+  let data: any = null; // Initialize data outside the loop
+  let success = false;
+  let useMockPlan = false; // Flag to indicate if we should use the mock plan
 
+  try {
+    
+    // --- API KEY LOOP ---
     for (let i = 0; i < apiKeys.length; i++) {
       const apiKey = apiKeys[i];
 
@@ -431,32 +448,49 @@ const handleGeneratePlan = async () => {
         // Try next key
       }
     }
+    // --- END API KEY LOOP ---
+
+    // === Add Mock Plan Logic Here ===
+    if (!success) {
+      console.warn("⚠️ All API keys failed. Falling back to mock plan.");
+      data = MOCK_PLAN;
+      success = true; // Treat as success for flow control
+      useMockPlan = true;
+    }
+    // === End Mock Plan Logic ===
 
     if (!success) {
-      throw new Error("All API keys failed. Could not generate plan.");
+      // This line is technically unreachable now if MOCK_PLAN is set, 
+      // but kept for robustness if mock plan setting fails or is not desired.
+      throw new Error("Could not generate plan after all attempts.");
     }
+    
+    // Use the data (either real or mock)
+    const overviewToSave = data.overview;
 
     // Save to Firebase
     const courseId = "social_skills";
     const userPlanRef = doc(firestore, "users", userId, "datedcourses", courseId);
 
     await setDoc(userPlanRef, {
-      task_overview: data.overview,
+      task_overview: overviewToSave,
       goal_name: goalName,
       user_id: userId,
       course_id: courseId,
       generated_at: serverTimestamp(),
       created_at: serverTimestamp(),
+      // Optionally log if it was a mock plan
+      is_mock_plan: useMockPlan, 
     });
 
-    console.log("✅ 5-day task overview saved to Firebase");
+    console.log(`✅ 5-day task overview saved to Firebase (Mock: ${useMockPlan})`);
 
     setSuccessfulDays(5);
     setCurrentStep(GENERATION_STEPS.length);
     await markPlanAsCreated();
 
     setPlanPreview({
-      days: data.overview.days || [
+      days: overviewToSave.days || [ // Use the saved overview data
         { day: 1, title: "Build Foundation", task: "Start with 15min daily practice" },
         { day: 2, title: "Gain Momentum", task: "Increase to 30min, track progress" },
         { day: 3, title: "Push Boundaries", task: "Try one challenging scenario" },
@@ -465,11 +499,12 @@ const handleGeneratePlan = async () => {
       ]
     });
 
-    showToast("🎉 Your 5-day plan is ready!", "success");
+    showToast(`🎉 Your 5-day plan is ready!${useMockPlan ? ' (Using a backup plan)' : ''}`, "success");
 
   } catch (err: any) {
     console.error("🔥 handleGeneratePlan error:", err);
-    showToast(`⚠️ Plan generation failed: ${err.message}`, "error");
+    // If the original flow had a final failure, this catches it
+    showToast(`⚠️ Plan generation failed: ${err.message}`, "error"); 
   } finally {
     clearInterval(progressInterval);
     setIsGeneratingPlan(false);
