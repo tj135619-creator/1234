@@ -9,6 +9,7 @@ import MICROGOALS from "src/components/DAY_03/MICROGOALS/16";
 import ANXIETYREDUCTION from "src/components/DAY_03/ANXIETYREDUCTION/17";
 import MENTALPREP from "./MENTALPREP/17";
 import COMMIT from "src/components/DAY_03/COMMITMENT/18";
+import SETYOURTIMES from "./SETYOURTIMES/02";
 
 interface Day3ContainerProps {
   onCompleteNavigator?: () => void;
@@ -16,13 +17,12 @@ interface Day3ContainerProps {
 
 const pages = [
   { component: WELCOME, title: "Welcome & Objective" },
-  { component: REVIEWCONV, title: "Review Conversations" },
   { component: CONVFRAME, title: "Conversation Framework" },
-  { component: MENTALPREP, title: "Mental Preparation" },
+  //{ component: MENTALPREP, title: "Mental Preparation" },
   { component: REFLECTSKILLS, title: "Reflect Micro-Skills" },
-  { component: PATTERNSMISTAKES, title: "Identify Patterns & Mistakes" },
-  { component: PLANLOCATIONS, title: "Plan Locations" },
-  { component: MICROGOALS, title: "Set Micro-Goals" },
+ // { component: PLANLOCATIONS, title: "Plan Locations" },
+ // { component: MICROGOALS, title: "Set Micro-Goals" },
+  { component: SETYOURTIMES, title: "Set Your Times" },
   { component: ANXIETYREDUCTION, title: "Anxiety Reduction" },
   { component: COMMIT, title: "Reflection & Commitment" },
 ];
@@ -103,26 +103,43 @@ export default function Day3Container({ onCompleteNavigator }: Day3ContainerProp
             <CurrentPage onNext={nextPage} onComplete={nextPage} />
           </div>
 
-          <div
+          {/* Floating Small Navigation Buttons */}
+          {currentIndex > 0 && (
+            <button
+              onClick={prevPage}
+              style={{
+                position: "fixed",
+                bottom: "20px",
+                left: "20px",
+                padding: "6px 12px",
+                fontSize: "12px",
+                borderRadius: "8px",
+                background: "rgba(128, 90, 213, 0.7)",
+                color: "white",
+                zIndex: 1000001,
+                cursor: currentIndex === 0 ? "not-allowed" : "pointer",
+              }}
+            >
+              Previous
+            </button>
+          )}
+
+          <button
+            onClick={nextPage}
             style={{
               position: "fixed",
-              bottom: 0,
-              width: "100%",
-              display: "flex",
-              justifyContent: "space-between",
-              padding: "10px 20px",
-              background: "rgba(0,0,0,0.5)",
-              backdropFilter: "blur(6px)",
+              bottom: "20px",
+              right: "20px",
+              padding: "6px 12px",
+              fontSize: "12px",
+              borderRadius: "8px",
+              background: "linear-gradient(to right, #14b8a6, #06b6d4)",
+              color: "white",
               zIndex: 1000001,
             }}
           >
-            <button onClick={prevPage} style={{ padding: "12px 24px" }}>
-              Previous
-            </button>
-            <button onClick={nextPage} style={{ padding: "12px 24px" }}>
-              {currentIndex === pages.length - 1 ? "Finish" : "Next"}
-            </button>
-          </div>
+            {currentIndex === pages.length - 1 ? "Finish" : "Next"}
+          </button>
         </>
       )}
     </div>

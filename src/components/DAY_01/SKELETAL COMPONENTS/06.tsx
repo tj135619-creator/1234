@@ -168,11 +168,11 @@ const handleSendMessage = async () => {
   for (let i = 0; i < apiKeys.length; i++) {
     const apiKey = apiKeys[i];
     try {
-      const response = await fetch('https://one23-u2ck.onrender.com/chat', {
+      const response = await fetch('https://pythonbackend-74es.onrender.com/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
+          'Authorization': `Bearer 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`
         },
         body: JSON.stringify({
           user_id: "HfwcJgkyNNb3T3UdWRDbrCiRQuS2",

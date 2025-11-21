@@ -1,20 +1,207 @@
 import { useState, useEffect, useRef } from 'react';
-import { Sparkles, Send, Trash2, User, Bot, Loader2, MessageCircle, Zap, Plus, ChevronDown, Brain, Star, Copy, Check, Wand2 } from 'lucide-react';
+import { Send, User, Bot, Loader2, Brain, Target, BookOpen, Zap, Calendar, CheckCircle, Sparkles, ArrowRight } from 'lucide-react';
 
-export default function AIChatInterface({ onNext }) {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      role: 'assistant',
-      content: 'Hello! I\'m your AI assistant. How can I help you today?',
-      timestamp: Date.now()
-    }
-  ]);
+export default function AIChatInterface({onComplete}) {
+  const [currentPhase, setCurrentPhase] = useState(1);
+  const [sessionId] = useState(`session_${Date.now()}`);
+  const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(true);
-  const [copiedId, setCopiedId] = useState(null);
+  const [showPhaseTransition, setShowPhaseTransition] = useState(false);
   const messagesEndRef = useRef(null);
+
+  const GROQ_API_KEY = "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";
+  const API_BASE = "https://pythonbackend-74es.onrender.com";
+
+  const phases = [
+    {
+      id: 1,
+      name: "Diagnostic",
+      coach: "Dr. Maya",
+      icon: Brain,
+      color: "from-purple-500 to-pink-500",
+      bgGradient: "from-purple-950 via-purple-900 to-pink-950",
+      description: "Understanding your challenges",
+      minMessages: 5
+    },
+    {
+      id: 2,
+      name: "Skills Analysis",
+      coach: "Coach Jordan",
+      icon: Target,
+      color: "from-blue-500 to-cyan-500",
+      bgGradient: "from-blue-950 via-blue-900 to-cyan-950",
+      description: "Identifying skill gaps",
+      minMessages: 3
+    },
+    {
+      id: 3,
+      name: "Education",
+      coach: "Prof. Chen",
+      icon: BookOpen,
+      color: "from-green-500 to-emerald-500",
+      bgGradient: "from-green-950 via-green-900 to-emerald-950",
+      description: "Learning the psychology",
+      minMessages: 2
+    },
+    {
+      id: 4,
+      name: "Goal Setting",
+      coach: "Alex",
+      icon: Zap,
+      color: "from-amber-500 to-orange-500",
+      bgGradient: "from-amber-950 via-orange-900 to-orange-950",
+      description: "Creating SMART goals",
+      minMessages: 3
+    },
+    {
+      id: 5,
+      name: "Action Planning",
+      coach: "Riley",
+      icon: Calendar,
+      color: "from-fuchsia-500 to-pink-500",
+      bgGradient: "from-fuchsia-950 via-pink-900 to-pink-950",
+      description: "Building your 5-day plan",
+      minMessages: 2
+    },
+    {
+      id: 6,
+      name: "Accountability",
+      coach: "Sam",
+      icon: CheckCircle,
+      color: "from-teal-500 to-green-500",
+      bgGradient: "from-teal-950 via-green-900 to-green-950",
+      description: "Setting up tracking",
+      minMessages: 2
+    }
+  ];
+
+  const currentPhaseData = phases[currentPhase - 1];
+  const userMessageCount = messages.filter(m => m.role === 'user').length;
+  const canMoveToNext = userMessageCount >= currentPhaseData.minMessages && currentPhase < 6;
+
+  useEffect(() => {
+    initializeSession();
+  }, []);
+
+  const initializeSession = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          api_key: GROQ_API_KEY,
+          phase: 1,
+          message: ""
+        })
+      });
+
+      const data = await response.json();
+      
+      setMessages([{
+        id: Date.now(),
+        role: 'assistant',
+        content: data.response,
+        timestamp: Date.now()
+      }]);
+    } catch (error) {
+      console.error('Initialization error:', error);
+      setMessages([{
+        id: Date.now(),
+        role: 'assistant',
+        content: '⚠️ Could not connect to server. Please try again.',
+        timestamp: Date.now()
+      }]);
+    }
+    setIsLoading(false);
+  };
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return;
+
+    const userMsg = {
+      id: Date.now(),
+      role: 'user',
+      content: inputMessage,
+      timestamp: Date.now()
+    };
+
+    setMessages(prev => [...prev, userMsg]);
+    const userInput = inputMessage;
+    setInputMessage('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`${API_BASE}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          api_key: GROQ_API_KEY,
+          phase: currentPhase,
+          message: userInput
+        })
+      });
+
+      const data = await response.json();
+
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: data.response,
+        timestamp: Date.now()
+      }]);
+    } catch (error) {
+      console.error('Send error:', error);
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: '⚠️ Error sending message. Please try again.',
+        timestamp: Date.now()
+      }]);
+    }
+
+    setIsLoading(false);
+  };
+
+  const handleNextPhase = async () => {
+    if (!canMoveToNext) return;
+
+    setShowPhaseTransition(true);
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`${API_BASE}/transition`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          new_phase: currentPhase + 1
+        })
+      });
+
+      const data = await response.json();
+
+      setTimeout(() => {
+        setCurrentPhase(currentPhase + 1);
+        setMessages([{
+          id: Date.now(),
+          role: 'assistant',
+          content: data.response,
+          timestamp: Date.now()
+        }]);
+        setShowPhaseTransition(false);
+        setIsLoading(false);
+      }, 2000);
+
+    } catch (error) {
+      console.error('Transition error:', error);
+      setShowPhaseTransition(false);
+      setIsLoading(false);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -24,554 +211,246 @@ export default function AIChatInterface({ onNext }) {
     scrollToBottom();
   }, [messages]);
 
-  const quickPrompts = [
-    { icon: '💡', text: 'Creative ideas', category: 'Brainstorm' },
-    { icon: '📝', text: 'Help writing', category: 'Writing' },
-    { icon: '🎯', text: 'Solve problem', category: 'Problem' },
-    { icon: '📚', text: 'Explain concept', category: 'Learning' },
-    { icon: '🔍', text: 'Research topic', category: 'Research' },
-    { icon: '💬', text: 'Just chat', category: 'Chat' },
-  ];
-  
-  // Run only once on component mount
-useEffect(() => {
-  initialLoad();
-}, []);
-
-const initialLoad = async () => {
-  console.log("🟦 Initial load triggered...");
-
-  setIsLoading(true);
-
-  try {
-    console.log("🟩 Calling backend for first message...");
-
-    const response = await fetch("https://one23-u2ck.onrender.com/agent", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}), // no answer → start diagnostic phase
-    });
-
-    console.log("🟩 Backend responded with status:", response.status);
-
-    if (!response.ok) {
-      console.error("⚠️ Initial load: backend returned non-OK");
-      setMessages([
-        {
-          id: Date.now(),
-          role: "assistant",
-          content: "⚠️ Unable to load AI assistant. Please try again.",
-          timestamp: Date.now(),
-        },
-      ]);
-      setIsLoading(false);
-      return;
-    }
-
-    let data;
-    try {
-      data = await response.json();
-    } catch (jsonErr) {
-      console.error("⚠️ Initial load: JSON parse error:", jsonErr);
-
-      setMessages([
-        {
-          id: Date.now(),
-          role: "assistant",
-          content: "⚠️ Server returned an invalid response.",
-          timestamp: Date.now(),
-        },
-      ]);
-      setIsLoading(false);
-      return;
-    }
-
-    console.log("🟩 Initial load parsed JSON:", data);
-
-    // Create and store first AI message
-    const aiMessage = {
-      id: Date.now(),
-      role: "assistant",
-      content: data?.content || "⚠️ No initial message from server.",
-      timestamp: Date.now(),
-    };
-
-    console.log("🟩 Initial AI message:", aiMessage);
-
-    setMessages([aiMessage]);
-
-  } catch (error) {
-    console.error("❌ Initial load network error:", error);
-
-    setMessages([
-      {
-        id: Date.now(),
-        role: "assistant",
-        content: "⚠️ Could not connect to AI server.",
-        timestamp: Date.now(),
-      },
-    ]);
-  }
-
-  console.log("🟦 Initial load complete");
-  setIsLoading(false);
-};
-
-
-const handleSendMessage = async () => {
-  if (!inputMessage.trim() || isLoading) return;
-
-  const userMessage = {
-    id: Date.now(),
-    role: "user",
-    content: inputMessage,
-    timestamp: Date.now(),
-  };
-
-  setMessages((prev) => [...prev, userMessage]);
-
-  const userInput = inputMessage;
-  setInputMessage("");
-  setIsLoading(true);
-
-  // Get the API key (IMPORTANT)
-  const groqKey = "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";
-
-  if (!groqKey) {
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now() + 1,
-        role: "assistant",
-        content: "Missing Groq API key. Please set it in your settings.",
-        timestamp: Date.now(),
-      },
-    ]);
-    setIsLoading(false);
-    return;
-  }
-
-  try {
-    
-    const response = await fetch("https://one23-u2ck.onrender.com/agent", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    groq_api_key: "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",
-    answer: userInput,
-  }),
-});
-
-
-    let data;
-    try {
-      data = await response.json();
-    } catch (jsonErr) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          role: "assistant",
-          content:
-            "Server error or HTML returned. Try again in a moment.",
-          timestamp: Date.now(),
-        },
-      ]);
-      setIsLoading(false);
-      return;
-    }
-
-    const aiMessage = {
-      id: Date.now() + 1,
-      role: "assistant",
-      content: data?.content || JSON.stringify(data),
-      timestamp: Date.now(),
-    };
-
-    setMessages((prev) => [...prev, aiMessage]);
-  } catch (error) {
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now() + 1,
-        role: "assistant",
-        content: "Could not reach AI server.",
-        timestamp: Date.now(),
-      },
-    ]);
-  }
-
-  setIsLoading(false);
-};
-
-
-// === QUICK PROMPT BUTTON ===
-const handleQuickPrompt = (prompt) => {
-  setInputMessage(prompt);
-};
-
-// === CLEAR CHAT ===
-const handleClearChat = () => {
-  setMessages([
-    {
-      id: 1,
-      role: "assistant",
-      content: "Chat cleared! How can I help you today?",
-      timestamp: Date.now(),
-    },
-  ]);
-};
-
-// === COPY MESSAGE ===
-const handleCopyMessage = (id, content) => {
-  navigator.clipboard.writeText(content);
-  setCopiedId(id);
-  setTimeout(() => setCopiedId(null), 2000);
-};
-
+  const PhaseIcon = currentPhaseData.icon;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 text-white bubbly-font">
+    <div className={`h-screen flex flex-col bg-gradient-to-br ${currentPhaseData.bgGradient} text-white transition-all duration-1000 overflow-hidden`}>
       
-      {/* ONBOARDING FLOATING BOX */}
-      {showOnboarding && (
-        <div className="fixed bottom-6 right-6 z-[100] animate-slide-in-right">
-          <div className="bg-gradient-to-br from-purple-900/95 to-indigo-900/95 backdrop-blur-xl p-5 md:p-6 rounded-2xl border-2 border-purple-500/50 shadow-2xl max-w-sm w-full relative">
-            <button
-              onClick={() => setShowOnboarding(false)}
-              className="absolute top-3 right-3 p-1.5 hover:bg-purple-800/50 rounded-lg transition-all"
-            >
-              <svg className="w-5 h-5 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            <div className="mb-4">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-                  <Brain className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white">Quick Guide 💡</h3>
-              </div>
-              <p className="text-purple-200 text-sm">Start chatting with AI</p>
+      {/* PHASE TRANSITION OVERLAY */}
+      {showPhaseTransition && (
+        <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-xl flex items-center justify-center p-6">
+          <div className="text-center space-y-6 animate-fade-in">
+            <div className={`w-24 h-24 mx-auto bg-gradient-to-br ${phases[currentPhase].color} rounded-3xl flex items-center justify-center animate-bounce-slow shadow-2xl`}>
+              {(() => {
+                const NextIcon = phases[currentPhase].icon;
+                return <NextIcon className="w-12 h-12 text-white" />;
+              })()}
             </div>
-
-            <div className="space-y-3 mb-4">
-              <div className="flex items-start gap-2 text-sm">
-                <MessageCircle className="w-4 h-4 text-purple-400 flex-shrink-0 mt-0.5" />
-                <p className="text-purple-300">Type your message or use quick prompts</p>
-              </div>
-
-              <div className="flex items-start gap-2 text-sm">
-                <Zap className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
-                <p className="text-purple-300">Get instant AI-powered responses</p>
-              </div>
-
-              <div className="flex items-start gap-2 text-sm">
-                <Star className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
-                <p className="text-purple-300">Copy useful responses with one click</p>
-              </div>
+            <div className="space-y-3">
+              <p className="text-2xl font-bold text-white">Moving to Phase {currentPhase + 1}</p>
+              <p className={`text-xl bg-gradient-to-r ${phases[currentPhase].color} bg-clip-text text-transparent font-bold`}>
+                Meeting {phases[currentPhase].coach}
+              </p>
+              <p className="text-base text-gray-300">{phases[currentPhase].description}</p>
             </div>
-
-            <button
-              onClick={() => setShowOnboarding(false)}
-              className="w-full px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl font-semibold text-white text-sm transition-all shadow-lg"
-            >
-              Got it! 🚀
-            </button>
+            <div className="flex gap-2 justify-center">
+              <div className="w-3 h-3 bg-white/50 rounded-full animate-pulse"></div>
+              <div className="w-3 h-3 bg-white/50 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+              <div className="w-3 h-3 bg-white/50 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* HEADER */}
-      <div className="sticky top-0 z-50 bg-gradient-to-r from-purple-900/95 via-purple-800/95 to-indigo-900/95 backdrop-blur-md border-b-2 border-purple-500/30 shadow-2xl">
-        <div className="px-4 md:px-6 lg:px-10 py-3 md:py-4">
+      {/* COMPACT HEADER */}
+      <div className="flex-shrink-0 bg-black/40 backdrop-blur-xl border-b border-white/10 shadow-xl">
+        <div className="px-4 py-3">
+          {/* Current Phase Info - Single Line */}
           <div className="flex items-center justify-between gap-3">
-            
-            <div className="flex items-center gap-2 md:gap-3">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl">
-                <Brain className="w-5 h-5 md:w-6 md:h-6 text-white" />
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className={`w-12 h-12 bg-gradient-to-br ${currentPhaseData.color} rounded-xl flex items-center justify-center shadow-lg flex-shrink-0`}>
+                <PhaseIcon className="w-6 h-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-lg md:text-xl font-bold text-purple-100">AI Chat Assistant</h1>
-                <p className="text-xs md:text-sm text-purple-300">Powered by AI</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-lg font-bold truncate">
+                    Phase {currentPhase}: {currentPhaseData.name}
+                  </h1>
+                </div>
+                <p className="text-xs text-gray-400 truncate">{currentPhaseData.description}</p>
               </div>
-              {/* NEXT BUTTON TO MOVE TO NEXT PAGE */}
-<div className="p-4 flex justify-center">
-  <button
-    onClick={onNext}
-    className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white text-lg font-bold rounded-2xl shadow-xl transition-all"
-  >
-    Next →
-  </button>
-</div>
-
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-green-500/20 rounded-full border border-green-400/30">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span className="text-xs md:text-sm font-bold text-green-100">Online</span>
-              </div>
-
-              <button
-                onClick={handleClearChat}
-                className="p-2 md:p-2.5 bg-purple-800/40 hover:bg-purple-700/40 rounded-xl border border-purple-500/30 transition-all shadow-lg"
-              >
-                <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
-              </button>
+            <div className="text-right flex-shrink-0">
+              <p className="text-2xl font-bold">{currentPhase}/6</p>
             </div>
+          </div>
+
+          {/* Mini Phase Timeline */}
+          <div className="flex gap-1 mt-3">
+            {phases.map((phase) => (
+              <div key={phase.id} className="flex-1 h-1 rounded-full transition-all" 
+                style={{
+                  background: phase.id < currentPhase 
+                    ? `linear-gradient(to right, var(--tw-gradient-stops))` 
+                    : phase.id === currentPhase 
+                    ? `linear-gradient(to right, var(--tw-gradient-stops))`
+                    : '#374151'
+                }}
+                className={
+                  phase.id < currentPhase ? `bg-gradient-to-r ${phase.color}` :
+                  phase.id === currentPhase ? `bg-gradient-to-r ${phase.color} animate-pulse` :
+                  'bg-gray-700'
+                }
+              />
+            ))}
           </div>
         </div>
       </div>
 
-      {/* MAIN CONTENT */}
-      <div className="flex flex-col h-[calc(100vh-80px)]">
-        
-        {/* MESSAGES AREA */}
-        <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-10 py-6 space-y-4">
-          
-          {/* QUICK PROMPTS - COMPACT VERSION */}
-          {messages.length === 1 && (
-            <div className="mb-4">
-              <h2 className="text-base md:text-lg font-bold text-purple-100 mb-3 flex items-center gap-2">
-                <Wand2 className="w-4 h-4 text-purple-400" />
-                Quick Prompts
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-                {quickPrompts.map((prompt, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleQuickPrompt(prompt.text)}
-                    className="p-2.5 bg-gradient-to-br from-purple-900/40 to-indigo-900/40 backdrop-blur-sm rounded-xl border border-purple-500/20 hover:border-purple-400/40 transition-all text-center shadow-md hover:shadow-lg hover:scale-[1.03]"
-                  >
-                    <span className="text-2xl mb-1 block">{prompt.icon}</span>
-                    <p className="text-xs font-medium text-purple-100 leading-tight">{prompt.text}</p>
-                  </button>
-                ))}
+      {/* MESSAGES AREA - FULL HEIGHT */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4" style={{minHeight: 0}}>
+        <div className="max-w-4xl mx-auto space-y-4 pb-4">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+            >
+              {/* Avatar */}
+              <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${
+                message.role === 'user' 
+                  ? 'bg-gradient-to-br from-gray-600 to-gray-800' 
+                  : `bg-gradient-to-br ${currentPhaseData.color}`
+              }`}>
+                {message.role === 'user' ? (
+                  <User className="w-5 h-5 text-white" />
+                ) : (
+                  <Bot className="w-5 h-5 text-white" />
+                )}
+              </div>
+
+              {/* Message Bubble */}
+              <div className={`flex-1 ${message.role === 'user' ? 'max-w-[80%]' : 'max-w-[85%]'}`}>
+                {message.role === 'user' ? (
+                  <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl shadow-lg">
+                    <p className="text-base text-white whitespace-pre-wrap leading-relaxed break-words">
+                      {message.content}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-2">
+                      {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-xl">
+                    {/* Coach Badge */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`px-2.5 py-1 bg-gradient-to-r ${currentPhaseData.color} rounded-full flex items-center gap-1.5`}>
+                        <Sparkles className="w-3 h-3 text-white" />
+                        <span className="text-xs font-bold text-white">{currentPhaseData.coach}</span>
+                      </div>
+                    </div>
+
+                    <p className="text-base text-white whitespace-pre-wrap leading-relaxed break-words">
+                      {message.content}
+                    </p>
+
+                    <p className="text-xs text-gray-400 mt-3 flex items-center gap-2">
+                      <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                      {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {/* Loading */}
+          {isLoading && !showPhaseTransition && (
+            <div className="flex gap-3">
+              <div className={`w-10 h-10 bg-gradient-to-br ${currentPhaseData.color} rounded-xl flex items-center justify-center shadow-lg`}>
+                <Bot className="w-5 h-5 text-white" />
+              </div>
+              <div className="p-4 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl">
+                <div className="flex items-center gap-3">
+                  <Loader2 className="w-5 h-5 text-white animate-spin" />
+                  <span className="text-base text-white">{currentPhaseData.coach} is thinking...</span>
+                </div>
               </div>
             </div>
           )}
 
-          {/* MESSAGES */}
-          <div className="max-w-5xl mx-auto space-y-6">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex gap-4 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
-              >
-                {/* Avatar */}
-                <div className={`flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center shadow-xl ${
-                  message.role === 'user' 
-                    ? 'bg-gradient-to-br from-pink-500 to-purple-600' 
-                    : 'bg-gradient-to-br from-purple-500 via-indigo-600 to-blue-600'
-                }`}>
-                  {message.role === 'user' ? (
-                    <User className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                  ) : (
-                    <Bot className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                  )}
-                </div>
-
-                {/* Message Bubble */}
-                <div className={`flex-1 ${message.role === 'user' ? 'max-w-[75%]' : 'max-w-[85%]'}`}>
-                  {message.role === 'user' ? (
-                    // USER MESSAGE - SMALLER
-                    <div className="bg-gradient-to-br from-pink-600/90 to-purple-600/90 backdrop-blur-md border border-pink-500/30 p-4 rounded-3xl shadow-lg">
-                      <p className="text-sm md:text-base text-white whitespace-pre-wrap leading-relaxed">
-                        {message.content}
-                      </p>
-                      <p className="text-xs text-pink-200/80 mt-2">
-                        {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                  ) : (
-                    // AI MESSAGE - BIGGER AND MORE CREATIVE
-                    <div className="relative">
-                      {/* Decorative elements */}
-                      <div className="absolute -top-2 -left-2 w-6 h-6 bg-purple-500/30 rounded-full blur-xl"></div>
-                      <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-pink-500/20 rounded-full blur-xl"></div>
-                      
-                      <div className="bg-gradient-to-br from-purple-900/70 via-indigo-900/70 to-purple-900/70 backdrop-blur-xl border-2 border-purple-400/40 p-6 md:p-8 rounded-3xl shadow-2xl relative overflow-hidden">
-                        {/* Animated gradient overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-500/5 to-transparent animate-shimmer"></div>
-                        
-                        {/* AI Badge */}
-                        <div className="flex items-center gap-2 mb-4">
-                          <div className="px-3 py-1 bg-gradient-to-r from-purple-500/30 to-pink-500/30 rounded-full border border-purple-400/40 flex items-center gap-2">
-                            <Sparkles className="w-3 h-3 text-purple-300" />
-                            <span className="text-xs font-bold text-purple-200">AI Assistant</span>
-                          </div>
-                        </div>
-
-                        {/* Message Content */}
-                        <div className="relative z-10">
-                          <p className="text-base md:text-lg text-white whitespace-pre-wrap leading-relaxed font-medium">
-                            {message.content}
-                          </p>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="flex items-center justify-between mt-6 pt-4 border-t border-purple-400/20 relative z-10">
-                          <p className="text-xs text-purple-300 flex items-center gap-2">
-                            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                            {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                          <button
-                            onClick={() => handleCopyMessage(message.id, message.content)}
-                            className="p-2 hover:bg-purple-700/50 rounded-xl transition-all group"
-                          >
-                            {copiedId === message.id ? (
-                              <div className="flex items-center gap-1">
-                                <Check className="w-4 h-4 text-green-400" />
-                                <span className="text-xs text-green-400 font-medium">Copied!</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1">
-                                <Copy className="w-4 h-4 text-purple-300 group-hover:text-purple-200" />
-                                <span className="text-xs text-purple-300 group-hover:text-purple-200 font-medium">Copy</span>
-                              </div>
-                            )}
-                          </button>
-                        </div>
-
-                        {/* Decorative corner accents */}
-                        <div className="absolute top-4 right-4 w-16 h-16 border-t-2 border-r-2 border-purple-400/20 rounded-tr-3xl"></div>
-                        <div className="absolute bottom-4 left-4 w-16 h-16 border-b-2 border-l-2 border-purple-400/20 rounded-bl-3xl"></div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {/* Loading Indicator */}
-            {isLoading && (
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-500 via-indigo-600 to-blue-600 rounded-2xl flex items-center justify-center shadow-xl">
-                  <Bot className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                </div>
-                <div className="p-6 rounded-3xl bg-gradient-to-br from-purple-900/70 to-indigo-900/70 backdrop-blur-xl border-2 border-purple-400/40 shadow-2xl max-w-[85%]">
-                  <div className="flex items-center gap-3">
-                    <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                    </div>
-                    <span className="text-base text-purple-300 font-medium">AI is thinking...</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
+          <div ref={messagesEndRef} />
         </div>
+      </div>
 
-        {/* INPUT AREA */}
-        <div className="border-t-2 border-purple-500/30 bg-gradient-to-r from-purple-900/95 via-purple-800/95 to-indigo-900/95 backdrop-blur-md">
-          <div className="px-4 md:px-6 lg:px-10 py-4 max-w-5xl mx-auto">
-            <div className="flex gap-3 items-end">
-              <div className="flex-1">
-                <textarea
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                  placeholder="Type your message... (Shift+Enter for new line)"
-                  className="w-full px-4 md:px-5 py-3 md:py-4 bg-purple-950/50 border-2 border-purple-500/30 rounded-2xl text-white placeholder-purple-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 text-sm md:text-base resize-none transition-all"
-                  rows={1}
-                  style={{ minHeight: '52px', maxHeight: '120px' }}
-                />
-              </div>
+      {/* INPUT AREA - COMPACT & FIXED */}
+      <div className="flex-shrink-0 border-t border-white/10 bg-black/40 backdrop-blur-md shadow-2xl">
+        <div className="px-4 py-3">
+          {/* Next Phase Button */}
+          {canMoveToNext && (
+            <div className="mb-3 animate-fade-in">
               <button
-                onClick={handleSendMessage}
-                disabled={!inputMessage.trim() || isLoading}
-                className="p-3 md:p-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl disabled:hover:from-purple-600 disabled:hover:to-pink-600 flex-shrink-0"
+                onClick={handleNextPhase}
+                className={`w-full px-5 py-3 bg-gradient-to-r ${phases[currentPhase].color} rounded-xl transition-all transform active:scale-95 flex items-center justify-center gap-2 font-bold text-base shadow-lg`}
               >
-                <Send className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                <span className="truncate">Phase {currentPhase + 1}: {phases[currentPhase].name}</span>
+                <ArrowRight className="w-5 h-5 flex-shrink-0" />
               </button>
             </div>
-            <p className="text-xs text-purple-400 mt-2 text-center">
-              AI responses are simulated in this demo
-            </p>
+          )}
+
+          {currentPhase === 6 && ( // <--- CONDITION 2: Finish Button
+            <div className="mb-3 animate-fade-in">
+              <button
+                onClick={() => onComplete()} // Replace with your actual finish logic (e.g., redirect, API call to save results)
+                className="w-full px-5 py-3 bg-gradient-to-r from-teal-500 to-green-500 rounded-xl transition-all transform active:scale-95 flex items-center justify-center gap-2 font-bold text-base shadow-lg ring-4 ring-green-500/30"
+              >
+                <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                <span>Finish Conversation & View Plan</span>
+              </button>
+            </div>
+          )}
+
+          <div className="flex gap-2 items-end">
+            <div className="flex-1 min-w-0">
+              <textarea
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+                placeholder={`Message ${currentPhaseData.coach}...`}
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-white/40 focus:ring-2 focus:ring-white/20 text-base resize-none transition-all"
+                rows={1}
+                style={{ minHeight: '48px', maxHeight: '96px' }}
+              />
+            </div>
+            <button
+              onClick={handleSendMessage}
+              disabled={!inputMessage.trim() || isLoading}
+              className={`p-3 bg-gradient-to-r ${currentPhaseData.color} active:scale-95 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0 shadow-lg`}
+            >
+              <Send className="w-6 h-6 text-white" />
+            </button>
           </div>
+
+          {!canMoveToNext && currentPhase < 6 && (
+            <p className="text-center text-xs text-gray-400 mt-2">
+              Continue ({userMessageCount}/{currentPhaseData.minMessages} messages)
+            </p>
+          )}
         </div>
       </div>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap');
-
-        .bubbly-font {
-          font-family: 'Fredoka', sans-serif;
+        @keyframes fade-in {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
         }
 
-        @keyframes slide-in-right {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
+        @keyframes bounce-slow {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-20px); }
         }
 
-        @keyframes shimmer {
-          0% {
-            transform: translateX(-100%);
-          }
-          100% {
-            transform: translateX(100%);
-          }
+        .animate-fade-in {
+          animation: fade-in 0.5s ease-out;
         }
 
-        .animate-slide-in-right {
-          animation: slide-in-right 0.3s ease-out;
-        }
-
-        .animate-shimmer {
-          animation: shimmer 3s infinite;
-        }
-
-        html {
-          scroll-behavior: smooth;
-          -webkit-overflow-scrolling: touch;
-        }
-
-        button, a, input, select, textarea {
-          -webkit-tap-highlight-color: transparent;
-          touch-action: manipulation;
-        }
-
-        button {
-          -webkit-user-select: none;
-          user-select: none;
-        }
-
-        button:focus-visible,
-        input:focus-visible,
-        textarea:focus-visible {
-          outline: 2px solid #a78bfa;
-          outline-offset: 2px;
-        }
-
-        * {
-          transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        .animate-bounce-slow {
+          animation: bounce-slow 2s infinite;
         }
 
         textarea {
           scrollbar-width: thin;
-          scrollbar-color: #a78bfa transparent;
+          scrollbar-color: rgba(255,255,255,0.2) transparent;
         }
 
         textarea::-webkit-scrollbar {
-          width: 6px;
+          width: 4px;
         }
 
         textarea::-webkit-scrollbar-track {
@@ -579,8 +458,26 @@ const handleCopyMessage = (id, content) => {
         }
 
         textarea::-webkit-scrollbar-thumb {
-          background: #a78bfa;
-          border-radius: 3px;
+          background: rgba(255,255,255,0.2);
+          border-radius: 2px;
+        }
+
+        /* Smooth scrolling */
+        .overflow-y-auto {
+          -webkit-overflow-scrolling: touch;
+          scroll-behavior: smooth;
+        }
+
+        /* Prevent zoom on input focus for iOS */
+        @media screen and (max-width: 640px) {
+          input, textarea, select {
+            font-size: 16px !important;
+          }
+        }
+
+        /* Hide scrollbar but keep functionality */
+        .overflow-y-auto::-webkit-scrollbar {
+          width: 0px;
         }
       `}</style>
     </div>

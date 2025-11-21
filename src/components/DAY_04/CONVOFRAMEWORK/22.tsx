@@ -14,10 +14,10 @@ const CONVOUPGRADE: React.FC<REVIEWCONVProps> = ({ onNext }) => {
   const [expandedTip, setExpandedTip] = useState(null);
   const [copiedScript, setCopiedScript] = useState(null);
   const [practiceAttempts, setPracticeAttempts] = useState([]);
-  
+  const [visitedLessons, setVisitedLessons] = useState([]);
+  const [unlockedLessons, setUnlockedLessons] = useState([0, 1, 2, 3]);
   const [userLevel, setUserLevel] = useState('beginner');
   const [userGoal, setUserGoal] = useState(null);
-  const [unlockedLessons, setUnlockedLessons] = useState([0]);
   const [skillScores, setSkillScores] = useState({
     opening: 0,
     listening: 0,
@@ -632,8 +632,12 @@ const showNotification = (message: string) => {
                 <button
                   key={idx}
                   onClick={() => {
-                    setAssessmentAnswers([...assessmentAnswers, { question: currentQ.q, answer: option.text, points: option.points, level: option.level ?? 0
- }]);
+                    setAssessmentAnswers([...assessmentAnswers, { 
+  question: currentQ.q, 
+  answer: option.text, 
+  points: option.points, 
+  level: option.level || 'beginner'  // This should work since all options have level defined
+}]);
                     setCurrentAssessmentQ(currentAssessmentQ + 1);
                   }}
                   className="w-full text-left p-5 bg-gradient-to-r from-purple-800/40 to-indigo-800/40 hover:from-purple-700/60 hover:to-indigo-700/60 rounded-2xl border-2 border-purple-500/30 hover:border-purple-400/50 transition-all group"
@@ -755,69 +759,92 @@ const showNotification = (message: string) => {
             <h2 className="text-2xl font-bold text-purple-100 mb-4">Learning Path</h2>
             <div className="grid md:grid-cols-2 gap-4">
               {lessons.map((lesson, idx) => {
-  if (!lesson) return null; // Safety check
+  // Early return if lesson is undefined
+  if (!lesson) return null;
   
   const isUnlocked = unlockedLessons.includes(idx);
   const isComplete = skillScores[lesson.skillType] >= 30;
                 
-                return (
-                  <div 
-                    key={lesson.id}
-                    className={`relative bg-gradient-to-br from-purple-900/50 to-indigo-900/50 backdrop-blur-md p-6 rounded-3xl border-2 transition-all ${
-                      isUnlocked 
-                        ? 'border-purple-500/30 hover:border-purple-400/50 cursor-pointer hover:scale-102' 
-                        : 'border-gray-700/30 opacity-50'
-                    }`}
-                    onClick={() => {
-                      if (isUnlocked) {
-                        setCurrentLesson(idx);
-                        setPhase('lesson');
-                      }
-                    }}
-                  >
-                    {!isUnlocked && (
-                      <div className="absolute top-4 right-4">
-                        <Lock className="w-6 h-6 text-gray-500" />
-                      </div>
-                    )}
-                    {isComplete && (
-                      <div className="absolute top-4 right-4">
-                        <CheckCircle className="w-6 h-6 text-green-400" />
-                      </div>
-                    )}
-                    
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-full bg-purple-600/30 flex items-center justify-center flex-shrink-0">
-                        <span className="text-lg font-bold text-purple-200">{lesson.level ?? 0
- ?? 0
-}</span>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold text-purple-100 mb-1">{lesson.title}</h3>
-                        <p className="text-sm text-purple-300">{lesson.micro}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between mt-4">
-                      <p className="text-xs text-purple-400">{lesson.duration}</p>
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 bg-purple-900/50 rounded-full h-2">
-                          <div 
-                            className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all"
-                            style={{ width: `${skillScores[lesson.skillType]}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-purple-300">{skillScores[lesson.skillType]}%</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+  return (
+    <div 
+      key={lesson.id || `lesson-${idx}`}
+      className={`relative bg-gradient-to-br from-purple-900/50 to-indigo-900/50 backdrop-blur-md p-6 rounded-3xl border-2 transition-all ${
+        isUnlocked 
+          ? 'border-purple-500/30 hover:border-purple-400/50 cursor-pointer hover:scale-102' 
+          : 'border-gray-700/30 opacity-50'
+      }`}
+      onClick={() => {
+  if (isUnlocked) {
+    setCurrentLesson(idx);
+    setPhase('lesson');
+    // Mark lesson as visited
+    if (!visitedLessons.includes(idx)) {
+      setVisitedLessons([...visitedLessons, idx]);
+    }
+  }
+}}
+    >
+      {!isUnlocked && (
+        <div className="absolute top-4 right-4">
+          <Lock className="w-6 h-6 text-gray-500" />
+        </div>
+      )}
+      {isComplete && (
+        <div className="absolute top-4 right-4">
+          <CheckCircle className="w-6 h-6 text-green-400" />
+        </div>
+      )}
+      
+      <div className="flex items-start gap-3 mb-3">
+        <div className="w-10 h-10 rounded-full bg-purple-600/30 flex items-center justify-center flex-shrink-0">
+          <span className="text-lg font-bold text-purple-200">
+            {lesson.level || 0}
+          </span>
+        </div>
+        <div className="flex-1">
+          <h3 className="text-lg font-bold text-purple-100 mb-1">{lesson.title}</h3>
+          <p className="text-sm text-purple-300">{lesson.micro}</p>
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-between mt-4">
+        <p className="text-xs text-purple-400">{lesson.duration}</p>
+        <div className="flex items-center gap-2">
+          <div className="w-24 bg-purple-900/50 rounded-full h-2">
+            <div 
+              className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all"
+              style={{ width: `${skillScores[lesson.skillType] || 0}%` }}
+            />
+          </div>
+          <span className="text-xs text-purple-300">
+            {skillScores[lesson.skillType] || 0}%
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+})}
             </div>
           </div>
 
           
-
+          {visitedLessons.length >= 1 && (
+  <div className="mt-6 bg-gradient-to-r from-green-900/50 to-emerald-900/50 backdrop-blur-md p-6 rounded-3xl border-2 border-green-500/30 text-center">
+    <h3 className="text-2xl font-bold text-green-100 mb-3">🎉 All Lessons Explored!</h3>
+    <p className="text-green-300 mb-4">You've visited all 4 core lessons. Ready to put it all together?</p>
+    <button
+       onClick={() => {
+        setCurrentLesson(currentLesson + 1);
+        setExpandedTip(null);
+        setCopiedScript(null);
+        onNext();
+      }}
+      className="px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 rounded-2xl font-bold text-lg transition-all shadow-lg"
+    >
+      Move On to Real Scenarios →
+    </button>
+  </div>
+)}
           <div className="grid md:grid-cols-2 gap-4">
             <button
               onClick={() => setPhase('analyzer')}
@@ -907,23 +934,30 @@ const showNotification = (message: string) => {
   }
 
   // LESSON PHASE
-  if (phase === 'lesson') {
-    const lesson = lessons[currentLesson];
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 text-white p-4 md:p-8">
-        <div className="max-w-3xl mx-auto">
-          <button onClick={() => setPhase('overview')} className="text-purple-300 hover:text-purple-100 flex items-center gap-2 mb-6 transition-colors">
-            <ChevronRight className="w-5 h-5 rotate-180" /> Back to Dashboard
-          </button>
+  // LESSON PHASE
+if (phase === 'lesson') {
+  const lesson = lessons[currentLesson];
+  
+  // Safety check: redirect if lesson doesn't exist
+  if (!lesson) {
+    setPhase('overview');
+    return null;
+  }
+  
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 text-white p-4 md:p-8">
+      <div className="max-w-3xl mx-auto">
+        <button onClick={() => setPhase('overview')} className="text-purple-300 hover:text-purple-100 flex items-center gap-2 mb-6 transition-colors">
+          <ChevronRight className="w-5 h-5 rotate-180" /> Back to Dashboard
+        </button>
 
-          <div className="bg-gradient-to-br from-purple-900/50 to-indigo-900/50 backdrop-blur-md p-6 md:p-8 rounded-3xl border-2 border-purple-500/30 mb-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-purple-600/30 flex items-center justify-center">
-                <span className="text-xl font-bold text-purple-200">{lesson.level ?? 0
-}</span>
-              </div>
-              <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-purple-100">{lesson.title}</h1>
+        <div className="bg-gradient-to-br from-purple-900/50 to-indigo-900/50 backdrop-blur-md p-6 md:p-8 rounded-3xl border-2 border-purple-500/30 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-full bg-purple-600/30 flex items-center justify-center">
+              <span className="text-xl font-bold text-purple-200">{lesson.level || 0}</span>
+            </div>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-purple-100">{lesson.title}</h1>
                 <p className="text-sm text-purple-400">{lesson.duration}</p>
               </div>
             </div>

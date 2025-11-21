@@ -8,7 +8,12 @@ import ConvoFramework from "./CONVOFRAMEWORK/22";
 import SkillsForDay4 from "./SKILLSFORDAY4/23";
 import Day4ActionPlan from "./DAY4ACTIONPLAN/24";
 import EveningReflection from "./EVENINGREFLECTION/25";
-
+import SETYOURTIMES from "./SETYOURTIMES/02";
+import AuthenticEngagement from "./AUTHENTICENGAGEMENT/authenticengagement";
+import EmotionalControl from "./EMOTIONALCONTROL/emotionalcontrol";
+import Consistency from "./CONSISTENCY/consistency";
+import  ReconnectionRecovery from "./RECONNECTIONRECOVERY/reconnectionrecovery";
+import SustainedConnection from "./SUSTAINEDCONNECTION/sustainedconnection";
 interface Day4ContainerProps {
   onCompleteNavigator?: () => void;
 }
@@ -18,8 +23,13 @@ const pages = [
   { component: IntroToDay4, title: "Day 4 Introduction" },
   { component: ReviewConvos, title: "Review Previous Conversations" },
   { component: ConvoFramework, title: "Conversation Framework" },
-  { component: SkillsForDay4, title: "Skills for Day 4" },
+  { component: AuthenticEngagement, title: "Authentic Engagement" },
+  { component: EmotionalControl, title: "Emotional Control" },
+  { component: Consistency, title: "Consistency" },
+  { component: ReconnectionRecovery, title: "Reconnection Recovery" },
+  { component: SETYOURTIMES, title: "Set Your Times" },
   { component: Day4ActionPlan, title: "Action Plan" },
+  
   { component: EveningReflection, title: "Evening Reflection & Commit" },
 ];
 

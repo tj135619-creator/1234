@@ -78,8 +78,75 @@ export const rtdb = getDatabase(app);
 // ============================================
 // 2. AUTHENTICATION SERVICE
 // ============================================
+// Add this to your lessonService.ts file
+
+export async function getUserStats(userId: string) {
+  try {
+    const ref = doc(db, "users", userId, "datedcourses", "social_skills");
+    const snap = await getDoc(ref);
+    
+    if (!snap.exists()) {
+      return {
+        completedLessons: 0,
+        totalLessons: 5,
+        xpEarned: 0,
+        streak: 0,
+        timeInvested: '0h'
+      };
+    }
+
+    const data = snap.data();
+    const days = Array.isArray(data?.task_overview?.days) ? data.task_overview.days : [];
+    
+    // Calculate completed lessons
+    const completedLessons = days.filter(d => d.completed === true).length;
+    
+    // Calculate total XP earned from your xp field
+    const xpEarned = data.xp || 0;
+    
+    // Get streak from your streak field
+    const streak = data.streak || 0;
+    
+    // Calculate time invested from task timeSpent
+    const totalMinutes = days.reduce((total, day) => {
+      const dayTime = day.tasks?.reduce((dayTotal, task) => {
+        return dayTotal + (task.timeSpent || 0);
+      }, 0) || 0;
+      return total + dayTime;
+    }, 0);
+    
+    const hoursInvested = Math.floor(totalMinutes / 60);
+    const remainingMinutes = totalMinutes % 60;
+    const timeInvested = hoursInvested > 0 
+      ? `${hoursInvested}h ${remainingMinutes}m` 
+      : totalMinutes > 0 
+      ? `${remainingMinutes}m`
+      : '0h';
+
+    return {
+      completedLessons,
+      totalLessons: days.length || 5,
+      xpEarned,
+      streak,
+      timeInvested
+    };
+    
+  } catch (error) {
+    console.error('Error fetching user stats:', error);
+    return {
+      completedLessons: 0,
+      totalLessons: 5,
+      xpEarned: 0,
+      streak: 0,
+      timeInvested: '0h'
+    };
+  }
+}
+
 
 export const authService = {
+
+  
   // Sign up new user
   async signUp(email, password, userData) {
     try {

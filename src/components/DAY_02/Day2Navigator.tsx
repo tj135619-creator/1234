@@ -5,6 +5,9 @@ import MAPTODAYSPLAN from "src/components/DAY_02/MAPTODAYSPLAN/03";
 import { CONVOPREP } from "src/components/DAY_02/CONVOPREP/04";
 import PHYSICALENVPREP from "src/components/DAY_02/PHYSICALENVPREP/05";
 import TrackingInteractions from "src/components/DAY_02/TRACKINGINTERACTIONS/06";
+import PATTERNSMISTAKES from "./IDENTIFYPATTERMS/14";
+import SustainedConnection from "./SUSTAINEDCONNECTION/sustainedconnection";
+import SETYOURTIMES from "./SETYOURTIMES/02";
 
 interface Day2ContainerProps {
   onComplete?: () => void;
@@ -12,12 +15,15 @@ interface Day2ContainerProps {
 }
 
 const pages = [
-  { component: MORNINGPREP, title: "Morning Prep" },
+  { component: SETYOURTIMES, title: "Set Your Times" },
   { component: REVIEWSKILLS, title: "Review Skills" },
-  { component: CONVOPREP, title: "Conversation Prep" },
+ // { component: CONVOPREP, title: "Conversation Prep" },
+  { component: PATTERNSMISTAKES, title: "Identify Patterns & Mistakes" },
+  { component: SustainedConnection, title: "Sustained Connection" },
   { component: MAPTODAYSPLAN, title: "Map Today's Plan" },
-  { component: PHYSICALENVPREP, title: "Physical & Env Prep" },
+ // { component: PHYSICALENVPREP, title: "Physical & Env Prep" },
   { component: TrackingInteractions, title: "Tracking Interactions" },
+  
 ];
 
 export default function Day2Container({ onComplete, onCompleteNavigator }: Day2ContainerProps) {
@@ -55,6 +61,38 @@ export default function Day2Container({ onComplete, onCompleteNavigator }: Day2C
         zIndex: 999999,
       }}
     >
+      {/* NAVIGATION BAR */}
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          width: "100%",
+          display: "flex",
+          justifyContent: "space-around",
+          padding: "10px",
+          background: "rgba(0,0,0,0.7)",
+          backdropFilter: "blur(6px)",
+          zIndex: 1000002,
+        }}
+      >
+        {pages.map((page, idx) => (
+          <button
+            key={idx}
+            onClick={() => setCurrentIndex(idx)}
+            style={{
+              color: idx === currentIndex ? "yellow" : "white",
+              textDecoration: idx === currentIndex ? "underline" : "none",
+              cursor: "pointer",
+              background: "transparent",
+              border: "none",
+              fontWeight: idx === currentIndex ? "bold" : "normal",
+            }}
+          >
+            {page.title}
+          </button>
+        ))}
+      </div>
+
       {showSpotlight ? (
         <div
           style={{
@@ -104,6 +142,7 @@ export default function Day2Container({ onComplete, onCompleteNavigator }: Day2C
             />
           </div>
 
+          {/* NEXT / PREVIOUS BUTTONS */}
           <div
             style={{
               position: "fixed",
@@ -117,10 +156,21 @@ export default function Day2Container({ onComplete, onCompleteNavigator }: Day2C
               zIndex: 1000001,
             }}
           >
-            <button onClick={prevPage} style={{ padding: "12px 24px" }}>
+            <button
+              onClick={prevPage}
+              disabled={currentIndex === 0}
+              style={{
+                padding: "12px 24px",
+                opacity: currentIndex === 0 ? 0.5 : 1,
+                cursor: currentIndex === 0 ? "not-allowed" : "pointer",
+              }}
+            >
               Previous
             </button>
-            <button onClick={nextPage} style={{ padding: "12px 24px" }}>
+            <button
+              onClick={nextPage}
+              style={{ padding: "12px 24px" }}
+            >
               {currentIndex === pages.length - 1 ? "Finish" : "Next"}
             </button>
           </div>

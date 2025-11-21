@@ -11,5 +11,4 @@ export const navData = [
   { title: 'Community', path: '/products', icon: <People fontSize="medium" /> },
   { title: 'Action Tracker', path: '/blog', icon: <Checklist fontSize="medium" /> },
   { title: 'Your Profile', path: '/profile', icon: <AccountCircle fontSize="medium" /> },
-  { title: 'Sign in', path: '/sign-in', icon: <Lock fontSize="medium" /> },
 ];

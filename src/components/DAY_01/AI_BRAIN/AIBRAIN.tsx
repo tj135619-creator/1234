@@ -68,7 +68,7 @@ const handleSendMessage = async () => {
   }
 
   try {
-    const response = await fetch("https://one23-u2ck.onrender.com/agent", {
+    const response = await fetch("https://pythonbackend-74es.onrender.com/agent", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -198,13 +198,7 @@ const handleSendMessage = async () => {
           <div className="flex items-center justify-between gap-3">
 
             <div className="flex items-center gap-2 md:gap-3">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl">
-                <Brain className="w-5 h-5 md:w-6 md:h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg md:text-xl font-bold text-purple-100">AI Chat Assistant</h1>
-                <p className="text-xs md:text-sm text-purple-300">Powered by AI</p>
-              </div>
+              
 
               {/* NEXT BUTTON TO MOVE TO NEXT PAGE */}
 

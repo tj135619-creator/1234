@@ -1799,137 +1799,139 @@ useEffect(() => {
         const isYourDay = location.day === currentUserDay;
         const isCompleted = location.status === 'completed';
         const isInProgress = location.status === 'in-progress';
-        const isLocked = location.status === 'locked';
+        // MODIFIED CODE: All locations are now OPEN (isLocked is always false)
+        const isLocked = false;
 
         return (
-          <div
-            key={location.id}
-            onClick={() => !isLocked && openDayExplorer(location.day)}
-            className={`relative p-5 rounded-xl border-2 transition-all duration-300 cursor-pointer ${
-              isYourDay
-                ? 'bg-gradient-to-br from-cyan-900/60 to-blue-900/60 border-cyan-500/60 shadow-lg shadow-cyan-500/20'
-                : isLocked
-                ? 'bg-purple-900/20 border-purple-700/30 opacity-60 cursor-not-allowed'
-                : 'bg-purple-900/40 border-purple-500/30 hover:border-purple-400/60 hover:shadow-lg hover:shadow-purple-500/20'
-            }`}
-          >
-            {/* Day Badge */}
-            <div className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg">
-              <span className="text-xl font-bold text-white">{location.day}</span>
+    <div
+      key={location.id}
+      // FIXED: Removed '!isLocked &&' so the Day Explorer always opens on card click.
+      onClick={() => openDayExplorer(location.day)}
+      className={`relative p-5 rounded-xl border-2 transition-all duration-300 cursor-pointer ${
+        isYourDay
+          ? 'bg-gradient-to-br from-cyan-900/60 to-blue-900/60 border-cyan-500/60 shadow-lg shadow-cyan-500/20'
+          : 'bg-purple-900/40 border-purple-500/30 hover:border-purple-400/60 hover:shadow-lg hover:shadow-purple-500/20' // Removed isLocked styling
+      }`}
+    >
+      {/* Day Badge */}
+      <div className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg">
+        <span className="text-xl font-bold text-white">{location.day}</span>
+      </div>
+
+      {/* Your Day Indicator */}
+      {isYourDay && (
+        <div className="absolute -top-2 -left-2 px-3 py-1 bg-cyan-500 rounded-full border-2 border-white shadow-lg">
+          <span className="text-xs font-bold text-white">YOUR DAY</span>
+        </div>
+      )}
+
+      {/* Status Badge - Keeping these as they provide useful visual context, even if the user can click */}
+      {isCompleted && (
+        <div className="absolute top-2 left-2 px-2 py-1 bg-green-500/80 rounded-full">
+          <span className="text-xs font-bold text-white">✓ Done</span>
+        </div>
+      )}
+      {isInProgress && (
+        <div className="absolute top-2 left-2 px-2 py-1 bg-purple-500/80 rounded-full animate-pulse">
+          <span className="text-xs font-bold text-white">⚡ Active</span>
+        </div>
+      )}
+      {isLocked && (
+        <div className="absolute top-2 left-2 px-2 py-1 bg-purple-700/80 rounded-full">
+          <span className="text-xs font-bold text-white">🔒 Locked</span>
+        </div>
+      )}
+
+      {/* Location Icon & Info */}
+      <div className="flex items-center gap-3 mb-4 mt-2">
+        <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
+          isLocked ? 'bg-purple-800/50' : 'bg-gradient-to-br from-purple-600 to-pink-600'
+        }`}>
+          {/* Note: I'm leaving the Lock icon conditional rendering as a visual cue, but the location is still clickable */}
+          {isLocked ? (
+            <Lock className="w-7 h-7 text-purple-400" />
+          ) : (
+            <location.icon className="w-7 h-7 text-white" />
+          )}
+        </div>
+        <div className="flex-1">
+          <h3 className="font-bold text-white text-lg">{location.name}</h3>
+          <p className="text-sm text-purple-300">{location.mission}</p>
+        </div>
+      </div>
+
+      {/* People Count (Now always shown) */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-purple-400" />
+          <span className="text-sm text-purple-300">
+            {peopleOnThisDay.length} {peopleOnThisDay.length === 1 ? 'person' : 'people'} on this day
+          </span>
+        </div>
+        {/* Removed !isLocked wrapper for XP Reward */}
+        <div className="flex items-center gap-1">
+          <Star className="w-4 h-4 text-yellow-400" />
+          <span className="text-sm font-bold text-yellow-300">{location.xpReward} XP</span>
+        </div>
+      </div>
+
+      {/* Avatar Preview (Now always shown if people exist) */}
+      {/* Removed !isLocked check */}
+      {peopleOnThisDay.length > 0 && (
+        <div className="flex items-center gap-1 mb-3">
+          {peopleOnThisDay.slice(0, 5).map((avatar, i) => (
+            <div
+              key={avatar.id}
+              className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatar.color} border-2 border-white flex items-center justify-center text-xs font-bold text-white`}
+              style={{ marginLeft: i > 0 ? '-8px' : '0', zIndex: 5 - i }}
+              title={avatar.name}
+            >
+              {avatar.name[0]}
             </div>
-
-            {/* Your Day Indicator */}
-            {isYourDay && (
-              <div className="absolute -top-2 -left-2 px-3 py-1 bg-cyan-500 rounded-full border-2 border-white shadow-lg">
-                <span className="text-xs font-bold text-white">YOUR DAY</span>
-              </div>
-            )}
-
-            {/* Status Badge */}
-            {isCompleted && (
-              <div className="absolute top-2 left-2 px-2 py-1 bg-green-500/80 rounded-full">
-                <span className="text-xs font-bold text-white">✓ Done</span>
-              </div>
-            )}
-            {isInProgress && (
-              <div className="absolute top-2 left-2 px-2 py-1 bg-purple-500/80 rounded-full animate-pulse">
-                <span className="text-xs font-bold text-white">⚡ Active</span>
-              </div>
-            )}
-            {isLocked && (
-              <div className="absolute top-2 left-2 px-2 py-1 bg-purple-700/80 rounded-full">
-                <span className="text-xs font-bold text-white">🔒 Locked</span>
-              </div>
-            )}
-
-            {/* Location Icon & Info */}
-            <div className="flex items-center gap-3 mb-4 mt-2">
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
-                isLocked ? 'bg-purple-800/50' : 'bg-gradient-to-br from-purple-600 to-pink-600'
-              }`}>
-                {isLocked ? (
-                  <Lock className="w-7 h-7 text-purple-400" />
-                ) : (
-                  <location.icon className="w-7 h-7 text-white" />
-                )}
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-white text-lg">{location.name}</h3>
-                <p className="text-sm text-purple-300">{location.mission}</p>
-              </div>
+          ))}
+          {peopleOnThisDay.length > 5 && (
+            <div className="w-8 h-8 rounded-full bg-purple-700 border-2 border-white flex items-center justify-center text-xs font-bold text-white ml-[-8px]">
+              +{peopleOnThisDay.length - 5}
             </div>
+          )}
+        </div>
+      )}
 
-            {/* People Count */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-purple-400" />
-                <span className="text-sm text-purple-300">
-                  {peopleOnThisDay.length} {peopleOnThisDay.length === 1 ? 'person' : 'people'} on this day
-                </span>
-              </div>
-              {!isLocked && (
-                <div className="flex items-center gap-1">
-                  <Star className="w-4 h-4 text-yellow-400" />
-                  <span className="text-sm font-bold text-yellow-300">{location.xpReward} XP</span>
-                </div>
-              )}
-            </div>
+      {/* Action Button - FIXED: Removed the {!isLocked && (...)} wrapper */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation(); // Prevents the parent div's onClick from triggering immediately after this button's click
+          openDayExplorer(location.day);
+        }}
+        className={`w-full py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
+          isYourDay
+            ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
+            : 'bg-purple-700/50 hover:bg-purple-700/70 text-white'
+        }`}
+      >
+        {isYourDay ? (
+          <>
+            <Sparkles className="w-4 h-4" />
+            Your Community
+          </>
+        ) : (
+          <>
+            <Users className="w-4 h-4" />
+            Visit Day {location.day}
+          </>
+        )}
+      </button>
 
-            {/* Avatar Preview */}
-            {!isLocked && peopleOnThisDay.length > 0 && (
-              <div className="flex items-center gap-1 mb-3">
-                {peopleOnThisDay.slice(0, 5).map((avatar, i) => (
-                  <div
-                    key={avatar.id}
-                    className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatar.color} border-2 border-white flex items-center justify-center text-xs font-bold text-white`}
-                    style={{ marginLeft: i > 0 ? '-8px' : '0', zIndex: 5 - i }}
-                    title={avatar.name}
-                  >
-                    {avatar.name[0]}
-                  </div>
-                ))}
-                {peopleOnThisDay.length > 5 && (
-                  <div className="w-8 h-8 rounded-full bg-purple-700 border-2 border-white flex items-center justify-center text-xs font-bold text-white ml-[-8px]">
-                    +{peopleOnThisDay.length - 5}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Action Button */}
-            {!isLocked && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openDayExplorer(location.day);
-                }}
-                className={`w-full py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
-                  isYourDay
-                    ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
-                    : 'bg-purple-700/50 hover:bg-purple-700/70 text-white'
-                }`}
-              >
-                {isYourDay ? (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    Your Community
-                  </>
-                ) : (
-                  <>
-                    <Users className="w-4 h-4" />
-                    Visit Day {location.day}
-                  </>
-                )}
-              </button>
-            )}
-
-            {isLocked && (
-              <div className="text-center py-2">
-                <p className="text-xs text-purple-400">Complete Day {location.day - 1} to unlock</p>
-              </div>
-            )}
+      {/* Removed the locked message conditional rendering:
+        {isLocked && (
+          <div className="text-center py-2">
+            <p className="text-xs text-purple-400">Complete Day {location.day - 1} to unlock</p>
           </div>
-        );
+        )}
+      */}
+    </div>
+  );
+  
       })}
     </div>
 
@@ -3129,6 +3131,7 @@ useEffect(() => {
                 onClick={() => {
                   setShowDayExplorer(false);
                   openLocationModal(dayLocation);
+                  console.log('Opening modal for:', dayLocation.name)
                 }}
                 className="px-4 py-2 bg-orange-600 hover:bg-orange-500 rounded-lg text-white text-sm font-semibold transition-all"
               >

@@ -292,11 +292,11 @@ const handleSendMessage = async (msgContent: string) => {
         history: lastMessages,  // Send only recent messages
       };
 
-      const resp = await fetch("https://one23-u2ck.onrender.com/chat", {
+      const resp = await fetch("https://pythonbackend-74es.onrender.com/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer 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`,
         },
         body: JSON.stringify(payload),
       });
@@ -415,12 +415,12 @@ const handleGeneratePlan = async () => {
 
       try {
         const resp = await fetch(
-          "https://one23-u2ck.onrender.com/create-task-overview",
+          "https://pythonbackend-74es.onrender.com/create-task-overview",
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${apiKey}`,
+              Authorization: `Bearer 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`,
             },
             body: JSON.stringify(payload),
           }

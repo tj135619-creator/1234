@@ -57,7 +57,8 @@ const [aiConversation, setAiConversation] = useState([]);
 const [isHubOpen, setIsHubOpen] = useState(false);
 const [isAiThinking, setIsAiThinking] = useState(false);
 const [day1Complete, setDay1Complete] = useState(false);
-
+const [completedCount, setCompletedCount] = useState(0);
+const [totalCount, setTotalCount] = useState(0);
 const [selectedDayNumber, setSelectedDayNumber] = useState(1);
 const [loadingProgress, setLoadingProgress] = useState(0);
 const [userStats, setUserStats] = useState({
@@ -67,9 +68,9 @@ xpEarned: 0,
 streak: 0,
 timeInvested: '0h'
 });
-
 const subpageTypes = [ 'intro','chaku',  'reflection', 'complete'];
 
+// In your loadUserData function (already in your code):
 
 const ROUTER_COMPONENTS: React.FC<NavigatorProps>[] = [
   /*Day1Navigator as React.FC<NavigatorProps>, */
@@ -77,6 +78,7 @@ const ROUTER_COMPONENTS: React.FC<NavigatorProps>[] = [
   /* Day3Navigator as React.FC<NavigatorProps>, */
   Day4Navigator as React.FC<NavigatorProps>,
 ]
+
 
 useEffect(() => {
   let cancelled = false;
@@ -175,9 +177,8 @@ useEffect(() => {
     clearTimeout(syncTimeout);
     clearInterval(interval);
   };
-}, [currentView]); // currentView as dependency
-
-//                                                                                                                      ↑ ADD THIS// Add Quiz Subpage Component
+}, [currentView]); 
+                                                                                                                  
 const QuizSubpage = ({ lesson, onNext }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -461,7 +462,7 @@ const QuizSubpage = ({ lesson, onNext }) => {
 function renderSubpage(lesson, tasks, toggleTask, journalEntry, setJournalEntry, onNext, onComplete, onBackToTimeline, type, loadUserData) {
   const subpages = {
     intro: <IntroSubpage lesson={lesson} onNext={onNext} />,
-    chaku: <ChakuSubpage lesson={lesson} currentDayNumber={selectedDayNumber} onNext={onNext} loadUserData={loadUserData} />,
+    chaku: <ChakuSubpage lesson={lesson} currentDayNumber={selectedDayNumber} onNext={onNext} loadUserData={loadUserData}  onBackToTimeline={onBackToTimeline}/>,
     //motivation: <MotivationSubpage lesson={lesson} onNext={onNext} />,
     //lesson: <LessonSubpage lesson={lesson} onNext={onNext} />,
     //quiz: <QuizSubpage lesson={lesson} onNext={onNext} />,
@@ -481,7 +482,9 @@ function renderSubpage(lesson, tasks, toggleTask, journalEntry, setJournalEntry,
 }
 
 const handleSelectLesson = (lesson, index) => {
-  console.log('ðŸŽ¯ handleSelectLesson called:', { lesson, index });
+  console.log('🎯 handleSelectLesson called:', { lesson, index });
+  console.log('📍 Current view before:', currentView);
+  console.log('📚 Lessons array:', lessons);
   
   setSelectedLesson(lesson); 
   setCurrentSubpage(0);
@@ -490,7 +493,8 @@ const handleSelectLesson = (lesson, index) => {
   // Use setTimeout to ensure state updates before view change
   setTimeout(() => {
     setCurrentView('lesson');
-    console.log('âœ… View set to lesson');
+    console.log('✅ View set to lesson');
+    console.log('📍 Current view after:', currentView);
   }, 50);
 };
 
@@ -648,38 +652,58 @@ useEffect(() => {
 
 
 const loadUserData = async () => {
-try {
-console.log('🔄 Starting to load user data...');
+  try {
+    console.log('🔄 Starting to load user data...');
     console.log('👤 Current User UID:', auth.currentUser?.uid);
     console.log('📧 Current User Email:', auth.currentUser?.email);
 
-setLoading(true);
-setError(null);
+    if (!auth.currentUser) {
+      console.error('❌ No authenticated user');
+      return;
+    }
 
-const progressInterval = setInterval(() => {
-setLoadingProgress(prev => (prev >= 90 ? prev : prev + 10));
-}, 200);
+    setLoading(true);
+    setError(null);
 
-const [lessonsData, stats] = await Promise.all([
-fetchUserLessons(auth.currentUser.uid),
-getUserStats(auth.currentUser.uid)
-]);
+    const progressInterval = setInterval(() => {
+      setLoadingProgress(prev => (prev >= 90 ? prev : prev + 10));
+    }, 200);
 
-console.log('📚 Fetched Lessons:', lessonsData);
-console.log('📊 User Stats:', stats);
+    // Fetch data
+    const [lessonsData, stats] = await Promise.all([
+      fetchUserLessons(auth.currentUser.uid),
+      getUserStats(auth.currentUser.uid)
+    ]);
 
-setLessons(lessonsData);
-setUserStats(stats);
+    console.log('📚 Fetched Lessons:', lessonsData);
+    console.log('📊 User Stats:', stats);
 
-clearInterval(progressInterval);
-setLoadingProgress(100);
+    // Set lessons with proper mapping
+    const mappedLessons = lessonsData.map((lesson, index) => ({
+      ...lesson,
+      // Ensure we have all required fields
+      id: lesson.id || `day_${lesson.day}`,
+      title: lesson.title || `Day ${lesson.day}`,
+      summary: lesson.summary || lesson.tasks?.[0]?.description || 'Complete today\'s challenges',
+      duration: lesson.duration || `${(lesson.tasks?.length || 3) * 10} min`,
+      xp: lesson.xp || (lesson.tasks?.length || 3) * 50,
+      completed: lesson.completed === true,
+      day: lesson.day || (index + 1),
+      tasks: lesson.tasks || []
+    }));
 
-setTimeout(() => setLoading(false), 500);
-} catch (err) {
-console.error('❌ Error loading data:', err);
-setError('Failed to load lessons. Please try again.');
-setLoading(false);
-}
+    setLessons(mappedLessons);
+    setUserStats(stats);
+
+    clearInterval(progressInterval);
+    setLoadingProgress(100);
+
+    setTimeout(() => setLoading(false), 500);
+  } catch (err) {
+    console.error('❌ Error loading data:', err);
+    setError('Failed to load lessons. Please try again.');
+    setLoading(false);
+  }
 };
 
 const handleSignOut = async () => {
@@ -879,41 +903,47 @@ const overallProgress = ((currentSubpage + 1) / subpageTypes.length) * 100;
 return (
 <motion.div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900/20 to-slate-900 text-slate-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
 <header className="relative z-20 bg-slate-800/50 backdrop-blur-sm border-b border-slate-700/50">
-<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-<div className="flex items-center justify-between mb-4">
-<button onClick={handlePreviousSubpage} className="flex items-center gap-2 text-slate-300 hover:text-white">
-<ArrowLeft className="w-5 h-5" />
-<span className="text-sm">Back</span>
+<div className="w-full px-6 lg:px-12 py-6">
+<div className="flex items-center justify-between mb-6">
+<button onClick={handlePreviousSubpage} className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors">
+<ArrowLeft className="w-4 h-4" />
+
+
 </button>
-<div className="flex items-center space-x-3">
-<div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg flex items-center justify-center">
-<Target className="text-white" />
+<div className="flex items-center space-x-4">
+<div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+<Target className="text-white w-6 h-6" />
 </div>
 <div>
 <h1 className="text-xl font-bold">{selectedLesson.title}</h1>
 <p className="text-sm text-slate-400">Step {currentSubpage + 1} of {subpageTypes.length}</p>
 </div>
 </div>
-<button onClick={handleSignOut} className="flex items-center gap-2 text-slate-400 hover:text-white">
-<LogOut className="w-4 h-4" />
+<button onClick={handleSignOut} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
+<LogOut className="w-5 h-5" />
 </button>
 </div>
-<div className="bg-slate-800/80 rounded-xl p-4 border border-slate-700/50">
-<div className="flex justify-between items-center mb-2">
-<span className="text-xs font-medium text-slate-300">{Math.round(overallProgress)}% Complete</span>
-<div className="flex space-x-1">
+<div className="bg-slate-800/80 rounded-2xl p-6 border border-slate-700/50 max-w-4xl mx-auto">
+<div className="flex justify-between items-center mb-3">
+<span className="text-sm font-semibold text-slate-300">{Math.round(overallProgress)}% Complete</span>
+<div className="flex space-x-2">
 {subpageTypes.map((_, i) => (
-<div key={i} className={`w-2 h-2 rounded-full ${i <= currentSubpage ? 'bg-purple-400' : 'bg-slate-600'}`} />
+<div key={i} className={`w-2.5 h-2.5 rounded-full transition-all ${i <= currentSubpage ? 'bg-purple-400 scale-110' : 'bg-slate-600'}`} />
 ))}
 </div>
 </div>
-<div className="h-3 bg-slate-700/80 rounded-full overflow-hidden">
-<motion.div initial={{ width: 0 }} animate={{ width: `${overallProgress}%` }} className="h-full bg-gradient-to-r from-purple-500 to-cyan-400" />
+<div className="h-4 bg-slate-700/80 rounded-full overflow-hidden shadow-inner">
+<motion.div 
+  initial={{ width: 0 }} 
+  animate={{ width: `${overallProgress}%` }} 
+  className="h-full bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-400 shadow-lg"
+  transition={{ duration: 0.5, ease: "easeOut" }}
+/>
 </div>
 </div>
 </div>
 </header>
-<main className="flex items-center justify-center p-4 min-h-[calc(100vh-180px)]">
+<main className="flex items-center justify-center px-6 lg:px-12 py-12">
 {renderSubpage(selectedLesson, tasks, toggleTask, journalEntry, setJournalEntry, handleNextSubpage, handleCompleteLesson, () => setCurrentView('timeline'), subpageTypes[currentSubpage], loadUserData)}
 </main>
 </motion.div>
@@ -931,7 +961,7 @@ return (
     handleSignOut={handleSignOut}
     isHubOpen={isHubOpen}
     setIsHubOpen={setIsHubOpen}
-    currentView={currentView}  // ← ADD THIS LINE
+    currentView={currentView} 
   />
 );
 }
@@ -1003,6 +1033,9 @@ function TimelineView({ user, lessons, userStats, handleSelectLesson, handleSign
 
   const firstLessonCompleted = lessons.length > 0 && lessons[0].completed;
   const [day1Complete, setDay1Complete] = useState(false);
+  const completedCount = lessons ? lessons.filter(l => l.completed).length : 0;
+  const totalCount = lessons ? lessons.length : 0;
+  
 
   useEffect(() => {
 
@@ -1052,6 +1085,7 @@ function TimelineView({ user, lessons, userStats, handleSelectLesson, handleSign
           className="absolute top-4 right-4 z-[1001] p-3 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-lg transition-all"
         >
           <X className="w-6 h-6" /> 
+          
         </button>
       </div>
     );
@@ -1097,10 +1131,15 @@ return (
 
 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
-<StatsCard icon={<Trophy className="w-6 h-6 text-yellow-400" />} value={`${userStats.completedLessons}/${userStats.totalLessons}`} label="Lessons completed" color="purple" />
+<StatsCard 
+        icon={<Trophy className="w-6 h-6 text-yellow-400" />} 
+        value={`${completedCount}/${totalCount}`} 
+        label="Lessons completed" 
+        color="purple" 
+      />
 
 <StatsCard icon={<Flame className="w-6 h-6 text-orange-400" />} value={userStats.streak} label="Days in a row" color="green" />
-<StatsCard icon={<Clock className="w-6 h-6 text-blue-400" />} value={userStats.timeInvested} label="Invested" color="pink" />
+
 </div>
 
 
@@ -1240,532 +1279,100 @@ Day {displayDayNumber}
 
 // Subpage components (simplified versions - include your full implementations)
 const IntroSubpage = ({ lesson, onNext }) => {
-  const [timeOnPage, setTimeOnPage] = useState(0);
-  const [showUrgency, setShowUrgency] = useState(false);
   const [showCommitment, setShowCommitment] = useState(false);
-  const [commitmentChecks, setCommitmentChecks] = useState({
+  const [commit, setCommit] = useState({
     time: false,
     space: false,
     action: false,
     commit: false
   });
-  const [showPreview, setShowPreview] = useState(false);
-  const [musicEnabled, setMusicEnabled] = useState(false);
-  const [liveCount, setLiveCount] = useState(47);
-  const [recentCompletion, setRecentCompletion] = useState('Sarah');
-  const [minutesAgo, setMinutesAgo] = useState(2);
-  const [hoveredStage, setHoveredStage] = useState(null);
-  const [countdownSeconds, setCountdownSeconds] = useState(300);
 
-  // Timer effects
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeOnPage(prev => prev + 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const allDone = Object.values(commit).every(Boolean);
 
-  // Show urgency after 10 seconds
-  useEffect(() => {
-    if (timeOnPage === 10) {
-      setShowUrgency(true);
-    }
-  }, [timeOnPage]);
-
-  // Countdown timer
-  useEffect(() => {
-    const countdown = setInterval(() => {
-      setCountdownSeconds(prev => prev > 0 ? prev - 1 : 0);
-    }, 1000);
-    return () => clearInterval(countdown);
-  }, []);
-
-  // Live counter animation
-  useEffect(() => {
-    const liveInterval = setInterval(() => {
-      setLiveCount(prev => prev + Math.floor(Math.random() * 3));
-      setMinutesAgo(Math.floor(Math.random() * 5) + 1);
-      const names = ['Sarah', 'Mike', 'Jessica', 'David', 'Emma', 'James'];
-      setRecentCompletion(names[Math.floor(Math.random() * names.length)]);
-    }, 8000);
-    return () => clearInterval(liveInterval);
-  }, []);
-
-  const allCommitmentsChecked = Object.values(commitmentChecks).every(v => v);
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const journeyStages = [
-    { icon: Heart, label: 'Motivation', time: '2 min', color: 'text-pink-400' },
-    { icon: BookOpen, label: 'Deep Lesson', time: '3 min', color: 'text-blue-400' },
-    { icon: Brain, label: 'Knowledge Check', time: '3 min', color: 'text-purple-400' },
-    { icon: Lightbulb, label: 'The Why', time: '2 min', color: 'text-yellow-400' },
-    { icon: Feather, label: 'Wisdom Quote', time: '1 min', color: 'text-cyan-400' },
-    { icon: TriangleAlert, label: 'Consequences', time: '2 min', color: 'text-orange-400' },
-    { icon: Target, label: 'Action Steps', time: '2 min', color: 'text-green-400' },
-    { icon: Calendar, label: 'Scheduling', time: '3 min', color: 'text-indigo-400' },
-    { icon: Shield, label: 'Break Obstacles', time: '3 min', color: 'text-red-400' },
-    { icon: BookOpen, label: 'Reflection', time: '2 min', color: 'text-teal-400' }
-  ];
-
-  const handleStartChallenge = () => {
-    if (!allCommitmentsChecked) {
-      setShowCommitment(true);
-    } else {
-      onNext();
-    }
+  const handleStart = () => {
+    if (!allDone) return setShowCommitment(true);
+    onNext();
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      className="w-full min-h-screen px-3 sm:px-4 md:px-6 lg:px-8 xl:px-12 2xl:px-16 py-4 sm:py-6 md:py-8"
+  <div className="w-full min-h-screen p-6 flex flex-col">
+
+    {/* Header */}
+    <div className="text-center mb-6">
+      <h1 className="text-2xl font-semibold text-white">{lesson.title}</h1>
+      <p className="text-slate-400 text-sm max-w-sm mx-auto">{lesson.summary}</p>
+    </div>
+
+    {/* Start Button */}
+    <button
+      onClick={handleStart}
+      className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 transition text-white font-semibold"
     >
-      {/* Music Toggle - Responsive positioning */}
-      <div className="fixed top-3 right-3 sm:top-4 sm:right-4 z-50">
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setMusicEnabled(!musicEnabled)}
-          className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-full p-2 sm:p-3 text-slate-300 hover:text-white transition-colors"
+      Start
+    </button>
+
+    {/* Commitment Modal */}
+    {showCommitment && (
+      <div
+        className="fixed inset-0 bg-black/70 flex items-center justify-center p-6 z-[999]"
+        onClick={() => setShowCommitment(false)}
+      >
+        <div
+          className="bg-slate-800 p-5 rounded-2xl w-full max-w-sm shadow-xl border border-white/10"
+          onClick={(e) => e.stopPropagation()}
         >
-          {musicEnabled ? <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" /> : <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />}
-        </motion.button>
-      </div>
+          <h3 className="text-lg font-semibold text-white mb-4 text-center">
+            Ready to start?
+          </h3>
 
-      {/* Urgency Popup - Mobile optimized */}
-      <AnimatePresence>
-        {showUrgency && !showCommitment && (
-          <motion.div
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -50 }}
-            className="fixed top-16 sm:top-20 left-3 right-3 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 z-40 max-w-md mx-auto"
-          >
-            <div className="bg-orange-500 text-white px-4 py-3 sm:px-6 sm:py-4 rounded-xl shadow-2xl flex items-center gap-2 sm:gap-3">
-              <Timer className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm sm:text-base">⏰ Every second counts!</p>
-                <p className="text-xs sm:text-sm">Others are already 2 minutes in</p>
-              </div>
-              <button onClick={() => setShowUrgency(false)} className="flex-shrink-0">
-                <X className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Commitment Modal - Mobile optimized */}
-      <AnimatePresence>
-        {showCommitment && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4"
-            onClick={() => setShowCommitment(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-slate-800 rounded-2xl p-5 sm:p-6 md:p-8 max-w-lg w-full border-2 border-purple-500/50 max-h-[90vh] overflow-y-auto"
-            >
-              <div className="text-center mb-4 sm:mb-6">
-                <Crown className="w-12 h-12 sm:w-16 sm:h-16 text-yellow-400 mx-auto mb-3 sm:mb-4" />
-                <h3 className="text-2xl sm:text-3xl font-bold text-white mb-2">Set Yourself Up for Success</h3>
-                <p className="text-sm sm:text-base text-slate-400">Half-hearted starts lead to incomplete lessons.</p>
-              </div>
-
-              <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
-                {[
-                  { key: 'time', label: 'I have 15 uninterrupted minutes', icon: Clock },
-                  { key: 'space', label: "I'm in a quiet space", icon: Eye },
-                  { key: 'action', label: "I'm ready to take action", icon: Zap },
-                  { key: 'commit', label: 'I commit to completing this today', icon: Heart }
-                ].map(({ key, label, icon: Icon }) => (
-                  <motion.button
-                    key={key}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setCommitmentChecks(prev => ({ ...prev, [key]: !prev[key] }))}
-                    className={`w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border-2 transition-all ${
-                      commitmentChecks[key]
-                        ? 'bg-green-500/20 border-green-500'
-                        : 'bg-slate-700/30 border-slate-600 hover:border-slate-500'
-                    }`}
-                  >
-                    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                      commitmentChecks[key] ? 'bg-green-500 border-green-500' : 'border-slate-500'
-                    }`}>
-                      {commitmentChecks[key] && <Check className="w-4 h-4 sm:w-5 sm:h-5 text-white" />}
-                    </div>
-                    <Icon className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 ${commitmentChecks[key] ? 'text-green-400' : 'text-slate-400'}`} />
-                    <span className={`flex-1 text-left text-sm sm:text-base ${commitmentChecks[key] ? 'text-white' : 'text-slate-300'}`}>
-                      {label}
-                    </span>
-                  </motion.button>
-                ))}
-              </div>
-
+          <div className="space-y-2 mb-4">
+            {[
+              { key: "time", label: "I have time" },
+              { key: "space", label: "I'm in a quiet space" },
+              { key: "action", label: "I'm ready" },
+              { key: "commit", label: "I'll finish this" }
+            ].map((item) => (
               <button
-                onClick={() => {
-                  if (allCommitmentsChecked) {
-                    setShowCommitment(false);
-                    onNext();
-                  }
-                }}
-                disabled={!allCommitmentsChecked}
-                className={`w-full py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all ${
-                  allCommitmentsChecked
-                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white'
-                    : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                key={item.key}
+                onClick={() =>
+                  setCommit((prev) => ({ ...prev, [item.key]: !prev[item.key] }))
+                }
+                className={`w-full p-3 rounded-xl border text-left transition ${
+                  commit[item.key]
+                    ? "bg-green-600/30 border-green-500 text-white"
+                    : "bg-slate-700 border-slate-600 text-slate-300"
                 }`}
               >
-                {allCommitmentsChecked ? "LET'S GO! 🚀" : 'Check all boxes to continue'}
+                {item.label}
               </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            ))}
+          </div>
 
-      {/* Main Content - Responsive max-width */}
-      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
-        {/* Hero Section - Mobile first */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center"
-        >
-          <motion.div
-            animate={{ rotate: 360, scale: [1, 1.2, 1] }}
-            transition={{ rotate: { duration: 20, repeat: Infinity, ease: "linear" }, scale: { duration: 2, repeat: Infinity } }}
-            className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 mx-auto mb-4 sm:mb-6 bg-gradient-to-br from-purple-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/50"
+          <button
+            disabled={!allDone}
+            onClick={() => allDone && onNext()}
+            className={`w-full py-3 rounded-xl font-semibold transition ${
+              allDone
+                ? "bg-green-600 hover:bg-green-500 text-white"
+                : "bg-slate-700 text-slate-500"
+            }`}
           >
-            <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-white" />
-          </motion.div>
-
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold bg-gradient-to-r from-purple-200 via-blue-300 to-purple-200 bg-clip-text text-transparent mb-3 sm:mb-4 px-2">
-            {lesson.title}
-          </h1>
-          
-          <p className="text-base sm:text-lg md:text-xl text-slate-400 mb-4 sm:mb-6 max-w-2xl mx-auto px-4">{lesson.summary}</p>
-
-          {/* Countdown Timer - Responsive */}
-          <motion.div
-            animate={{ scale: countdownSeconds < 60 ? [1, 1.1, 1] : 1 }}
-            transition={{ duration: 1, repeat: countdownSeconds < 60 ? Infinity : 0 }}
-            className={`inline-flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-full ${
-              countdownSeconds < 60 ? 'bg-red-500/20 border-red-500' : 'bg-purple-500/20 border-purple-500'
-            } border-2 mb-4 sm:mb-6`}
-          >
-            <Timer className={`w-4 h-4 sm:w-5 sm:h-5 ${countdownSeconds < 60 ? 'text-red-400' : 'text-purple-400'}`} />
-            <span className={`font-bold text-xs sm:text-sm md:text-base ${countdownSeconds < 60 ? 'text-red-300' : 'text-purple-300'}`}>
-              Start within {formatTime(countdownSeconds)}
-            </span>
-          </motion.div>
-        </motion.div>
-
-        {/* Social Proof Section - Mobile stacked, desktop grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4"
-        >
-          <div className="bg-gradient-to-br from-green-900/30 to-emerald-900/30 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-green-500/30">
-            <div className="flex items-center gap-3 mb-2">
-              <Users className="w-5 h-5 sm:w-6 sm:h-6 text-green-400" />
-              <motion.span
-                key={liveCount}
-                initial={{ scale: 1.5, color: '#22c55e' }}
-                animate={{ scale: 1, color: '#86efac' }}
-                className="text-2xl sm:text-3xl font-bold text-green-300"
-              >
-                {liveCount}
-              </motion.span>
-            </div>
-            <p className="text-green-200 text-xs sm:text-sm">people completed this today</p>
-          </div>
-
-          <div className="bg-gradient-to-br from-blue-900/30 to-cyan-900/30 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-blue-500/30">
-            <div className="flex items-center gap-3 mb-2">
-              <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
-              <span className="text-2xl sm:text-3xl font-bold text-blue-300">94%</span>
-            </div>
-            <p className="text-blue-200 text-xs sm:text-sm">say this changed their perspective</p>
-          </div>
-
-          <div className="bg-gradient-to-br from-purple-900/30 to-pink-900/30 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-purple-500/30">
-            <div className="flex items-center gap-3 mb-2">
-              <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" />
-              <span className="text-xs sm:text-sm text-purple-200">
-                <motion.span
-                  key={recentCompletion}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="font-bold"
-                >
-                  {recentCompletion}
-                </motion.span> just finished
-              </span>
-            </div>
-            <p className="text-purple-200 text-xs sm:text-sm">{minutesAgo} min ago</p>
-          </div>
-        </motion.div>
-
-        {/* Journey Preview Section - Different structure for mobile */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 sm:p-6 md:p-8 border border-slate-700/50"
-        >
-          <div className="text-center mb-4 sm:mb-6">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Your 23-Minute Journey</h2>
-            <p className="text-sm sm:text-base text-slate-400">Here's exactly what awaits you</p>
-          </div>
-
-          {/* Mobile: Single column, Desktop: 2 columns */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-            {journeyStages.map((stage, index) => {
-              const Icon = stage.icon;
-              return (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 + index * 0.05 }}
-                  onMouseEnter={() => setHoveredStage(index)}
-                  onMouseLeave={() => setHoveredStage(null)}
-                  className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                    hoveredStage === index
-                      ? 'bg-slate-700/50 border-purple-500 scale-105'
-                      : 'bg-slate-700/20 border-slate-600'
-                  }`}
-                >
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-800/50 flex items-center justify-center flex-shrink-0 ${
-                    hoveredStage === index ? 'animate-pulse' : ''
-                  }`}>
-                    <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${stage.color}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white font-semibold text-sm sm:text-base truncate">{stage.label}</p>
-                    <p className="text-slate-400 text-xs sm:text-sm">{stage.time}</p>
-                  </div>
-                  {hoveredStage === index && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="hidden sm:block"
-                    >
-                      <Eye className="w-5 h-5 text-purple-400" />
-                    </motion.div>
-                  )}
-                </motion.div>
-              );
-            })}
-          </div>
-
-          {/* Progress Path Visualization - Responsive */}
-          <div className="relative py-6 sm:py-8 hidden sm:block">
-            <div className="absolute top-1/2 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-green-500 transform -translate-y-1/2" />
-            <div className="flex justify-between relative">
-              {['START', '25%', '50%', '75%', 'DONE'].map((label, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.6 + i * 0.1 }}
-                  className="flex flex-col items-center"
-                >
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center mb-2 border-4 border-slate-900">
-                    {i === 4 ? <Crown className="w-3 h-3 sm:w-4 sm:h-4 text-white" /> : <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full" />}
-                  </div>
-                  <span className="text-xs font-bold text-slate-400">{label}</span>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-
-          {/* Mobile progress bar - simpler version */}
-          <div className="block sm:hidden">
-            <div className="flex items-center gap-2 text-slate-400 text-xs">
-              <div className="flex-1 h-2 bg-gradient-to-r from-purple-500 via-blue-500 to-green-500 rounded-full" />
-              <Crown className="w-4 h-4 text-yellow-400" />
-            </div>
-            <div className="flex justify-between mt-2 text-xs text-slate-400">
-              <span>START</span>
-              <span>COMPLETE</span>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Rewards Section - Responsive grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-gradient-to-br from-yellow-900/30 to-orange-900/30 backdrop-blur-sm rounded-2xl p-5 sm:p-6 md:p-8 border border-yellow-500/30"
-        >
-          <div className="text-center mb-4 sm:mb-6">
-            <Gift className="w-10 h-10 sm:w-12 sm:h-12 text-yellow-400 mx-auto mb-3" />
-            <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">What You'll Earn</h3>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-            <motion.div
-              whileHover={{ scale: 1.05, rotate: 5 }}
-              className="bg-slate-800/50 rounded-xl p-4 sm:p-6 text-center border border-yellow-500/30"
-            >
-              
-            </motion.div>
-
-            <motion.div
-              whileHover={{ scale: 1.05, rotate: -5 }}
-              className="bg-slate-800/50 rounded-xl p-4 sm:p-6 text-center border border-purple-500/30"
-            >
-              <Award className="w-10 h-10 sm:w-12 sm:h-12 text-purple-400 mx-auto mb-3" />
-              <p className="text-lg sm:text-xl font-bold text-purple-300 mb-1">Wisdom Badge</p>
-              <p className="text-slate-400 text-xs sm:text-sm">Rare Achievement</p>
-            </motion.div>
-
-            <motion.div
-              whileHover={{ scale: 1.05, rotate: 5 }}
-              className="bg-slate-800/50 rounded-xl p-4 sm:p-6 text-center border border-blue-500/30"
-            >
-              <Brain className="w-10 h-10 sm:w-12 sm:h-12 text-blue-400 mx-auto mb-3" />
-              <p className="text-lg sm:text-xl font-bold text-blue-300 mb-1">New Insight</p>
-              <p className="text-slate-400 text-xs sm:text-sm">Life-Changing</p>
-            </motion.div>
-          </div>
-        </motion.div>
-
-        {/* Comparison Split - Mobile stacked */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6"
-        >
-          {/* Left - Skip */}
-          <div className="bg-gradient-to-br from-red-900/30 to-slate-900/30 backdrop-blur-sm rounded-2xl p-5 sm:p-6 md:p-8 border-2 border-red-500/50">
-            <X className="w-10 h-10 sm:w-12 sm:h-12 text-red-400 mb-4" />
-            <h3 className="text-xl sm:text-2xl font-bold text-red-300 mb-4">If You Skip This...</h3>
-            <ul className="space-y-2 sm:space-y-3 text-slate-300 text-sm sm:text-base">
-              <li className="flex items-start gap-2">
-                <span className="text-red-400 mt-1">•</span>
-                <span>Stay stuck in old patterns</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-red-400 mt-1">•</span>
-                <span>Miss crucial insights that could save you years</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-red-400 mt-1">•</span>
-                <span>Watch others grow while you stand still</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-red-400 mt-1">•</span>
-                <span>Regret not starting when you had the chance</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Right - Complete */}
-          <div className="bg-gradient-to-br from-green-900/30 to-emerald-900/30 backdrop-blur-sm rounded-2xl p-5 sm:p-6 md:p-8 border-2 border-green-500/50">
-            <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-green-400 mb-4" />
-            <h3 className="text-xl sm:text-2xl font-bold text-green-300 mb-4">After Completing This...</h3>
-            <ul className="space-y-2 sm:space-y-3 text-slate-300 text-sm sm:text-base">
-              <li className="flex items-start gap-2">
-                <span className="text-green-400 mt-1">✓</span>
-                <span>Gain powerful perspective shift</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-400 mt-1">✓</span>
-                <span>Unlock actionable strategies you can use today</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-400 mt-1">✓</span>
-                <span>Move significantly closer to your goals</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-400 mt-1">✓</span>
-                <span>Feel proud of your commitment to growth</span>
-              </li>
-            </ul>
-          </div>
-        </motion.div>
-
-        {/* CTA Section - Mobile optimized */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.7 }}
-          className="text-center pb-6"
-        >
-          <div className="bg-gradient-to-br from-purple-900/40 to-blue-900/40 backdrop-blur-sm rounded-2xl p-6 sm:p-8 md:p-12 border-2 border-purple-500/50">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 sm:mb-4">🎯 TODAY'S CHALLENGE</h2>
-            <p className="text-base sm:text-lg md:text-xl text-slate-300 mb-4 sm:mb-6 px-2">
-              Can you complete all 10 stages without skipping?<br className="hidden sm:block" />
-              <span className="block sm:inline"> Most people quit at stage 9 (Obstacles).</span>
-            </p>
-            <p className="text-xl sm:text-2xl font-bold text-purple-300 mb-6 sm:mb-8">Are you different?</p>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleStartChallenge}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 sm:px-12 py-4 sm:py-5 rounded-xl font-bold text-lg sm:text-xl shadow-lg shadow-purple-500/50 transition-all w-full sm:w-auto"
-            >
-              ACCEPT CHALLENGE <ArrowRight className="inline ml-2 w-5 h-5 sm:w-6 sm:h-6" />
-            </motion.button>
-
-            <p className="text-slate-500 text-xs sm:text-sm mt-4">
-              You'll finish by {new Date(Date.now() + 23 * 60000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-            </p>
-          </div>
-        </motion.div>
+            Continue
+          </button>
+        </div>
       </div>
+    )}
+  </div>
+);
 
-      {/* Floating particles background effect - Responsive */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {[...Array(20)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 sm:w-2 sm:h-2 bg-purple-400/20 rounded-full"
-            initial={{
-              x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
-              y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000)
-            }}
-            animate={{
-              y: [null, Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000)],
-              opacity: [0, 1, 0]
-            }}
-            transition={{
-              duration: Math.random() * 10 + 10,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-          />
-        ))}
-      </div>
-    </motion.div>
-  );
 };
+
 
 const DAY_NAVIGATORS = [Day1Navigator, Day2Navigator, Day3Navigator, Day4Navigator];
 
 // ASSUMPTION: The component that renders ChakuSubpage now passes a
 // prop like 'currentDayNumber' based on the timeline index (index + 1).
-const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData }) => {
+const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData, onBackToTimeline }) => {
   const dayNumber = currentDayNumber || 1;
   const [showCelebration, setShowCelebration] = useState(false);
 
@@ -1807,7 +1414,8 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData
     
     // Redirect to dashboard for Day 1
     if (dayNumber === 1) {
-      window.location.href = '/profile';
+      console.log("🎯 Redirecting to dashboard for Day 1");
+      onBackToTimeline();
     } else {
       onNext();
     }
@@ -1844,128 +1452,97 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData
   }
 
   // 🎉 Celebration Page
-  if (showCelebration) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="w-full min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4"
-      >
-        <div className="max-w-4xl w-full text-center">
-          <div className="fixed inset-0 pointer-events-none overflow-hidden">
-            {[...Array(50)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-3 h-3 rounded-full"
-                style={{
-                  background: ["#fbbf24", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7"][i % 5],
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                }}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{
-                  scale: [0, 1, 0],
-                  opacity: [0, 1, 0],
-                  x: [0, (Math.random() - 0.5) * 200],
-                  y: [0, (Math.random() - 0.5) * 200],
-                }}
-                transition={{
-                  duration: 2,
-                  delay: i * 0.02,
-                  repeat: Infinity,
-                  repeatDelay: 3,
-                }}
-              />
-            ))}
+ if (showCelebration) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 z-[9999] bg-purple-900 flex items-center justify-center p-4"
+    >
+      {/* LIGHT CONFETTI */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+        {[...Array(25)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-2 h-2 rounded-full"
+            style={{
+              background: ["#fbbf24", "#3b82f6", "#a855f7"][i % 3],
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+            }}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{
+              scale: [0, 1, 0],
+              opacity: [0, 1, 0],
+              x: [0, (Math.random() - 0.5) * 150],
+              y: [0, (Math.random() - 0.5) * 150],
+            }}
+            transition={{
+              duration: 1.8,
+              delay: i * 0.03,
+              repeat: Infinity,
+              repeatDelay: 2,
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="relative z-10 flex flex-col items-center text-center px-4">
+
+        {/* TROPHY */}
+        <motion.div
+          initial={{ scale: 0, rotate: -120 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", duration: 0.8 }}
+          className="mb-6"
+        >
+          <div className="w-24 h-24 mx-auto bg-yellow-500 rounded-full flex items-center justify-center shadow-lg">
+            <Trophy className="w-12 h-12 text-white" />
           </div>
+        </motion.div>
 
-          <motion.div
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", duration: 1, bounce: 0.5 }}
-            className="mb-8"
-          >
-            <div className="w-32 h-32 mx-auto bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-2xl shadow-yellow-500/50">
-              <Trophy className="w-16 h-16 text-white" />
-            </div>
-          </motion.div>
+        {/* TITLE */}
+        <h1 className="text-4xl font-bold text-white mb-2">
+          Day {dayNumber} Complete
+        </h1>
 
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-yellow-200 via-orange-200 to-pink-200 bg-clip-text text-transparent mb-4">
-              Day {dayNumber} Complete! 🎉
-            </h1>
-            <p className="text-xl md:text-2xl text-purple-200 mb-8">
-              You've crushed today's lesson!
+        {/* STATS — MINIMAL */}
+        <div className="grid grid-cols-2 gap-4 mt-6">
+          <div className="bg-white/10 rounded-xl p-4 border border-white/20">
+            <p className="text-3xl font-bold text-white">
+              +{userData?.xp || 100}
             </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5 }}
-            className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-12"
-          >
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-              <Zap className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-              <p className="text-3xl font-bold text-white">+{userData?.xp || 100}</p>
-              <p className="text-purple-200 text-sm">XP Earned</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-              <Flame className="w-8 h-8 text-orange-400 mx-auto mb-2" />
-              <p className="text-3xl font-bold text-white">{dayNumber}</p>
-              <p className="text-purple-200 text-sm">Day Streak</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-              <Star className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-              <p className="text-3xl font-bold text-white">100%</p>
-              <p className="text-purple-200 text-sm">Completed</p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.7 }}
-            className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 backdrop-blur-sm rounded-2xl p-8 border border-purple-400/30 mb-8 max-w-2xl mx-auto"
-          >
-            <Sparkles className="w-8 h-8 text-yellow-400 mx-auto mb-4" />
-            <p className="text-xl text-purple-100 italic mb-2">
-              "Every day you don't give up is a day you win."
-            </p>
-            <p className="text-purple-300 text-sm">
-              Keep going. You're building something incredible.
-            </p>
-          </motion.div>
-
-          <motion.button
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleCelebrationComplete}
-            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-xl px-12 py-5 rounded-2xl shadow-2xl shadow-green-500/50 transition-all"
-          >
-            Continue Journey <ArrowRight className="inline ml-3 w-6 h-6" />
-          </motion.button>
-
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.1 }}
-            onClick={handleCelebrationComplete}
-            className="mt-6 text-purple-300 hover:text-white transition-colors text-sm"
-          >
-            Skip celebration →
-          </motion.button>
+            <p className="text-purple-200 text-sm">XP</p>
+          </div>
+          <div className="bg-white/10 rounded-xl p-4 border border-white/20">
+            <p className="text-3xl font-bold text-white">{dayNumber}</p>
+            <p className="text-purple-200 text-sm">Streak</p>
+          </div>
         </div>
-      </motion.div>
-    );
-  }
+
+        {/* BUTTON */}
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          onClick={handleCelebrationComplete}
+          className="mt-10 bg-green-600 text-white font-bold text-lg px-10 py-4 rounded-xl shadow-lg"
+        >
+          Continue <ArrowRight className="inline ml-2 w-4 h-4" />
+        </motion.button>
+
+        {/* SMALL SKIP */}
+        <button
+          onClick={handleCelebrationComplete}
+          className="mt-4 text-purple-300 text-xs"
+        >
+          Skip →
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
 
   // 🚀 Fullscreen Navigator Render
   return (
@@ -3698,4 +3275,5 @@ const CompletionSubpage = ({ lesson, onBackToTimeline }: any) => {
       </div>
     </motion.div>
   );
+
 }

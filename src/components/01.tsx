@@ -260,6 +260,13 @@ export default function TodayActionCard() {
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [dayTasks, setDayTasks] = useState<Lesson[]>([]);
+  // Countdown Timer States
+const [nextActionTime, setNextActionTime] = useState(null);
+const [countdownSeconds, setCountdownSeconds] = useState(0);
+
+// Velocity Meter States
+const [velocityStatus, setVelocityStatus] = useState('on-track'); // 'ahead' | 'on-track' | 'behind'
+const [tasksNeededByTime, setTasksNeededByTime] = useState(null);
 
   const [hoveredTask, setHoveredTask] = useState(null);
   
@@ -270,39 +277,10 @@ export default function TodayActionCard() {
   const [error, setError] = useState(null);
 
   // Check if first time user
+   
+
   
 
-  useEffect(() => {
-  const hasSeenThisSession = sessionStorage.getItem('hasSeenOnboarding');
-  if (!hasSeenThisSession && dayTasks.length > 0) {
-    setTimeout(() => setShowOnboarding(true), 2000);
-  }
-}, [dayTasks]);
-
-
-
-const handleDismissOnboarding = () => {
-  sessionStorage.setItem('hasSeenOnboarding', 'true');  // Remember this session
-  setShowOnboarding(false);
-};
-
-  // ============ AUTH LISTENER ============
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUserId(user.uid);
-      } else {
-        setUserId(null);
-        setError("Please log in to view your tasks");
-        setLoading(false);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  // ============ FETCH FROM FIRESTORE ============
-  // ============ FETCH FROM FIRESTORE ============
 useEffect(() => {
   if (!userId) return;
 
@@ -359,6 +337,178 @@ useEffect(() => {
 
   fetchTasksFromFirestore();
 }, [userId]);
+
+// FIX: Add a fallback object. If dayTasks is empty (loading), use default values.
+  const currentDay = dayTasks[currentDayIndex] || {
+    tasks: [],
+    date: new Date().toISOString(),
+    xpPerTask: 0,
+    dayNumber: 1,
+    title: "Loading...",
+    unlocked: false,
+    motivationalQuote: "",
+    summary: ""
+  };
+
+  const completedTasks = currentDay.tasks ? currentDay.tasks.filter((t) => t.done).length : 0;
+  const totalTasks = currentDay.tasks ? currentDay.tasks.length : 0;
+  
+  const totalXpEarned = currentDay.tasks ? currentDay.tasks.reduce((sum, task) => {
+    if (task.done) {
+      return sum + (currentDay.xpPerTask * getDifficultyXPMultiplier(task.difficulty));
+    }
+    return sum;
+  }, 0) : 0;
+
+  const progressPercent = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+  const isAllCompleted = totalTasks > 0 && completedTasks === totalTasks;
+  const canAccessDay = currentDay.unlocked;
+  
+  const date = currentDay.date ? new Date(currentDay.date).toLocaleDateString("en-US", { 
+    weekday: "long", 
+    month: "long", 
+    day: "numeric" 
+  }) : "Today";
+
+
+
+  useEffect(() => {
+  const hasSeenThisSession = sessionStorage.getItem('hasSeenOnboarding');
+  if (!hasSeenThisSession && dayTasks.length > 0) {
+    setTimeout(() => setShowOnboarding(true), 2000);
+  }
+}, [dayTasks]);
+
+
+
+const handleDismissOnboarding = () => {
+  sessionStorage.setItem('hasSeenOnboarding', 'true');  // Remember this session
+  setShowOnboarding(false);
+};
+
+  // ============ AUTH LISTENER ============
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid);
+      } else {
+        setUserId(null);
+        setError("Please log in to view your tasks");
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+    useEffect(() => {
+  if (!currentDay || dayTasks.length === 0) return;
+
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinutes = now.getMinutes();
+  const totalMinutesElapsed = currentHour * 60 + currentMinutes;
+  
+  // Define working hours (8 AM to 10 PM = 14 hours)
+  const workStartMinutes = 8 * 60; // 8 AM
+  const workEndMinutes = 22 * 60; // 10 PM
+  const totalWorkMinutes = workEndMinutes - workStartMinutes;
+  
+  // Only calculate during working hours
+  if (totalMinutesElapsed < workStartMinutes || totalMinutesElapsed > workEndMinutes) {
+    setVelocityStatus('on-track');
+    setTasksNeededByTime(null);
+    return;
+  }
+  
+  const minutesIntoWorkday = totalMinutesElapsed - workStartMinutes;
+  const percentOfDayComplete = Math.min(minutesIntoWorkday / totalWorkMinutes, 1);
+  
+  // Calculate expected progress
+  const totalTasks = currentDay.tasks.length;
+  const completedTasks = currentDay.tasks.filter(t => t.done).length;
+  const expectedTasksComplete = Math.floor(totalTasks * percentOfDayComplete);
+  
+  // Determine velocity status
+  const tasksDifference = completedTasks - expectedTasksComplete;
+  
+  if (tasksDifference >= 2) {
+    setVelocityStatus('ahead');
+  } else if (tasksDifference <= -2) {
+    setVelocityStatus('behind');
+  } else {
+    setVelocityStatus('on-track');
+  }
+  
+  // Calculate what time they need to complete next task by
+  if (completedTasks < totalTasks) {
+    const targetHour = Math.floor((workStartMinutes + ((completedTasks + 1) / totalTasks) * totalWorkMinutes) / 60);
+    const targetMinute = Math.floor((workStartMinutes + ((completedTasks + 1) / totalTasks) * totalWorkMinutes) % 60);
+    
+    setTasksNeededByTime({
+      tasksNeeded: expectedTasksComplete - completedTasks + 1,
+      hour: targetHour,
+      minute: targetMinute
+    });
+  } else {
+    setTasksNeededByTime(null);
+  }
+}, [currentDay, dayTasks, currentTaskIndex]);
+
+
+  // Countdown Timer Effect - Calculate next action time
+useEffect(() => {
+  const calculateNextActionTime = () => {
+    if (!currentDay || currentDay.tasks.length === 0) return null;
+    
+    const incompleteTasks = currentDay.tasks.filter(t => !t.done);
+    if (incompleteTasks.length === 0) return null;
+    
+    // Set next action for 45 minutes from now (customize as needed)
+    const nextTime = new Date();
+    nextTime.setMinutes(nextTime.getMinutes() + 45);
+    return nextTime;
+  };
+
+  setNextActionTime(calculateNextActionTime());
+}, [currentDay, currentTaskIndex, dayTasks]);
+
+// Countdown ticker
+useEffect(() => {
+  if (!nextActionTime) return;
+
+  const interval = setInterval(() => {
+    const now = new Date();
+    const diff = Math.floor((nextActionTime - now) / 1000);
+    setCountdownSeconds(Math.max(0, diff));
+    
+    if (diff <= 0) {
+      // Time's up! Recalculate next action time
+      const nextTime = new Date();
+      nextTime.setMinutes(nextTime.getMinutes() + 45);
+      setNextActionTime(nextTime);
+    }
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, [nextActionTime]);
+
+  // Velocity Meter - Calculate if user is ahead/behind schedule
+
+
+// Update velocity every minute
+useEffect(() => {
+  const interval = setInterval(() => {
+    // Trigger recalculation by updating a dependency
+    setCountdownSeconds(prev => prev);
+  }, 60000); // Every minute
+
+  return () => clearInterval(interval);
+}, []);
+
+  // ============ FETCH FROM FIRESTORE ============
+  // ============ FETCH FROM FIRESTORE ============
+
 
 // ============ TRANSFORM task_overview.days FORMAT ============
 const transformTaskOverview = (days: any[]): Lesson[] => {
@@ -531,6 +681,8 @@ const updateFirestore = async (updatedDayTasks: Lesson[]) => {
       if (interval) clearInterval(interval);
     };
   }, [activeTimer]);
+
+
 
   // Calculate stats with proper memoization
   const stats = useMemo(() => {
@@ -897,23 +1049,7 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
   return <OnboardingScreen onDismiss={handleDismissOnboarding} />;
 }
 
-  const currentDay = dayTasks[currentDayIndex];
-  const completedTasks = currentDay.tasks.filter((t) => t.done).length;
-  const totalTasks = currentDay.tasks.length;
-  const totalXpEarned = currentDay.tasks.reduce((sum, task) => {
-    if (task.done) {
-      return sum + (currentDay.xpPerTask * getDifficultyXPMultiplier(task.difficulty));
-    }
-    return sum;
-  }, 0);
-  const progressPercent = (completedTasks / totalTasks) * 100;
-  const isAllCompleted = completedTasks === totalTasks;
-  const canAccessDay = currentDay.unlocked;
-  const date = new Date(currentDay.date).toLocaleDateString("en-US", { 
-    weekday: "long", 
-    month: "long", 
-    day: "numeric" 
-  });
+  
 
   return (
     <div className="relative min-h-screen h-full bg-transparent p-2 sm:p-3 md:p-4">
@@ -921,6 +1057,137 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
        {showOnboarding && <OnboardingOverlay onDismiss={handleDismissOnboarding} />}
 
       
+
+        {/* COUNTDOWN TIMER BANNER */}
+        {nextActionTime && countdownSeconds > 0 && currentDay.tasks.filter(t => !t.done).length > 0 && (
+  <div className="w-full mb-6">
+    <div
+      className={`
+        relative overflow-hidden rounded-xl border backdrop-blur-xl transition-all duration-500 shadow-2xl
+        ${
+          countdownSeconds < 300
+            ? 'border-pink-500/50 shadow-pink-900/30'
+            : countdownSeconds < 900
+            ? 'border-purple-400/40 shadow-purple-900/20'
+            : 'border-purple-500/40 shadow-purple-900/20'
+        }
+      `}
+    >
+
+      {/* Ambient Glow */}
+      <div
+        className={`
+          absolute inset-0 opacity-30 transition-colors duration-700
+          ${
+            countdownSeconds < 300
+              ? 'bg-gradient-to-br from-pink-700 via-red-700 to-pink-900'
+              : countdownSeconds < 900
+              ? 'bg-gradient-to-br from-purple-700 via-fuchsia-700 to-purple-900'
+              : 'bg-gradient-to-br from-purple-900 via-purple-800 to-fuchsia-900'
+          }
+        `}
+      />
+
+      <div className="relative z-10 flex flex-col md:flex-row items-center justify-between px-6 py-4 gap-4">
+
+        {/* LEFT SIDE */}
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <div
+            className={`
+              flex items-center justify-center w-12 h-12 rounded-xl border shadow-inner
+              ${
+                countdownSeconds < 300
+                  ? 'bg-pink-500/20 border-pink-400/40 text-pink-300 animate-pulse'
+                  : countdownSeconds < 900
+                  ? 'bg-purple-500/20 border-purple-400/40 text-purple-300'
+                  : 'bg-fuchsia-500/20 border-fuchsia-400/40 text-fuchsia-300'
+              }
+            `}
+          >
+            <Clock className="w-6 h-6" />
+          </div>
+
+          <div className="flex-1">
+            <h4 className="text-gray-100 font-bold text-sm uppercase tracking-wider opacity-90">
+              Next Action Required
+            </h4>
+
+            <p
+              className={`
+                text-xs font-medium
+                ${countdownSeconds < 300 ? 'text-pink-300' : 'text-gray-300'}
+              `}
+            >
+              {countdownSeconds < 300
+                ? "CRITICAL: Move now."
+                : countdownSeconds < 900
+                ? "Warning: Deadline approaching."
+                : "On track."}
+            </p>
+          </div>
+        </div>
+
+        {/* TIMER DISPLAY */}
+        <div className="flex items-center gap-4">
+          <div className="px-5 py-2 bg-black/40 rounded-lg border border-white/10 shadow-inner flex items-center justify-center min-w-[140px]">
+            <span
+              className={`
+                font-mono text-3xl font-black tracking-widest tabular-nums
+                ${
+                  countdownSeconds < 300
+                    ? 'text-pink-400'
+                    : countdownSeconds < 900
+                    ? 'text-purple-300'
+                    : 'text-white'
+                }
+              `}
+            >
+              {Math.floor(countdownSeconds / 3600) > 0 &&
+                `${Math.floor(countdownSeconds / 3600)}:`}
+
+              {Math.floor((countdownSeconds % 3600) / 60)
+                .toString()
+                .padStart(2, '0')}
+
+              :
+
+              {(countdownSeconds % 60).toString().padStart(2, '0')}
+            </span>
+          </div>
+
+          <button
+            onClick={() => setNextActionTime(null)}
+            className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            title="Dismiss Timer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* PROGRESS BAR */}
+      {nextActionTime && (
+        <motion.div
+          className={`
+            h-1
+            ${
+              countdownSeconds < 300
+                ? 'bg-pink-500'
+                : countdownSeconds < 900
+                ? 'bg-purple-400'
+                : 'bg-fuchsia-400'
+            }
+          `}
+          initial={{ width: "100%" }}
+          animate={{ width: "0%" }}
+          transition={{ duration: countdownSeconds, ease: "linear" }}
+        />
+      )}
+    </div>
+  </div>
+)}
+
+
 
         <div className="w-full">
         {showConfetti && <Confetti recycle={false} numberOfPieces={500} />}

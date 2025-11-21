@@ -157,6 +157,7 @@ export default function ApproachOpener10X({ onNext }) {
   const [notification, setNotification] = useState(null);
   const [userPlaces, setUserPlaces] = useState([]);
   const [aiOpeners, setAiOpeners] = useState([]);
+  const [showIntroPopup, setShowIntroPopup] = useState(true);
   const [loadingAI, setLoadingAI] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState(null);
 
@@ -409,6 +410,80 @@ export default function ApproachOpener10X({ onNext }) {
   if (stage === 'home') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 text-white p-4 md:p-6">
+
+        {/* INTRO POPUP */}
+        {showIntroPopup && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+    <div className="bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 rounded-2xl border border-purple-500/40 shadow-xl max-w-sm w-full p-4 relative scale-95">
+      
+      <div className="text-center mb-4">
+        <div className="w-14 h-14 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+          <Sparkles className="w-7 h-7 text-white" />
+        </div>
+        <h2 className="text-2xl font-bold text-white mb-1">
+          Approach Opener Pro
+        </h2>
+        <p className="text-purple-200 text-sm">
+          Your social skills training module
+        </p>
+      </div>
+
+      <div className="space-y-3 mb-5">
+        <div className="flex items-start gap-3 p-3 bg-purple-950/40 rounded-xl border border-purple-600/20">
+          <div className="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+            <Target className="w-4 h-4 text-green-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-white text-sm">Conversation Openers</h3>
+            <p className="text-xs text-purple-200">Learn openers for real-life places.</p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 p-3 bg-purple-950/40 rounded-xl border border-purple-600/20">
+          <div className="w-8 h-8 bg-indigo-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-4 h-4 text-indigo-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-white text-sm">AI Personalization</h3>
+            <p className="text-xs text-purple-200">Openers tailored to your routine.</p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 p-3 bg-purple-950/40 rounded-xl border border-purple-600/20">
+          <div className="w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+            <Trophy className="w-4 h-4 text-yellow-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-white text-sm">Build Confidence</h3>
+            <p className="text-xs text-purple-200">Earn XP and track progress.</p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 p-3 bg-purple-950/40 rounded-xl border border-purple-600/20">
+          <div className="w-8 h-8 bg-pink-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+            <Zap className="w-4 h-4 text-pink-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-white text-sm">Instant Feedback</h3>
+            <p className="text-xs text-purple-200">See confidence scores instantly.</p>
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={() => setShowIntroPopup(false)}
+        className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2"
+      >
+        Start
+        <ArrowRight className="w-5 h-5" />
+      </button>
+
+    </div>
+  </div>
+)}
+
+ 
+
         <div className="max-w-4xl mx-auto">
           {/* HEADER */}
           <div className="text-center mb-6 md:mb-8">

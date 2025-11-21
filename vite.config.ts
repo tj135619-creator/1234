@@ -32,7 +32,7 @@ export default defineConfig({
   preview: {
     port: PORT,
     host: true,
-    allowedHosts: ['one234-p8m7.onrender.com'], // <-- allow Render host
+    allowedHosts: ['one234-vqx4.onrender.com'], // <-- allow Render host
   },
   esbuild: {
     // ignore all TS errors

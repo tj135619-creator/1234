@@ -28,7 +28,7 @@ const haptic = {
   alert: () => navigator.vibrate && navigator.vibrate([200, 100, 200])
 };
 
-export default function AnxietyReduction10X( {onComplete }) {
+export default function AnxietyReduction10X( {onComplete } ) {
   const [currentPage, setCurrentPage] = useState('task-selection');
   const [conversationId] = useState(`conv_${Date.now()}`);
   
@@ -47,6 +47,7 @@ export default function AnxietyReduction10X( {onComplete }) {
   const [exerciseSequence, setExerciseSequence] = useState([]);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [exercisesCompleted, setExercisesCompleted] = useState([]);
+  const [currentDay, setCurrentDay] = useState(1); // Track which day user is on
   
   // Breathing state
   const [breathingPhase, setBreathingPhase] = useState('ready');
@@ -110,11 +111,11 @@ const apiCall = async (endpoint, method = 'GET', body = null) => {
           ...body
         });
 
-        const response = await fetch('https://one23-u2ck.onrender.com/anxiety-chat', {
+        const response = await fetch('https://pythonbackend-74es.onrender.com/anxiety-chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
+            'Authorization': `Bearer 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`
           },
           body: JSON.stringify({
             user_id: userId,
@@ -273,7 +274,10 @@ useEffect(() => {
 
       console.log(`📅 Found ${overview.days.length} days in task_overview.`);
 
-      const allTasks = overview.days.flatMap((day, dayIndex) => {
+      const allTasks = overview.days
+  .filter((day, dayIndex) => dayIndex + 1 === currentDay) // Only get tasks for current day
+  .flatMap((day, dayIndex) => {
+    console.log(`🔍 Processing Day ${currentDay} (filtered):`, day);
         console.log(`🔍 Processing Day ${dayIndex + 1}:`, day);
 
         if (!day.tasks || !Array.isArray(day.tasks)) {
@@ -310,7 +314,7 @@ useEffect(() => {
     console.log('🧹 Cleaning up Firestore listener.');
     unsubscribe();
   };
-}, []);
+}, [currentDay]);
 
   
   // AI chat helper
@@ -430,6 +434,34 @@ useEffect(() => {
     }
   }, [showEmergency, emergencyTimer]);
   
+
+  // Fetch user's current day
+useEffect(() => {
+  console.log('🔍 Fetching user current day...');
+  
+  const userDocRef = doc(db, 'users', userId);
+  
+  const unsubscribe = onSnapshot(
+    userDocRef,
+    (docSnap) => {
+      if (docSnap.exists()) {
+        const userData = docSnap.data();
+        const day = userData.currentDay || userData.current_day || 1; // Adjust field name as needed
+        console.log('📅 User is on day:', day);
+        setCurrentDay(day);
+      } else {
+        console.warn('⚠️ User document not found, defaulting to day 1');
+        setCurrentDay(1);
+      }
+    },
+    (error) => {
+      console.error('🔥 Error fetching user day:', error);
+    }
+  );
+  
+  return () => unsubscribe();
+}, [userId]);
+
   // Auto-scroll chat
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -1005,116 +1037,118 @@ useEffect(() => {
             )}
 
             {exerciseSequence[currentExerciseIndex] === 'ai-chat' && (
-  <div className="fixed inset-0 flex flex-col p-4 md:p-6">
-    {/* Header */}
-    <div className="bg-gradient-to-br from-purple-900/50 to-indigo-900/50 backdrop-blur-md border-2 border-purple-500/30 rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-2xl mb-4">
-      <h3 className="font-bold text-2xl md:text-4xl text-white mb-2 flex items-center gap-3">
-        <Bot className="w-8 h-8 md:w-10 md:h-10 text-purple-400" />
-        Chat with Your AI Coach
-      </h3>
-      <p className="text-lg md:text-xl text-white ml-11 md:ml-13">
-        Share what's on your mind. I'm here to listen and help you process your feelings.
-      </p>
-    </div>
-    
-    {/* Chat Messages Area - Takes up remaining space */}
-    <div className="flex-1 bg-purple-950/50 rounded-2xl md:rounded-3xl p-4 md:p-6 mb-4 overflow-y-auto border-2 border-purple-700/30 shadow-2xl">
-      {chatMessages.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-full">
-          <Bot className="w-16 h-16 md:w-20 md:h-20 text-purple-400 mb-6 animate-pulse" />
-          <p className="text-xl md:text-2xl text-white font-semibold">Start by sharing what's worrying you...</p>
-          <p className="text-base md:text-lg text-purple-300 mt-2">I'm here to help you work through it</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {chatMessages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
-            >
-              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${
-                msg.role === 'user' 
-                  ? 'bg-gradient-to-br from-pink-500 to-rose-500' 
-                  : 'bg-gradient-to-br from-cyan-400 to-blue-500'
-              }`}>
-                {msg.role === 'user' ? (
-                  <UserIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                ) : (
-                  <Bot className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                )}
-              </div>
-              <div className={`flex-1 p-4 md:p-5 rounded-2xl md:rounded-3xl text-base md:text-xl shadow-xl ${
-                msg.role === 'user'
-                  ? 'bg-gradient-to-br from-pink-900/50 to-purple-900/50 border-2 border-pink-500/30'
-                  : 'bg-gradient-to-br from-blue-900/50 to-purple-900/50 border-2 border-blue-500/30'
-              }`}>
-                <p className="text-white leading-relaxed font-medium">
-                  {msg.content}
-                </p>
-              </div>
-            </div>
-          ))}
-          {chatLoading && (
-            <div className="flex gap-3">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg">
-                <Bot className="w-5 h-5 md:w-6 md:h-6 text-white" />
-              </div>
-              <div className="flex-1 p-4 md:p-5 rounded-2xl md:rounded-3xl bg-gradient-to-br from-blue-900/50 to-purple-900/50 border-2 border-blue-500/30 shadow-xl">
-                <div className="flex gap-2">
-                  <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce"></div>
-                  <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                </div>
-              </div>
-            </div>
-          )}
-          <div ref={chatEndRef} />
-        </div>
-      )}
-    </div>
-    
-    {/* Input Area */}
-    <div className="bg-gradient-to-br from-purple-900/50 to-indigo-900/50 backdrop-blur-md border-2 border-purple-500/30 rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-2xl">
-      <div className="flex gap-3 mb-4">
-        <input
-          type="text"
-          value={chatInput}
-          onChange={(e) => setChatInput(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
-          placeholder="Type your thoughts here..."
-          className="flex-1 px-5 md:px-6 py-4 md:py-5 bg-purple-950/50 border-2 border-purple-700/30 rounded-xl md:rounded-2xl text-white text-lg md:text-xl placeholder-purple-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 font-medium"
-          disabled={chatLoading}
-        />
-        <button
-          onClick={sendChatMessage}
-          disabled={!chatInput.trim() || chatLoading}
-          className="px-6 md:px-8 py-4 md:py-5 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl md:rounded-2xl hover:from-green-500 hover:to-emerald-500 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-xl hover:shadow-2xl transform hover:scale-105 active:scale-95"
-        >
-          <Send className="w-6 h-6 md:w-7 md:h-7 text-white" />
-        </button>
+  <div className="fixed inset-0 bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 z-50">
+    <div className="h-full flex flex-col p-4 md:p-6">
+      {/* Header */}
+      <div className="bg-gradient-to-br from-purple-900/50 to-indigo-900/50 backdrop-blur-md border-2 border-purple-500/30 rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-2xl mb-4 flex-shrink-0">
+        <h3 className="font-bold text-2xl md:text-4xl text-white mb-2 flex items-center gap-3">
+          <Bot className="w-8 h-8 md:w-10 md:h-10 text-purple-400" />
+          Talk to me !
+        </h3>
+        <p className="text-lg md:text-xl text-white ml-11 md:ml-13">
+          Share what's on your mind. I'm here to listen and help you process your feelings.
+        </p>
       </div>
       
-      {chatMessages.length >= 3 && (
-        <button
-          onClick={() => {
-            logExerciseComplete('ai-chat');
-            nextExercise();
-          }}
-          className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 md:py-5 rounded-xl md:rounded-2xl hover:from-green-500 hover:to-emerald-500 transition font-bold flex items-center justify-center gap-3 shadow-2xl text-lg md:text-xl transform hover:scale-105 active:scale-95"
-        >
-          <CheckCircle className="w-6 h-6 md:w-7 md:h-7" />
-          Feeling Better - Continue
-          <ArrowRight className="w-6 h-6 md:w-7 md:h-7" />
-        </button>
-      )}
+      {/* Chat Messages Area - Takes up remaining space */}
+      <div className="flex-1 min-h-0 bg-purple-950/50 rounded-2xl md:rounded-3xl p-4 md:p-6 mb-4 overflow-y-auto border-2 border-purple-700/30 shadow-2xl">
+        {chatMessages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full">
+            <Bot className="w-16 h-16 md:w-20 md:h-20 text-purple-400 mb-6 animate-pulse" />
+            <p className="text-xl md:text-2xl text-white font-semibold">Start by sharing what's worrying you...</p>
+            <p className="text-base md:text-lg text-purple-300 mt-2">I'm here to help you work through it</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {chatMessages.map((msg, idx) => (
+              <div
+                key={idx}
+                className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
+              >
+                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${
+                  msg.role === 'user' 
+                    ? 'bg-gradient-to-br from-pink-500 to-rose-500' 
+                    : 'bg-gradient-to-br from-cyan-400 to-blue-500'
+                }`}>
+                  {msg.role === 'user' ? (
+                    <UserIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                  ) : (
+                    <Bot className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                  )}
+                </div>
+                <div className={`flex-1 p-4 md:p-5 rounded-2xl md:rounded-3xl text-base md:text-xl shadow-xl ${
+                  msg.role === 'user'
+                    ? 'bg-gradient-to-br from-pink-900/50 to-purple-900/50 border-2 border-pink-500/30'
+                    : 'bg-gradient-to-br from-blue-900/50 to-purple-900/50 border-2 border-blue-500/30'
+                }`}>
+                  <p className="text-white leading-relaxed font-medium">
+                    {msg.content}
+                  </p>
+                </div>
+              </div>
+            ))}
+            {chatLoading && (
+              <div className="flex gap-3">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg">
+                  <Bot className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                </div>
+                <div className="flex-1 p-4 md:p-5 rounded-2xl md:rounded-3xl bg-gradient-to-br from-blue-900/50 to-purple-900/50 border-2 border-blue-500/30 shadow-xl">
+                  <div className="flex gap-2">
+                    <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce"></div>
+                    <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+        )}
+      </div>
       
-      {chatMessages.length < 3 && chatMessages.length > 0 && (
-        <div className="text-center py-2">
-          <p className="text-base md:text-lg text-purple-300 font-medium">
-            Keep chatting... ({3 - chatMessages.length} more {3 - chatMessages.length === 1 ? 'message' : 'messages'} to continue)
-          </p>
+      {/* Input Area */}
+      <div className="bg-gradient-to-br from-purple-900/50 to-indigo-900/50 backdrop-blur-md border-2 border-purple-500/30 rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-2xl flex-shrink-0">
+        <div className="flex gap-3 mb-4">
+          <input
+            type="text"
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
+            placeholder="Type your thoughts here..."
+            className="flex-1 px-5 md:px-6 py-4 md:py-5 bg-purple-950/50 border-2 border-purple-700/30 rounded-xl md:rounded-2xl text-white text-lg md:text-xl placeholder-purple-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 font-medium"
+            disabled={chatLoading}
+          />
+          <button
+  onClick={sendChatMessage}
+  disabled={!chatInput.trim() || chatLoading}
+  class="px-3 md:px-4 py-2 md:py-2 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg md:rounded-xl hover:from-green-500 hover:to-emerald-500 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transform hover:scale-100 active:scale-95"
+>
+  <Send class="w-4 h-4 md:w-5 md:h-5 text-white" />
+</button>
         </div>
-      )}
+        
+        {chatMessages.length >= 3 && (
+          <button
+            onClick={() => {
+              logExerciseComplete('ai-chat');
+              nextExercise();
+            }}
+            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 md:py-5 rounded-xl md:rounded-2xl hover:from-green-500 hover:to-emerald-500 transition font-bold flex items-center justify-center gap-3 shadow-2xl text-lg md:text-xl transform hover:scale-105 active:scale-95"
+          >
+            <CheckCircle className="w-6 h-6 md:w-7 md:h-7" />
+            Feeling Better - Continue
+            <ArrowRight className="w-6 h-6 md:w-7 md:h-7" />
+          </button>
+        )}
+        
+        {chatMessages.length < 3 && chatMessages.length > 0 && (
+          <div className="text-center py-2">
+            <p className="text-base md:text-lg text-purple-300 font-medium">
+              Keep chatting... ({3 - chatMessages.length} more {3 - chatMessages.length === 1 ? 'message' : 'messages'} to continue)
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   </div>
 )}
@@ -1502,7 +1536,7 @@ useEffect(() => {
                 className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 md:py-4 rounded-xl md:rounded-2xl hover:from-purple-500 hover:to-pink-500 transition font-bold flex items-center justify-center gap-2 shadow-2xl text-sm md:text-base"
               >
                 <TrendingUp className="w-5 h-5" />
-                View Progress
+                Next
               </button>
             </div>
           </div>

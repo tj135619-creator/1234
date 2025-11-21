@@ -50,9 +50,10 @@ const AppLayout = () => {
       document.head.appendChild(viewport);
     }
     viewport.setAttribute(
-      "content",
-      "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
-    );
+  "content",
+  "width=device-width, initial-scale=1"
+);
+
   }, []);
 
   const mobileWidthStyle: React.CSSProperties = {

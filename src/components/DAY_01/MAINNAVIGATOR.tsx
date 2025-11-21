@@ -8,6 +8,7 @@ import HelpWithAnxiety03 from "src/components/DAY_01/HELPWITHTHEIRANXIETY/03";
 import YouAreNotAlone from "src/components/DAY_01/YOUARENOTALONE/youarenotalone";
 import SocialReflectionPage from "src/components/DAY_01/ANALYZEPASTDAYS/analysetasksupdate";
 import AIChatInterface from "src/components/AIBRAIN";
+import PersonalizedLearning from "./DAY1LEARNOR";
 // Skills
 
 import OpenBodyLanguage from "src/components/DAY_01/SKELETAL COMPONENTS/01";
@@ -134,19 +135,20 @@ const Day1Navigator = forwardRef(({ onCompleteNavigator }, ref) => {
   };
 
   const pages = [
-    
+    <FullScreenWrapper key="aibrain"><AIChatInterface onComplete={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="youarenotalone"><YouAreNotAlone onComplete={nextPage} /></FullScreenWrapper>,
-    <FullScreenWrapper key="find"><FindAPlace01 onComplete={nextPage} /></FullScreenWrapper>,
-    <FullScreenWrapper key="reflection"><SocialReflectionPage onComplete={nextPage} /></FullScreenWrapper>,
+    //<FullScreenWrapper key="find"><FindAPlace01 onComplete={nextPage} /></FullScreenWrapper>,
+
     <FullScreenWrapper key="times"><SetYourTimes02 onComplete={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="anxiety"><HelpWithAnxiety03 onComplete={nextPage} /></FullScreenWrapper>,
+   // <FullScreenWrapper key="learnor"><PersonalizedLearning onComplete={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="body"><OpenBodyLanguage onNext={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="smile"><SmileWarmUp onNext={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="voice"><VoiceToneControl onNext={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="approach"><ApproachOpener onNext={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="listen"><ActiveListening onNext={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="appreciation"><GenuineAppreciation onNext={nextPage} /></FullScreenWrapper>,
-    <FullScreenWrapper key="aibrain"><AIChatInterface onComplete={nextPage} /></FullScreenWrapper>,
+    
     <FullScreenWrapper key="silence"><HandleSilence onNext={handleComplete} /></FullScreenWrapper>,
   ];
 
@@ -223,36 +225,79 @@ const Day1Navigator = forwardRef(({ onCompleteNavigator }, ref) => {
       }}
     >
       {/* Top bar */}
-      <div
-        style={{
-          position: "fixed",
-          top: "20px",
-          left: "20px",
-          right: "20px",
-          display: "flex",
-          justifyContent: "space-between",
-          zIndex: 10000000,
-        }}
-      >
-        <div style={{ display: "flex", gap: "12px" }}>
-          <button
-  onClick={handleQuit}
+      {/* Top bar */}
+<div
   style={{
-    padding: "6px 12px",
-    background: "rgba(255,255,255,0.08)",
-    color: "white",
-    borderRadius: "6px",
-    border: "1px solid rgba(255,255,255,0.15)",
-    fontSize: "12px",
-    fontWeight: "500",
-    cursor: "pointer",
+    position: "fixed",
+    top: "20px",
+    left: "20px",
+    right: "20px",
+    display: "flex",
+    justifyContent: "space-between",
+    zIndex: 10000000,
   }}
 >
-  ✕ Quit
-</button>
+  <div style={{ display: "flex", gap: "12px" }}>
+    {/* Previous Button */}
+    <button
+      onClick={() => setPageIndex((i) => Math.max(i - 1, 0))}
+      disabled={pageIndex === 0}
+      style={{
+        padding: "6px 12px",
+        background: pageIndex === 0 ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.08)",
+        color: pageIndex === 0 ? "rgba(255,255,255,0.3)" : "white",
+        borderRadius: "6px",
+        border: "1px solid rgba(255,255,255,0.15)",
+        fontSize: "12px",
+        fontWeight: "500",
+        cursor: pageIndex === 0 ? "default" : "pointer",
+      }}
+    >
+      ← Prev
+    </button>
 
-        </div>
-      </div>
+    {/* Next Button */}
+    <button
+      onClick={() => setPageIndex((i) => Math.min(i + 1, pages.length - 1))}
+      disabled={pageIndex === pages.length - 1}
+      style={{
+        padding: "6px 12px",
+        background:
+          pageIndex === pages.length - 1
+            ? "rgba(255,255,255,0.02)"
+            : "rgba(255,255,255,0.08)",
+        color:
+          pageIndex === pages.length - 1 ? "rgba(255,255,255,0.3)" : "white",
+        borderRadius: "6px",
+        border: "1px solid rgba(255,255,255,0.15)",
+        fontSize: "12px",
+        fontWeight: "500",
+        cursor:
+          pageIndex === pages.length - 1 ? "default" : "pointer",
+      }}
+    >
+      Next →
+    </button>
+
+    {/* Quit Button */}
+    <button
+      onClick={handleQuit}
+      style={{
+        padding: "6px 12px",
+        background: "rgba(255,255,255,0.08)",
+        color: "white",
+        borderRadius: "6px",
+        border: "1px solid rgba(255,255,255,0.15)",
+        fontSize: "12px",
+        fontWeight: "500",
+        cursor: "pointer",
+      }}
+    >
+      ✕ Quit
+    </button>
+  </div>
+</div>
+
 
       {/* Fullscreen page content */}
       <div

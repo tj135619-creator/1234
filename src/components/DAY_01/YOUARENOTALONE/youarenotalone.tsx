@@ -346,78 +346,84 @@ const YourRealisticPath = ({ onNext }) => {
     }
   ];
 
-  return (
-    <div className="space-y-6 md:space-y-8">
-      <div id="INNERpage-top-anchor" style={{ height: "1px", visibility: "hidden" }} />
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-purple-800/40 backdrop-blur-sm rounded-full border border-purple-500/30">
-          <Calendar className="w-5 h-5 text-purple-300" />
-          <span className="text-sm font-medium text-purple-200">Step 4 of 7</span>
-        </div>
-        
-        <h1 className="text-3xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-200 via-pink-200 to-purple-300 bg-clip-text text-transparent">
-          Your Next 90 Days
-        </h1>
-        <p className="text-lg text-purple-300">(Based on Real Data from 10,000+ Users)</p>
+ return (
+  <div className="space-y-6 md:space-y-8">
+    <div id="INNERpage-top-anchor" style={{ height: "1px", visibility: "hidden" }} />
+    <div className="text-center mb-8">
+      <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-purple-800/40 backdrop-blur-sm rounded-full border border-purple-500/30">
+        <Calendar className="w-5 h-5 text-purple-300" />
+        <span className="text-sm font-medium text-purple-200">Step 4 of 7</span>
       </div>
 
-      <div className="space-y-6">
-        {timeline.map((phase, idx) => (
-          <div key={idx} className="bg-gradient-to-br from-purple-900/50 to-indigo-900/50 backdrop-blur-md p-6 md:p-8 rounded-3xl border-2 border-purple-500/30 shadow-2xl">
-            <div className="flex items-center gap-4 mb-6">
-              <div className={`w-16 h-16 bg-gradient-to-r ${phase.color} rounded-2xl flex items-center justify-center text-3xl shadow-lg`}>
-                {phase.icon}
+      <h1 className="text-3xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-200 via-pink-200 to-purple-300 bg-clip-text text-transparent">
+        Your Growth Roadmap
+      </h1>
+      <p className="text-lg text-purple-300">(Based on Real Data from 10,000+ Users)</p>
+    </div>
+
+    <div className="space-y-6">
+      {timeline.map((phase, idx) => (
+        <div
+          key={idx}
+          className="bg-gradient-to-br from-purple-900/50 to-indigo-900/50 backdrop-blur-md p-6 md:p-8 rounded-3xl border-2 border-purple-500/30 shadow-2xl"
+        >
+          <div className="flex items-center gap-4 mb-6">
+            <div
+              className={`w-16 h-16 bg-gradient-to-r ${phase.color} rounded-2xl flex items-center justify-center text-3xl shadow-lg`}
+            >
+              {phase.icon}
+            </div>
+            <div>
+              <h3 className="text-xl md:text-2xl font-bold text-white">{phase.phase}</h3>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <div className="p-4 bg-purple-950/50 rounded-xl border border-purple-700/30">
+                <p className="text-xs text-purple-400 font-semibold mb-1">YOU'LL FEEL</p>
+                <p className="text-purple-100">{phase.feeling}</p>
               </div>
-              <div>
-                <h3 className="text-xl md:text-2xl font-bold text-white">{phase.phase}</h3>
+              <div className="p-4 bg-purple-950/50 rounded-xl border border-purple-700/30">
+                <p className="text-xs text-purple-400 font-semibold mb-1">WHAT TO EXPECT</p>
+                <p className="text-purple-100">{phase.expect}</p>
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-3">
-                <div className="p-4 bg-purple-950/50 rounded-xl border border-purple-700/30">
-                  <p className="text-xs text-purple-400 font-semibold mb-1">YOU'LL FEEL</p>
-                  <p className="text-purple-100">{phase.feeling}</p>
-                </div>
-                <div className="p-4 bg-purple-950/50 rounded-xl border border-purple-700/30">
-                  <p className="text-xs text-purple-400 font-semibold mb-1">WHAT TO EXPECT</p>
-                  <p className="text-purple-100">{phase.expect}</p>
-                </div>
+            <div className="space-y-3">
+              <div className="p-4 bg-blue-900/20 rounded-xl border border-blue-500/30">
+                <p className="text-xs text-blue-400 font-semibold mb-1">REALITY CHECK</p>
+                <p className="text-blue-100">{phase.reality}</p>
               </div>
-
-              <div className="space-y-3">
-                <div className="p-4 bg-blue-900/20 rounded-xl border border-blue-500/30">
-                  <p className="text-xs text-blue-400 font-semibold mb-1">REALITY CHECK</p>
-                  <p className="text-blue-100">{phase.reality}</p>
-                </div>
-                <div className="p-4 bg-green-900/20 rounded-xl border border-green-500/30">
-                  <p className="text-xs text-green-400 font-semibold mb-1">SUCCESS LOOKS LIKE</p>
-                  <p className="text-green-100">{phase.success}</p>
-                </div>
+              <div className="p-4 bg-green-900/20 rounded-xl border border-green-500/30">
+                <p className="text-xs text-green-400 font-semibold mb-1">SUCCESS LOOKS LIKE</p>
+                <p className="text-green-100">{phase.success}</p>
               </div>
             </div>
           </div>
-        ))}
-      </div>
-
-      <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 backdrop-blur-sm p-6 md:p-8 rounded-3xl border-2 border-purple-400/30">
-        <p className="text-xl md:text-2xl font-bold text-center text-purple-100 mb-3">
-          The pattern is clear: Discomfort → Practice → Confidence → Identity
-        </p>
-        <p className="text-center text-purple-300 text-sm md:text-base">
-          Every successful person went through these exact phases. You will too.
-        </p>
-      </div>
-
-      <button
-        onClick={onNext}
-        className="w-full px-8 py-5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl font-bold text-lg hover:from-purple-500 hover:to-pink-500 transition-all shadow-2xl flex items-center justify-center gap-3"
-      >
-        But What About When I Fail?
-        <ArrowRight className="w-6 h-6" />
-      </button>
+        </div>
+      ))}
     </div>
-  );
+
+    <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 backdrop-blur-sm p-6 md:p-8 rounded-3xl border-2 border-purple-400/30">
+      <p className="text-xl md:text-2xl font-bold text-center text-purple-100 mb-3">
+        The pattern is clear: Discomfort → Practice → Confidence → Identity
+      </p>
+      <p className="text-center text-purple-300 text-sm md:text-base">
+        Every successful person went through these exact phases. You will too.
+      </p>
+    </div>
+
+    <button
+      onClick={onNext}
+      className="w-full px-8 py-5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl font-bold text-lg hover:from-purple-500 hover:to-pink-500 transition-all shadow-2xl flex items-center justify-center gap-3"
+    >
+      But What About When I Fail?
+      <ArrowRight className="w-6 h-6" />
+    </button>
+  </div>
+);
+
 };
 
 // ============================================================================

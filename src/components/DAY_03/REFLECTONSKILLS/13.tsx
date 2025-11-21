@@ -13,7 +13,6 @@ const skills = [
   ConversationalFlow,
   Storytelling,
   Empathy,
-  SocialCues,
   Humor,
 ];
 
