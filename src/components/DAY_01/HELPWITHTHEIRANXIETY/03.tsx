@@ -9,7 +9,7 @@ import {
 import { doc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from './firebase'; // Adjust path to your firebase config
 
-import { apiKeys } from 'src/backend/keys/apiKeys';
+import { getApiKeys } from 'src/backend/apiKeys';
 // API Configuration
 const API_BASE = 'https://your-api.com';
 const USE_MOCK_DATA = false;
@@ -102,6 +102,25 @@ const apiCall = async (endpoint, method = 'GET', body = null) => {
     let data: any = null;
     let success = false;
 
+    // Fetch API keys from Firebase
+    let apiKeys: string[] = [];
+    try {
+      apiKeys = await getApiKeys();
+      if (apiKeys.length === 0) {
+        console.warn('⚠️ No API keys available in Firebase');
+        return {
+          response: "I'm here to support you. Take a deep breath - you've got this.",
+          suggestions: null
+        };
+      }
+    } catch (error) {
+      console.error('❌ Failed to fetch API keys from Firebase:', error);
+      return {
+        response: "I'm here to support you. Take a deep breath - you've got this.",
+        suggestions: null
+      };
+    }
+
     for (let i = 0; i < apiKeys.length; i++) {
       const apiKey = apiKeys[i];
       try {
@@ -115,7 +134,7 @@ const apiCall = async (endpoint, method = 'GET', body = null) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer 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`
+            'Authorization': `Bearer ${apiKey}` // Use dynamic API key
           },
           body: JSON.stringify({
             user_id: userId,

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, User, Bot, Loader2, Brain, Target, BookOpen, Zap, Calendar, CheckCircle, Sparkles, ArrowRight } from 'lucide-react';
+import { getApiKeys } from 'src/backend/apikeys';
 
 export default function AIChatInterface({onComplete}) {
   const [currentPhase, setCurrentPhase] = useState(1);
@@ -10,7 +11,7 @@ export default function AIChatInterface({onComplete}) {
   const [showPhaseTransition, setShowPhaseTransition] = useState(false);
   const messagesEndRef = useRef(null);
 
-  const GROQ_API_KEY = "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";
+
   const API_BASE = "https://pythonbackend-74es.onrender.com";
 
   const phases = [
@@ -85,86 +86,136 @@ export default function AIChatInterface({onComplete}) {
   }, []);
 
   const initializeSession = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${API_BASE}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: sessionId,
-          api_key: GROQ_API_KEY,
-          phase: 1,
-          message: ""
-        })
-      });
-
-      const data = await response.json();
-      
-      setMessages([{
-        id: Date.now(),
-        role: 'assistant',
-        content: data.response,
-        timestamp: Date.now()
-      }]);
-    } catch (error) {
-      console.error('Initialization error:', error);
-      setMessages([{
-        id: Date.now(),
-        role: 'assistant',
-        content: '⚠️ Could not connect to server. Please try again.',
-        timestamp: Date.now()
-      }]);
+  setIsLoading(true);
+  try {
+    // Fetch API keys from Firebase
+    const apiKeys = await getApiKeys();
+    if (apiKeys.length === 0) {
+      throw new Error("No API keys available");
     }
-    setIsLoading(false);
-  };
+
+    // Try each key until one works
+    let success = false;
+    for (const apiKey of apiKeys) {
+      try {
+        const response = await fetch(`${API_BASE}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: sessionId,
+            api_key: apiKey,
+            phase: 1,
+            message: ""
+          })
+        });
+
+        if (!response.ok) continue;
+
+        const data = await response.json();
+        
+        setMessages([{
+          id: Date.now(),
+          role: 'assistant',
+          content: data.response,
+          timestamp: Date.now()
+        }]);
+        
+        success = true;
+        break;
+      } catch (err) {
+        console.warn('API key failed, trying next...', err);
+        continue;
+      }
+    }
+
+    if (!success) {
+      throw new Error("All API keys failed");
+    }
+
+  } catch (error) {
+    console.error('Initialization error:', error);
+    setMessages([{
+      id: Date.now(),
+      role: 'assistant',
+      content: '⚠️ Could not connect to server. Please try again.',
+      timestamp: Date.now()
+    }]);
+  }
+  setIsLoading(false);
+};
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+  if (!inputMessage.trim() || isLoading) return;
 
-    const userMsg = {
-      id: Date.now(),
-      role: 'user',
-      content: inputMessage,
-      timestamp: Date.now()
-    };
+  const userMsg = {
+    id: Date.now(),
+    role: 'user',
+    content: inputMessage,
+    timestamp: Date.now()
+  };
 
-    setMessages(prev => [...prev, userMsg]);
-    const userInput = inputMessage;
-    setInputMessage('');
-    setIsLoading(true);
+  setMessages(prev => [...prev, userMsg]);
+  const userInput = inputMessage;
+  setInputMessage('');
+  setIsLoading(true);
 
-    try {
-      const response = await fetch(`${API_BASE}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: sessionId,
-          api_key: GROQ_API_KEY,
-          phase: currentPhase,
-          message: userInput
-        })
-      });
-
-      const data = await response.json();
-
-      setMessages(prev => [...prev, {
-        id: Date.now() + 1,
-        role: 'assistant',
-        content: data.response,
-        timestamp: Date.now()
-      }]);
-    } catch (error) {
-      console.error('Send error:', error);
-      setMessages(prev => [...prev, {
-        id: Date.now() + 1,
-        role: 'assistant',
-        content: '⚠️ Error sending message. Please try again.',
-        timestamp: Date.now()
-      }]);
+  try {
+    // Fetch API keys from Firebase
+    const apiKeys = await getApiKeys();
+    if (apiKeys.length === 0) {
+      throw new Error("No API keys available");
     }
 
-    setIsLoading(false);
-  };
+    // Try each key until one works
+    let success = false;
+    for (const apiKey of apiKeys) {
+      try {
+        const response = await fetch(`${API_BASE}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: sessionId,
+            api_key: apiKey,
+            phase: currentPhase,
+            message: userInput
+          })
+        });
+
+        if (!response.ok) continue;
+
+        const data = await response.json();
+
+        setMessages(prev => [...prev, {
+          id: Date.now() + 1,
+          role: 'assistant',
+          content: data.response,
+          timestamp: Date.now()
+        }]);
+
+        success = true;
+        break;
+      } catch (err) {
+        console.warn('API key failed, trying next...', err);
+        continue;
+      }
+    }
+
+    if (!success) {
+      throw new Error("All API keys failed");
+    }
+
+  } catch (error) {
+    console.error('Send error:', error);
+    setMessages(prev => [...prev, {
+      id: Date.now() + 1,
+      role: 'assistant',
+      content: '⚠️ Error sending message. Please try again.',
+      timestamp: Date.now()
+    }]);
+  }
+
+  setIsLoading(false);
+};
 
   const handleNextPhase = async () => {
     if (!canMoveToNext) return;

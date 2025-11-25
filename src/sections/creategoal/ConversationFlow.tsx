@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
+import { getApiKeys } from 'src/backend/apikeys';
+
 import { initializeApp, getApps } from "firebase/app";
 import { getFirestore, doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
@@ -271,7 +273,26 @@ const handleSendMessage = async (msgContent: string) => {
   // Mark that user shared goal
   if (!hasSharedGoal) setHasSharedGoal(true);
 
-  // 2️⃣ Call AI API with failover for multiple keys
+  // 2️⃣ Fetch API keys from Firebase
+  let apiKeys: string[] = [];
+  try {
+    apiKeys = await getApiKeys();
+    if (apiKeys.length === 0) {
+      throw new Error("No API keys available");
+    }
+  } catch (error) {
+    console.error("Failed to fetch API keys:", error);
+    const aiMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      role: "assistant",
+      content: "I'm having trouble connecting. Please try again later.",
+    };
+    setMessages((prev) => [...prev, aiMessage]);
+    setLocalLoading(false);
+    return;
+  }
+
+  // 3️⃣ Call AI API with failover for multiple keys
   let success = false;
   let data: any;
 
@@ -289,14 +310,14 @@ const handleSendMessage = async (msgContent: string) => {
         message: msgContent,
         goal_name: answers["q1"] || "daily habits",
         answers,
-        history: lastMessages,  // Send only recent messages
+        history: lastMessages,
       };
 
       const resp = await fetch("https://pythonbackend-74es.onrender.com/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer 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`,
+          Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify(payload),
       });
@@ -309,18 +330,18 @@ const handleSendMessage = async (msgContent: string) => {
       }
 
       if (!resp.ok) {
-        console.warn(`API key ${apiKey} failed:`, data);
+        console.warn(`API key ${i + 1} failed:`, data);
         continue; // Try next key
       }
 
       success = true;
       break; // Success, exit loop
     } catch (err) {
-      console.warn(`Request failed with key ${apiKey}:`, err);
+      console.warn(`Request failed with key ${i + 1}:`, err);
     }
   }
 
-  // 3️⃣ Add AI message
+  // 4️⃣ Add AI message
   const aiMessage: Message = {
     id: (Date.now() + 1).toString(),
     role: "assistant",
@@ -329,7 +350,6 @@ const handleSendMessage = async (msgContent: string) => {
   setMessages((prev) => [...prev, aiMessage]);
   setLocalLoading(false);
 };
-
 
 
 
@@ -375,6 +395,7 @@ const MOCK_PLAN = {
   success: true,
 };
 
+
 const handleGeneratePlan = async () => {
   console.log("🚀 Starting 5-day task overview generation...");
   setIsGeneratingPlan(true);
@@ -403,69 +424,69 @@ const handleGeneratePlan = async () => {
     });
   }, 1200);
 
-  let data: any = null; // Initialize data outside the loop
+  let data: any = null;
   let success = false;
-  let useMockPlan = false; // Flag to indicate if we should use the mock plan
+  let useMockPlan = false;
 
   try {
+    // Fetch API keys from Firebase
+    const apiKeys = await getApiKeys();
     
-    // --- API KEY LOOP ---
-    for (let i = 0; i < apiKeys.length; i++) {
-      const apiKey = apiKeys[i];
-
-      try {
-        const resp = await fetch(
-          "https://pythonbackend-74es.onrender.com/create-task-overview",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer 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`,
-            },
-            body: JSON.stringify(payload),
-          }
-        );
+    if (apiKeys.length === 0) {
+      console.warn("⚠️ No API keys available. Using mock plan.");
+      data = MOCK_PLAN;
+      success = true;
+      useMockPlan = true;
+    } else {
+      // --- API KEY LOOP ---
+      for (let i = 0; i < apiKeys.length; i++) {
+        const apiKey = apiKeys[i];
 
         try {
-          data = await resp.json();
-        } catch (jsonErr) {
-          const rawText = await resp.text();
-          console.warn(`Invalid JSON with key ${apiKey}:`, rawText);
-          continue; // Try next key
-        }
+          const resp = await fetch(
+            "https://pythonbackend-74es.onrender.com/create-task-overview",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${apiKey}`,
+              },
+              body: JSON.stringify(payload),
+            }
+          );
 
-        if (!resp.ok || !data.success || !data.overview) {
-          console.warn(`API key ${apiKey} failed or invalid response`, data);
-          continue; // Try next key
-        }
+          try {
+            data = await resp.json();
+          } catch (jsonErr) {
+            const rawText = await resp.text();
+            console.warn(`Invalid JSON with key ${i + 1}:`, rawText);
+            continue;
+          }
 
+          if (!resp.ok || !data.success || !data.overview) {
+            console.warn(`API key ${i + 1} failed or invalid response`, data);
+            continue;
+          }
+
+          success = true;
+          console.log("✅ Task overview received:", data.overview);
+          break;
+
+        } catch (err) {
+          console.warn(`Request failed with key ${i + 1}:`, err);
+        }
+      }
+      // --- END API KEY LOOP ---
+
+      // Fallback to mock plan if all keys failed
+      if (!success) {
+        console.warn("⚠️ All API keys failed. Falling back to mock plan.");
+        data = MOCK_PLAN;
         success = true;
-        console.log("✅ Task overview received:", data.overview);
-        break; // Success! exit the loop
-
-      } catch (err) {
-        console.warn(`Request failed with key ${apiKey}:`, err);
-        // Try next key
+        useMockPlan = true;
       }
     }
-    // --- END API KEY LOOP ---
 
-    // === Add Mock Plan Logic Here ===
-    if (!success) {
-      console.warn("⚠️ All API keys failed. Falling back to mock plan.");
-      data = MOCK_PLAN;
-      success = true; // Treat as success for flow control
-      useMockPlan = true;
-    }
-    // === End Mock Plan Logic ===
-
-    if (!success) {
-      // This line is technically unreachable now if MOCK_PLAN is set, 
-      // but kept for robustness if mock plan setting fails or is not desired.
-      throw new Error("Could not generate plan after all attempts.");
-    }
-    
-    // Use the data (either real or mock)
     const overviewToSave = data.overview;
 
     // Save to Firebase
@@ -479,8 +500,7 @@ const handleGeneratePlan = async () => {
       course_id: courseId,
       generated_at: serverTimestamp(),
       created_at: serverTimestamp(),
-      // Optionally log if it was a mock plan
-      is_mock_plan: useMockPlan, 
+      is_mock_plan: useMockPlan,
     });
 
     console.log(`✅ 5-day task overview saved to Firebase (Mock: ${useMockPlan})`);
@@ -490,7 +510,7 @@ const handleGeneratePlan = async () => {
     await markPlanAsCreated();
 
     setPlanPreview({
-      days: overviewToSave.days || [ // Use the saved overview data
+      days: overviewToSave.days || [
         { day: 1, title: "Build Foundation", task: "Start with 15min daily practice" },
         { day: 2, title: "Gain Momentum", task: "Increase to 30min, track progress" },
         { day: 3, title: "Push Boundaries", task: "Try one challenging scenario" },
@@ -503,8 +523,7 @@ const handleGeneratePlan = async () => {
 
   } catch (err: any) {
     console.error("🔥 handleGeneratePlan error:", err);
-    // If the original flow had a final failure, this catches it
-    showToast(`⚠️ Plan generation failed: ${err.message}`, "error"); 
+    showToast(`⚠️ Plan generation failed: ${err.message}`, "error");
   } finally {
     clearInterval(progressInterval);
     setIsGeneratingPlan(false);
