@@ -8,8 +8,7 @@ import {
 } from 'lucide-react';
 import { doc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from './firebase'; // Adjust path to your firebase config
-
-import { getApiKeys } from 'src/backend/apiKeys';
+import { getApiKeys } from './apikeys';
 // API Configuration
 const API_BASE = 'https://your-api.com';
 const USE_MOCK_DATA = false;
