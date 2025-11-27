@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import ConversationalFlow from "./CONVOFLOW/convoflow";
 import Storytelling from "./STORYTELLING/storytelling";
 import EMPATHY from "./EMPATHY/empathy";
-import SocialCues from "./SOCIALCUES/socialcues";
 import Humor from "./HUMOR/humor";
 
 const skills = [

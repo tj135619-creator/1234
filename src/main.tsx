@@ -2,7 +2,6 @@ import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Outlet, RouterProvider, createBrowserRouter, useLocation } from 'react-router-dom';
 import App from './app';
-import MobileNav from './MobileNav';
 import { routesSection } from './routes/sections';
 import { ErrorBoundary } from './routes/components';
 import { OnboardingProvider } from './contexts/OnboardingContext';
@@ -31,7 +30,7 @@ const AppLayout = () => {
 
     // Prevent pinch-to-zoom
     const handleTouchMove = (e: TouchEvent) => {
-      if (e.touches.length > 1) e.preventDefault(); // block multi-touch
+      if (e.touches.length > 1) e.preventDefault();
     };
     document.addEventListener('touchmove', handleTouchMove, { passive: false });
 
@@ -49,26 +48,26 @@ const AppLayout = () => {
       viewport.setAttribute("name", "viewport");
       document.head.appendChild(viewport);
     }
-    viewport.setAttribute(
-  "content",
-  "width=device-width, initial-scale=1"
-);
-
+    viewport.setAttribute("content", "width=device-width, initial-scale=1");
   }, []);
 
-  const mobileWidthStyle: React.CSSProperties = {
+  const wrapperStyle: React.CSSProperties = {
     overflowX: 'hidden',
     width: '100%',
-    maxWidth: '100vw',
+    maxWidth: 'none',        // allow full width on large screens
+    padding: isMobile ? '0 10px' : '0 40px', // responsive padding
   };
 
-  const contentStyle: React.CSSProperties = isNavHidden
-    ? {}
-    : { paddingBottom: '0px', marginTop: '0px' };
+  const contentStyle: React.CSSProperties = {
+    margin: '0 auto',        // center content
+    maxWidth: '1400px',      // optional max width for readability on large screens
+    paddingBottom: '0px',
+    marginTop: '0px',
+  };
 
   return (
     <App>
-      <div style={mobileWidthStyle}>
+      <div style={wrapperStyle}>
         <div style={contentStyle}>
           <Outlet />
         </div>

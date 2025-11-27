@@ -272,9 +272,10 @@ useEffect(() => {
       )}
 
       {/* Main Dashboard Content */}
-      <DashboardContent maxWidth="xl">
+      <DashboardContent maxWidth={false}>
         <div className="min-h-screen flex justify-center">
-          <div className="w-full max-w-6xl px-6 md:px-10 lg:px-16 py-6 md:py-10 space-y-12">
+          <div className="w-full px-4 py-6 space-y-12">
+
 
             {/* Welcome Header */}
             <div className="text-center overview-welcome-header">
@@ -292,22 +293,26 @@ useEffect(() => {
             </div>
 
             {/* Lesson + Transformation */}
-            <div className="space-y-12">
-              <div className="today-lesson-hero">
-                <div ref={todayRef} className="relative">
-                  <TodayActionCard />
-                </div>
-              </div>
-            </div>
+<div className="w-full flex justify-center">
+
+    <div ref={todayRef} className="relative">
+      <TodayActionCard />
+    </div>
+
+</div>
+
+
+              <Grid item xs={12} md={8} lg={6} xl={5} className="tour-today-action-card">
+  <TodayLessonHero 
+    onStartLesson={handleStartLesson} 
+    activeDay={testDay}
+  />
+</Grid>
 
             {/* Components Grid */}
             <Grid container spacing={6} justifyContent="center" className="components-grid">
-              <Grid item xs={12} md={6} lg={4} className="tour-today-action-card">
-                <TodayLessonHero 
-                  onStartLesson={handleStartLesson} 
-                  activeDay={testDay}
-                />
-              </Grid>
+              
+
 
               <Grid item xs={12} md={6} lg={4} className="tour-duolingo-progress-map">
                 <div ref={mapRef} className="relative">

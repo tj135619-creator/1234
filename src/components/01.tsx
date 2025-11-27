@@ -1543,9 +1543,8 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
       </>
     ) : (
       <>
-        <Sparkles className="w-6 h-6" />
-        Start your task now!
-        <Sparkles className="w-6 h-6" />
+             Start your task now!
+        
       </>
     )}
   </span>

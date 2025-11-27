@@ -518,7 +518,7 @@ useEffect(() => {
       locationId: 'coffee',
       missionName: 'Coffee Shop Greeting Party',
       startTime: new Date(now.getTime() + 8 * 60 * 1000),
-      participants: [currentUserId, 'alex', 'sam', 'jordan', 'casey'],
+      participants: [currentUserId, 'alex_1102', 'sam_wave', 'jordan_k', 'casey_m'],
       status: 'upcoming',
       createdBy: currentUserId,
       createdAt: now
@@ -528,9 +528,9 @@ useEffect(() => {
       locationId: 'library',
       missionName: 'Library Reading Challenge',
       startTime: new Date(now.getTime() + 7 * 60 * 1000),
-      participants: [currentUserId, 'alex', 'sam'],
+      participants: [currentUserId, 'alex_1102', 'sam_wave'],
       status: 'upcoming',
-      createdBy: 'alex',
+      createdBy: 'alex_1102',
       createdAt: now
     },
     {
@@ -538,9 +538,9 @@ useEffect(() => {
       locationId: 'park',
       missionName: 'Park Walking Party',
       startTime: new Date(now.getTime() - 5 * 60 * 1000),
-      participants: ['alex', 'sam', 'jordan'],
+      participants: ['alex_1102', 'sam_wave', 'jordan_k'],
       status: 'active',
-      createdBy: 'sam',
+      createdBy: 'sam_wave',
       createdAt: now
     },
     {
@@ -548,9 +548,9 @@ useEffect(() => {
       locationId: 'market',
       missionName: 'Market Shopping Mission',
       startTime: new Date(now.getTime() - 60 * 60 * 1000),
-      participants: [currentUserId, 'alex', 'sam', 'jordan', 'casey', 'riley'],
+      participants: [currentUserId, 'alex_1102', 'sam_wave', 'jordan_k', 'casey_m', 'riley_007'],
       status: 'completed',
-      createdBy: 'jordan',
+      createdBy: 'jordan_k',
       createdAt: now
     }
   ];
@@ -562,79 +562,79 @@ useEffect(() => {
     completions: 5,
     avgAnxietyBefore: 7.2,
     avgAnxietyAfter: 3.1,
-    totalReactions: 247,
+    totalReactions: 47,
     achievements: [
-      'Wave of Support (200+ reactions)',
+      'Wave of Support (40+ reactions)',
       'No One Left Behind (83% completion)',
       'Hype Train (peaked at 97%)'
     ]
   });
   
   setLiveParticipantLocations({
-    'alex': {
+    'alex_1102': {
       lat: 0,
       lng: 0,
       status: 'completed',
-      userName: 'Alex',
+      userName: 'alex_1102',
       locationId: 'park'
     },
-    'sam': {
+    'sam_wave': {
       lat: 0,
       lng: 0,
       status: 'active',
-      userName: 'Sam',
+      userName: 'sam_wave',
       locationId: 'park'
     },
-    'jordan': {
+    'jordan_k': {
       lat: 0,
       lng: 0,
       status: 'arrived',
-      userName: 'Jordan',
+      userName: 'jordan_k',
       locationId: 'park'
     }
   });
 
   setCampfireMessages([
-    { id: 'camp1', userId: 'alex', userName: 'Alex', text: 'Sitting in my car...', timestamp: { toDate: () => new Date(Date.now() - 3000) }, reactions: { '💪': 12, '❤️': 8 }, isVulnerable: true },
-    { id: 'camp2', userId: 'sam', userName: 'Sam', text: 'YOU GOT THIS ALEX!', timestamp: { toDate: () => new Date(Date.now() - 12000) }, reactions: { '👋': 47, '💪': 23 }, isVulnerable: false },
-    { id: 'camp3', userId: 'jordan', userName: 'Jordan', text: 'Pro tip...', timestamp: { toDate: () => new Date(Date.now() - 60000) }, reactions: { '⭐': 89, '💡': 34 }, isVulnerable: false },
-    { id: 'camp4', userId: 'casey', userName: 'Casey', text: 'Anyone else\'s heart racing?', timestamp: { toDate: () => new Date(Date.now() - 120000) }, reactions: { '🙋': 31 }, isVulnerable: true }
+    { id: 'camp1', userId: 'alex_1102', userName: 'alex_1102', text: 'Sitting in my car...', timestamp: { toDate: () => new Date(Date.now() - 3000) }, reactions: { '💪': 5, '❤️': 3 }, isVulnerable: true },
+    { id: 'camp2', userId: 'sam_wave', userName: 'sam_wave', text: 'YOU GOT THIS ALEX!', timestamp: { toDate: () => new Date(Date.now() - 12000) }, reactions: { '👋': 8, '💪': 4 }, isVulnerable: false },
+    { id: 'camp3', userId: 'jordan_k', userName: 'jordan_k', text: 'Pro tip...', timestamp: { toDate: () => new Date(Date.now() - 60000) }, reactions: { '⭐': 12, '💡': 6 }, isVulnerable: false },
+    { id: 'camp4', userId: 'casey_m', userName: 'casey_m', text: 'Anyone else\'s heart racing?', timestamp: { toDate: () => new Date(Date.now() - 120000) }, reactions: { '🙋': 7 }, isVulnerable: true }
   ]);
 
   setTodaysChampions({
     firstTimer: {
-      name: 'Sarah',
+      name: 'sarah_2024',
       time: '6:47am',
       message: 'I couldn\'t sleep so I just went for it. BEST DECISION!',
-      reactions: 234
+      reactions: 34
     },
     bestTip: {
-      name: 'Mike',
+      name: 'mike_1102',
       tip: 'Smile at the barista when you walk in. It breaks the ice and they smile back.',
-      helpful: 178
+      helpful: 28
     },
     biggestBreakthrough: {
-      name: 'Jordan',
+      name: 'jordan_k',
       story: 'I have social anxiety disorder. I did it. I cried happy tears in my car after.',
-      reactions: 456,
-      replies: 89
+      reactions: 56,
+      replies: 12
     }
   });
 
   setEncouragementNotes([
     {
       id: 'enc1',
-      from: 'Sarah',
+      from: 'sarah_2024',
       message: 'I was SO scared. I sat outside for 10 minutes. But I did it. And you know what? The barista was SO NICE. Nobody judged me. You can do this. I believe in you. ❤️',
       completedAgo: '2h ago',
-      reactions: 892
+      reactions: 42
     },
     {
       id: 'enc2',
-      from: 'Mike',
+      from: 'mike_1102',
       message: 'Your anxiety is lying to you. Everyone in there is focused on their own stuff. Nobody is watching you. You\'re going to do amazing. 💪',
       completedAgo: '5h ago',
-      reactions: 567
+      reactions: 31
     }
   ]);
 
@@ -644,11 +644,11 @@ useEffect(() => {
       id: 'group1',
       locationId: 'cafe',
       departureTime: nextDeparture,
-      participants: ['alex', 'sam', 'jordan', 'casey', 'pat', 'riley', 'morgan', 'taylor'],
+      participants: ['alex_1102', 'sam_wave', 'jordan_k', 'casey_m', 'pat_g', 'riley_007', 'morgan_xyz', 'taylor_99'],
       messages: [
-        { userId: 'alex', userName: 'Alex', text: 'Let\'s all order the same thing lol' },
-        { userId: 'sam', userName: 'Sam', text: 'I\'m so nervous but excited!' },
-        { userId: 'jordan', userName: 'Jordan', text: 'We move together! 💪' }
+        { userId: 'alex_1102', userName: 'alex_1102', text: 'Let\'s all order the same thing lol' },
+        { userId: 'sam_wave', userName: 'sam_wave', text: 'I\'m so nervous but excited!' },
+        { userId: 'jordan_k', userName: 'jordan_k', text: 'We move together! 💪' }
       ]
     }
   ]);
@@ -656,7 +656,7 @@ useEffect(() => {
   setBuddyMatches([
     {
       id: 'buddy1',
-      name: 'Alex',
+      name: 'alex_1102',
       anxietyLevel: 7,
       preferredTime: 'Evening (6-9pm)',
       experience: 'First timer',
@@ -666,7 +666,7 @@ useEffect(() => {
     },
     {
       id: 'buddy2',
-      name: 'Sam',
+      name: 'sam_wave',
       anxietyLevel: 6,
       preferredTime: 'Evening (6-9pm)',
       experience: 'Did it once before',
@@ -679,37 +679,37 @@ useEffect(() => {
   setLiveUpdates([
     {
       id: 'live1',
-      userId: 'sarah',
-      userName: 'Sarah',
+      userId: 'sarah_2024',
+      userName: 'sarah_2024',
       action: 'Just ordered! ✅',
       timestamp: new Date(Date.now() - 5000),
       replies: [
-        { userId: 'mike', userName: 'Mike', text: 'YESSS GO SARAH! 🎉' },
-        { userId: 'alex', userName: 'Alex', text: 'How do you feel??' },
-        { userId: 'sarah', userName: 'Sarah', text: 'Honestly? PROUD. My voice shook but I did it!' }
+        { userId: 'mike_1102', userName: 'mike_1102', text: 'YESSS GO SARAH! 🎉' },
+        { userId: 'alex_1102', userName: 'alex_1102', text: 'How do you feel??' },
+        { userId: 'sarah_2024', userName: 'sarah_2024', text: 'Honestly? PROUD. My voice shook but I did it!' }
       ],
-      reactions: 47
+      reactions: 9
     },
     {
       id: 'live2',
-      userId: 'jordan',
-      userName: 'Jordan',
+      userId: 'jordan_k',
+      userName: 'jordan_k',
       action: 'Walking in now... here goes 😰',
       timestamp: new Date(Date.now() - 23000),
       replies: [],
-      reactions: 47
+      reactions: 7
     },
     {
       id: 'live3',
-      userId: 'pat',
-      userName: 'Pat',
+      userId: 'pat_g',
+      userName: 'pat_g',
       action: 'COMPLETED! IM SHAKING! IN A GOOD WAY!!!! 🎉🎉🎉',
       timestamp: new Date(Date.now() - 60000),
       replies: [],
-      reactions: 156
+      reactions: 18
     }
   ]);
-}, [selectedDayNumber]); // Run only once on mount
+}, [selectedDayNumber]);
 
 // Separate useEffect for party messages based on selected party
 useEffect(() => {
@@ -718,31 +718,31 @@ useEffect(() => {
     setPartyMessages([
       {
         id: 'msg1',
-        userId: 'alex',
-        userName: 'Alex',
+        userId: 'alex_1102',
+        userName: 'alex_1102',
         text: 'First timer here, so nervous! 😰',
         timestamp: { toDate: () => new Date(now.getTime() - 30000) },
         type: 'chat'
       },
       {
         id: 'msg2',
-        userId: 'sam',
-        userName: 'Sam',
+        userId: 'sam_wave',
+        userName: 'sam_wave',
         text: 'You got this! 💪',
         timestamp: { toDate: () => new Date(now.getTime() - 20000) },
         type: 'chat'
       },
       {
         id: 'msg3',
-        userId: 'jordan',
-        userName: 'Jordan',
+        userId: 'jordan_k',
+        userName: 'jordan_k',
         text: 'Who else is excited?!',
         timestamp: { toDate: () => new Date(now.getTime() - 10000) },
         type: 'chat'
       }
     ]);
   }
-}, [selectedParty?.id]); // Only run when selectedParty changes
+}, [selectedParty?.id]);
 
 
 // Countdown timer for active party
@@ -3078,7 +3078,7 @@ useEffect(() => {
 )}
 
 {/* Day Explorer Modal - UNIFIED FEED */}
-{showDayExplorer && selectedDayNumber && (
+{(showDayExplorer || viewingDayCommunity) && selectedDayNumber && (
   <div 
     className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center p-4"
     onClick={() => setShowDayExplorer(false)}
@@ -3089,58 +3089,61 @@ useEffect(() => {
     >
       
       {/* HEADER - Fixed at top */}
-      <div className="p-6 border-b border-orange-500/30 flex-shrink-0">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <div className="p-3 rounded-xl bg-orange-500/20">
-                <Trophy className="w-8 h-8 text-orange-400" />
-              </div>
-              <div className="absolute -top-1 -right-1 w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
-                <span className="text-xs font-bold text-white">{selectedDayNumber}</span>
-              </div>
-            </div>
-            <div>
-              <h2 className="text-3xl font-bold text-white">Day {selectedDayNumber} Community</h2>
-              <p className="text-orange-300 text-sm mt-1">
-                {peopleOnSelectedDay.length} people on this journey right now
-              </p>
-            </div>
-          </div>
-          <button 
-            onClick={() => setShowDayExplorer(false)} 
-            className="p-2 hover:bg-orange-800/50 rounded-lg transition-colors"
-          >
-            <X className="w-6 h-6 text-orange-300" />
-          </button>
+      <div className="p-4 border-b border-orange-500/30 flex-shrink-0">
+  <div className="flex items-center justify-between gap-3 mb-3">
+    <div className="flex items-center gap-3">
+      <div className="relative">
+        <div className="p-2 rounded-xl bg-orange-500/20">
+          <Trophy className="w-6 h-6 text-orange-400" />
         </div>
-
-        {/* Mission Quick Info */}
-        {(() => {
-          const dayLocation = locations.find(l => l.day === selectedDayNumber);
-          return dayLocation ? (
-            <div className="mt-4 p-4 bg-orange-800/30 rounded-xl border border-orange-500/30 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {React.createElement(dayLocation.icon, { className: "w-6 h-6 text-orange-300" })}
-                <div>
-                  <p className="text-sm text-orange-400">Today's Mission</p>
-                  <p className="font-semibold text-white">{dayLocation.mission}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setShowDayExplorer(false);
-                  openLocationModal(dayLocation);
-                  console.log('Opening modal for:', dayLocation.name)
-                }}
-                className="px-4 py-2 bg-orange-600 hover:bg-orange-500 rounded-lg text-white text-sm font-semibold transition-all"
-              >
-                Start Mission
-              </button>
-            </div>
-          ) : null;
-        })()}
+        <div className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center">
+          <span className="text-xs font-bold text-white">{selectedDayNumber}</span>
+        </div>
       </div>
+      <div>
+        <h2 className="text-xl font-bold text-white">Day {selectedDayNumber} Hub</h2>
+        <p className="text-orange-300 text-xs">
+          {peopleOnSelectedDay.length} online • {dayStats.completionsToday} today
+        </p>
+      </div>
+    </div>
+    <button 
+      onClick={() => {
+        setShowDayExplorer(false);
+        setViewingDayCommunity(null);
+      }}
+      className="p-2 hover:bg-orange-800/50 rounded-lg transition-colors flex-shrink-0"
+    >
+      <X className="w-5 h-5 text-orange-300" />
+    </button>
+  </div>
+
+  {/* Compact Mission Info */}
+  {(() => {
+    const dayLocation = locations.find(l => l.day === selectedDayNumber);
+    return dayLocation ? (
+      <div className="p-3 bg-orange-800/30 rounded-lg border border-orange-500/30 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          {React.createElement(dayLocation.icon, { className: "w-5 h-5 text-orange-300 flex-shrink-0" })}
+          <div className="min-w-0">
+            <p className="text-xs text-orange-400">Mission</p>
+            <p className="font-semibold text-white text-sm truncate">{dayLocation.mission}</p>
+          </div>
+        </div>
+        <button
+          onClick={() => {
+            setShowDayExplorer(false);
+            setViewingDayCommunity(null);
+            openLocationModal(dayLocation);
+          }}
+          className="px-3 py-2 bg-orange-600 hover:bg-orange-500 rounded-lg text-white text-xs font-semibold transition-all flex-shrink-0"
+        >
+          Start
+        </button>
+      </div>
+    ) : null;
+  })()}
+</div>
 
       {/* ONE CONTINUOUS SCROLLABLE FEED */}
       <div className="flex-1 overflow-y-auto">
@@ -3150,7 +3153,7 @@ useEffect(() => {
           <div id="live-presence" className="scroll-mt-6">
             <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
               <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
-              🟢 Right Now at the Location
+              Right Now at the Location
             </h3>
 
             <div className="space-y-3">
@@ -3548,20 +3551,16 @@ useEffect(() => {
 
       {/* FOOTER - Fixed at bottom */}
       <div className="p-4 border-t border-orange-500/30 bg-orange-900/20 flex-shrink-0">
-        <button
-          onClick={() => {
-            const dayLocation = locations.find(l => l.day === selectedDayNumber);
-            if (dayLocation) {
-              setShowDayExplorer(false);
-              openLocationModal(dayLocation);
-            }
-          }}
-          className="w-full py-3 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
-        >
-          <Zap className="w-5 h-5" />
-          StDDart Day {selectedDayNumber} Mission
-        </button>
-      </div>
+  <button
+    onClick={() => {
+      window.location.href = '/dashboard';
+    }}
+    className="w-full py-3 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+  >
+    <Zap className="w-5 h-5" />
+    Start Day {selectedDayNumber} Mission
+  </button>
+</div>
 
     </div>
   </div>
