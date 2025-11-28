@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, User, Bot, Loader2, Brain, Target, BookOpen, Zap, Calendar, CheckCircle, Sparkles, ArrowRight, Download, Clock, TrendingUp } from 'lucide-react';
+import { getApiKeys } from "src/backend/apikeys";
+
 
 export default function AIChatInterface({onComplete}) {
   const [currentPhase, setCurrentPhase] = useState(1);
@@ -86,7 +88,7 @@ export default function AIChatInterface({onComplete}) {
 
   const currentPhaseData = phases[currentPhase - 1];
   const userMessageCount = messages.filter(m => m.role === 'user').length;
-  const canMoveToNext = phaseComplete && currentPhase < 6;
+  const canMoveToNext = true
   const progressPercent = Math.min((userMessageCount / currentPhaseData.minMessages) * 100, 100);
 
   useEffect(() => {
@@ -94,138 +96,156 @@ export default function AIChatInterface({onComplete}) {
   }, []);
 
   const initializeSession = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${API_BASE}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: sessionId,
-          api_key: "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",
-          phase: 1,
-          message: ""
-        })
-      });
+  setIsLoading(true);
+  try {
+    const apiKeys = await getApiKeys();
+    const apiKey = apiKeys[apiKeys.length - 1]; // pick latest key
 
-      if (!response.ok) throw new Error("Failed to initialize");
-      const data = await response.json();
-      
-      setMessages([{
-        id: Date.now(),
-        role: 'assistant',
-        content: data.response,
-        timestamp: Date.now()
-      }]);
+    const response = await fetch(`${API_BASE}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: sessionId,
+        api_key: apiKey,
+        phase: 1,
+        message: ""
+      })
+    });
 
-    } catch (error) {
-      console.error('Initialization error:', error);
-      setMessages([{
-        id: Date.now(),
-        role: 'assistant',
-        content: '⚠️ Could not connect to server. Please try again.',
-        timestamp: Date.now()
-      }]);
-    }
-    setIsLoading(false);
-  };
+    if (!response.ok) throw new Error("Failed to initialize");
+    const data = await response.json();
+
+    setMessages([{
+      id: Date.now(),
+      role: 'assistant',
+      content: data.response,
+      timestamp: Date.now()
+    }]);
+
+  } catch (error) {
+    console.error('Initialization error:', error);
+    setMessages([{
+      id: Date.now(),
+      role: 'assistant',
+      content: '⚠️ Could not connect to server. Please try again.',
+      timestamp: Date.now()
+    }]);
+  }
+  setIsLoading(false);
+};
+
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+  if (!inputMessage.trim() || isLoading) return;
 
-    const userMsg = {
-      id: Date.now(),
-      role: 'user',
-      content: inputMessage,
+  const userMsg = { id: Date.now(), role: 'user', content: inputMessage, timestamp: Date.now() };
+  setMessages(prev => [...prev, userMsg]);
+  const userInput = inputMessage;
+  setInputMessage('');
+  setIsLoading(true);
+
+  try {
+    const apiKeys = await getApiKeys();
+    const apiKey = apiKeys[apiKeys.length - 1]; // pick latest key
+
+    const response = await fetch(`${API_BASE}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: sessionId,
+        api_key: apiKey,
+        phase: currentPhase,
+        message: userInput
+      })
+    });
+
+    if (!response.ok) throw new Error("Failed to send");
+    const data = await response.json();
+
+    setMessages(prev => [...prev, {
+      id: Date.now() + 1,
+      role: 'assistant',
+      content: data.response,
       timestamp: Date.now()
-    };
+    }]);
 
-    setMessages(prev => [...prev, userMsg]);
-    const userInput = inputMessage;
-    setInputMessage('');
-    setIsLoading(true);
+    if (data.phase_complete) {
+      setPhaseComplete(true);
+      if (data.structured_data) {
+        setStructuredData(prev => ({ ...prev, [`phase${currentPhase}`]: data.structured_data }));
+        setShowDataPreview(true);
+      }
+    }
 
-    try {
-      const response = await fetch(`${API_BASE}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: sessionId,
-          api_key: "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",
-          phase: currentPhase,
-          message: userInput
-        })
-      });
+  } catch (error) {
+    console.error('Send error:', error);
+    setMessages(prev => [...prev, {
+      id: Date.now() + 1,
+      role: 'assistant',
+      content: '⚠️ Error sending message. Please try again.',
+      timestamp: Date.now()
+    }]);
+  }
 
-      if (!response.ok) throw new Error("Failed to send");
-      const data = await response.json();
+  setIsLoading(false);
+};
 
-      setMessages(prev => [...prev, {
-        id: Date.now() + 1,
+
+  const handleNextPhase = async () => {
+  console.log("🚀 Attempting to move to next phase");
+  
+  if (!canMoveToNext) {
+    console.log("⚠️ Cannot move to next phase yet (canMoveToNext=false)");
+    return;
+  }
+
+  console.log("⏳ Starting phase transition...");
+  setShowPhaseTransition(true);
+  setIsLoading(true);
+  setShowDataPreview(false);
+
+  try {
+    console.log("📡 Sending transition request to backend:", {
+      session_id: sessionId,
+      new_phase: currentPhase + 1
+    });
+
+    const response = await fetch(`${API_BASE}/transition`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: sessionId,
+        new_phase: currentPhase + 1
+      })
+    });
+
+    console.log("📩 Response received from backend:", response);
+
+    const data = await response.json();
+    console.log("📝 Parsed JSON data:", data);
+
+    setTimeout(() => {
+      console.log("✅ Updating local state for new phase:", currentPhase + 1);
+      setCurrentPhase(currentPhase + 1);
+      setMessages([{
+        id: Date.now(),
         role: 'assistant',
         content: data.response,
         timestamp: Date.now()
       }]);
-
-      // Update phase completion status
-      if (data.phase_complete) {
-        setPhaseComplete(true);
-        if (data.structured_data) {
-          setStructuredData(prev => ({...prev, [`phase${currentPhase}`]: data.structured_data}));
-          setShowDataPreview(true);
-        }
-      }
-
-    } catch (error) {
-      console.error('Send error:', error);
-      setMessages(prev => [...prev, {
-        id: Date.now() + 1,
-        role: 'assistant',
-        content: '⚠️ Error sending message. Please try again.',
-        timestamp: Date.now()
-      }]);
-    }
-
-    setIsLoading(false);
-  };
-
-  const handleNextPhase = async () => {
-    if (!canMoveToNext) return;
-
-    setShowPhaseTransition(true);
-    setIsLoading(true);
-    setShowDataPreview(false);
-
-    try {
-      const response = await fetch(`${API_BASE}/transition`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: sessionId,
-          new_phase: currentPhase + 1
-        })
-      });
-
-      const data = await response.json();
-
-      setTimeout(() => {
-        setCurrentPhase(currentPhase + 1);
-        setMessages([{
-          id: Date.now(),
-          role: 'assistant',
-          content: data.response,
-          timestamp: Date.now()
-        }]);
-        setPhaseComplete(false);
-        setShowPhaseTransition(false);
-        setIsLoading(false);
-      }, 2000);
-
-    } catch (error) {
-      console.error('Transition error:', error);
+      setPhaseComplete(false);
       setShowPhaseTransition(false);
       setIsLoading(false);
-    }
-  };
+      console.log("🎯 Phase transition complete. Messages and state updated.");
+    }, 2000);
+
+  } catch (error) {
+    console.error("❌ Transition error:", error);
+    setShowPhaseTransition(false);
+    setIsLoading(false);
+  }
+};
+
 
   const handleExportSession = async () => {
     try {
@@ -312,8 +332,7 @@ export default function AIChatInterface({onComplete}) {
   };
 
   return (
-    <div className={`h-screen flex flex-col bg-gradient-to-br ${currentPhaseData.bgGradient} text-white transition-colors duration-1000 overflow-hidden`}>
-
+    <div className={`h-screen flex flex-col bg-gradient-to-br ${currentPhaseData.bgGradient} text-white transition-all duration-1000 overflow-hidden`}>
       
       {/* PHASE TRANSITION OVERLAY */}
       {showPhaseTransition && (
@@ -480,77 +499,85 @@ export default function AIChatInterface({onComplete}) {
 
       {/* INPUT AREA */}
       <div className="flex-shrink-0 border-t border-white/10 bg-black/40 backdrop-blur-md shadow-2xl">
-        <div className="px-3 sm:px-4 py-2.5 sm:py-3">
-          
-          {/* Data Preview */}
-          <DataPreview />
+  <div className="px-3 sm:px-4 py-2.5 sm:py-3">
 
-          {/* Next Phase Button */}
-          {canMoveToNext && (
-            <div className="mb-2 sm:mb-3 animate-fade-in">
-              <button
-                onClick={handleNextPhase}
-                className={`w-full px-4 py-2.5 sm:px-5 sm:py-3 bg-gradient-to-r ${phases[currentPhase].color} rounded-xl transition-all transform active:scale-95 flex items-center justify-center gap-2 font-bold text-sm sm:text-base shadow-lg`}
-              >
-                <span className="truncate">Continue to {phases[currentPhase].name}</span>
-                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-              </button>
-            </div>
-          )}
+    {/* Data Preview */}
+    <DataPreview />
 
-          {/* Finish Button */}
-          {currentPhase === 6 && phaseComplete && (
-            <div className="mb-2 sm:mb-3 animate-fade-in space-y-2">
-              <button
-                onClick={() => onComplete()}
-                className="w-full px-4 py-2.5 sm:px-5 sm:py-3 bg-gradient-to-r from-teal-500 to-green-500 rounded-xl transition-all transform active:scale-95 flex items-center justify-center gap-2 font-bold text-sm sm:text-base shadow-lg ring-2 sm:ring-4 ring-green-500/30"
-              >
-                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                <span>View Your Complete Plan</span>
-              </button>
-              <button
-                onClick={handleExportSession}
-                className="w-full px-4 py-2 sm:px-5 sm:py-2.5 bg-white/10 border border-white/20 rounded-xl transition-all transform active:scale-95 flex items-center justify-center gap-2 font-semibold text-xs sm:text-sm"
-              >
-                <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-                <span>Download Session Data</span>
-              </button>
-            </div>
-          )}
-
-          <div className="flex gap-2 items-end">
-            <div className="flex-1 min-w-0">
-              <textarea
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                placeholder={`Message Jordan...`}
-                className="w-full px-3 py-2.5 sm:px-4 sm:py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-white/40 focus:ring-2 focus:ring-white/20 text-sm sm:text-base resize-none transition-all"
-                rows={1}
-                style={{ minHeight: '44px', maxHeight: '88px' }}
-              />
-            </div>
-            <button
-              onClick={handleSendMessage}
-              disabled={!inputMessage.trim() || isLoading}
-              className={`p-2.5 sm:p-3 bg-gradient-to-r ${currentPhaseData.color} active:scale-95 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0 shadow-lg`}
-            >
-              <Send className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-            </button>
-          </div>
-
-          {!phaseComplete && (
-            <p className="text-center text-xs text-gray-400 mt-1.5 sm:mt-2">
-              {progressPercent < 100 ? `Keep going (${userMessageCount}/${currentPhaseData.minMessages})` : 'Almost ready to continue...'}
-            </p>
-          )}
-        </div>
+    {/* Next Phase Button (above input for visibility) */}
+    {canMoveToNext && currentPhase < 6 && (
+      <div className="mb-2 sm:mb-3 animate-fade-in">
+        <button
+          onClick={handleNextPhase}
+          className={`w-full px-4 py-2.5 sm:px-5 sm:py-3 bg-gradient-to-r ${phases[currentPhase].color} rounded-xl transition-all transform active:scale-95 flex items-center justify-center gap-2 font-bold text-sm sm:text-base shadow-lg`}
+        >
+          <span className="truncate">Continue to {phases[currentPhase].name}</span>
+          <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+        </button>
       </div>
+    )}
+
+    {/* Finish Button */}
+    {currentPhase === 6 && phaseComplete && (
+      <div className="mb-2 sm:mb-3 animate-fade-in space-y-2">
+        <button
+          onClick={() => onComplete()}
+          className="w-full px-4 py-2.5 sm:px-5 sm:py-3 bg-gradient-to-r from-teal-500 to-green-500 rounded-xl transition-all transform active:scale-95 flex items-center justify-center gap-2 font-bold text-sm sm:text-base shadow-lg ring-2 sm:ring-4 ring-green-500/30"
+        >
+          <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+          <span>View Your Complete Plan</span>
+        </button>
+        <button
+          onClick={handleExportSession}
+          className="w-full px-4 py-2 sm:px-5 sm:py-2.5 bg-white/10 border border-white/20 rounded-xl transition-all transform active:scale-95 flex items-center justify-center gap-2 font-semibold text-xs sm:text-sm"
+        >
+          <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+          <span>Download Session Data</span>
+        </button>
+      </div>
+    )}
+
+    {/* Input + Send + Inline Next Phase */}
+    <div className="flex gap-2 items-end mt-2">
+      <div className="flex-1 min-w-0 relative">
+        <textarea
+          value={inputMessage}
+          onChange={(e) => setInputMessage(e.target.value)}
+          onKeyPress={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSendMessage();
+            }
+          }}
+          placeholder={`Message Jordan...`}
+          className="w-full px-3 py-2.5 sm:px-4 sm:py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-white/40 focus:ring-2 focus:ring-white/20 text-sm sm:text-base resize-none transition-all"
+          rows={1}
+          style={{ minHeight: '44px', maxHeight: '88px' }}
+        />
+        
+        
+      </div>
+
+      {/* Send Button */}
+      <button
+        onClick={handleSendMessage}
+        disabled={!inputMessage.trim() || isLoading}
+        className={`p-2.5 sm:p-3 bg-gradient-to-r ${currentPhaseData.color} active:scale-95 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0 shadow-lg`}
+      >
+        <Send className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+      </button>
+    </div>
+
+    {!phaseComplete && (
+      <p className="text-center text-xs text-gray-400 mt-1.5 sm:mt-2">
+        {progressPercent < 100
+          ? `Keep going (${userMessageCount}/${currentPhaseData.minMessages})`
+          : 'Almost ready to continue...'}
+      </p>
+    )}
+  </div>
+</div>
+
 
       <style>{`
         @keyframes fade-in {

@@ -13,6 +13,17 @@ const OpenBodyLanguage = ({ onNext }) => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [armAngle, setArmAngle] = useState(45);
   const [pageAnimating, setPageAnimating] = useState(false);
+  const [showTrailer, setShowTrailer] = useState(true);
+
+
+  useEffect(() => {
+    // Hide trailer after 3 seconds
+    const timer = setTimeout(() => {
+      setShowTrailer(false);
+    }, 6000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Breathing animation
   useEffect(() => {
@@ -410,6 +421,243 @@ const OpenBodyLanguage = ({ onNext }) => {
       )
     }
   ];
+
+  if (showTrailer) {
+  return (
+    <div style={{
+      width: '100vw',
+      height: '100vh',
+      background: 'linear-gradient(135deg, #1a0b2e 0%, #2d1b4e 50%, #4a2c6d 100%)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* Animated background blobs */}
+      <div style={{
+        position: 'absolute',
+        width: '500px',
+        height: '500px',
+        background: 'radial-gradient(circle, rgba(138, 43, 226, 0.15) 0%, transparent 70%)',
+        borderRadius: '50%',
+        top: '-200px',
+        right: '-150px',
+        filter: 'blur(80px)',
+      }}></div>
+      <div style={{
+        position: 'absolute',
+        width: '400px',
+        height: '400px',
+        background: 'radial-gradient(circle, rgba(75, 0, 130, 0.2) 0%, transparent 70%)',
+        borderRadius: '50%',
+        bottom: '-150px',
+        left: '-100px',
+        filter: 'blur(80px)',
+      }}></div>
+
+      {/* Navigation */}
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        left: '20px',
+        right: '20px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        zIndex: 10,
+      }}>
+        <button style={{
+          background: 'rgba(138, 43, 226, 0.2)',
+          border: '1px solid rgba(138, 43, 226, 0.3)',
+          color: '#e0d0ff',
+          padding: '10px 20px',
+          borderRadius: '12px',
+          cursor: 'pointer',
+          fontFamily: '"Inter", sans-serif',
+          fontSize: '14px',
+          fontWeight: '500',
+          backdropFilter: 'blur(10px)',
+          transition: 'all 0.3s ease',
+        }}>
+          ← Prev
+        </button>
+        <button style={{
+          background: 'rgba(138, 43, 226, 0.2)',
+          border: '1px solid rgba(138, 43, 226, 0.3)',
+          color: '#e0d0ff',
+          padding: '10px 20px',
+          borderRadius: '12px',
+          cursor: 'pointer',
+          fontFamily: '"Inter", sans-serif',
+          fontSize: '14px',
+          fontWeight: '500',
+          backdropFilter: 'blur(10px)',
+          transition: 'all 0.3s ease',
+        }}>
+          Next →
+        </button>
+        <button style={{
+          background: 'rgba(138, 43, 226, 0.2)',
+          border: '1px solid rgba(138, 43, 226, 0.3)',
+          color: '#e0d0ff',
+          padding: '10px 20px',
+          borderRadius: '12px',
+          cursor: 'pointer',
+          fontFamily: '"Inter", sans-serif',
+          fontSize: '14px',
+          fontWeight: '500',
+          backdropFilter: 'blur(10px)',
+          transition: 'all 0.3s ease',
+        }}>
+          ✕ Quit
+        </button>
+      </div>
+
+      {/* Main Content Card */}
+      <div style={{
+        backgroundColor: 'rgba(45, 27, 78, 0.4)',
+        backdropFilter: 'blur(20px)',
+        padding: '50px 40px',
+        borderRadius: '30px',
+        textAlign: 'center',
+        color: '#fff',
+        fontFamily: '"Inter", sans-serif',
+        maxWidth: '650px',
+        width: '90%',
+        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(138, 43, 226, 0.2)',
+        border: '1px solid rgba(138, 43, 226, 0.3)',
+        animation: 'slideUp 0.6s ease-out',
+      }}>
+        {/* Main Heading */}
+        <h1 style={{
+          fontSize: '2rem',
+          marginBottom: '20px',
+          fontWeight: '700',
+          lineHeight: '1.3',
+          letterSpacing: '-0.5px',
+        }}>
+          Now I'm just gonna share a few{' '}
+          <span style={{
+            background: 'linear-gradient(135deg, #b19cd9 0%, #d4a5ff 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            fontWeight: '800',
+          }}>
+            basic principles
+          </span>{' '}
+          for communication.
+        </h1>
+
+        {/* Subheading */}
+        <p style={{
+          fontSize: '1.1rem',
+          marginBottom: '30px',
+          opacity: '0.95',
+          fontWeight: '400',
+          color: '#e0d0ff',
+        }}>
+          It may seem very simple but is very{' '}
+          <span style={{
+            fontWeight: '700',
+            color: '#c4a7ff',
+          }}>
+            important
+          </span>.
+        </p>
+
+        {/* Principles Box */}
+        <div style={{
+          fontSize: '1rem',
+          margin: '25px 0',
+          padding: '25px',
+          background: 'linear-gradient(135deg, rgba(75, 0, 130, 0.3) 0%, rgba(138, 43, 226, 0.2) 100%)',
+          borderRadius: '20px',
+          lineHeight: '1.8',
+          border: '1px solid rgba(138, 43, 226, 0.3)',
+        }}>
+          <p style={{ marginBottom: '10px' }}>
+            These principles are about{' '}
+            <span style={{ fontWeight: '600', color: '#d4a5ff' }}>
+              listening actively
+            </span>,
+          </p>
+          <p style={{ marginBottom: '10px' }}>
+            <span style={{ fontWeight: '600', color: '#c4a7ff' }}>
+              expressing yourself clearly
+            </span>,
+          </p>
+          <p>
+            and{' '}
+            <span style={{ fontWeight: '600', color: '#b19cd9' }}>
+              connecting genuinely
+            </span>{' '}
+            with others.
+          </p>
+        </div>
+
+        {/* Benefits Box */}
+        <div style={{
+          fontSize: '0.95rem',
+          marginTop: '20px',
+          padding: '20px',
+          background: 'linear-gradient(135deg, rgba(75, 0, 130, 0.25) 0%, rgba(138, 43, 226, 0.15) 100%)',
+          borderRadius: '20px',
+          lineHeight: '1.7',
+          border: '1px solid rgba(138, 43, 226, 0.25)',
+          color: '#e0d0ff',
+        }}>
+          <p>
+            Following them helps you <strong style={{ color: '#d4a5ff' }}>avoid misunderstandings</strong>, <strong style={{ color: '#d4a5ff' }}>build trust</strong>, and make conversations feel <strong style={{ color: '#d4a5ff' }}>natural and meaningful</strong>.
+          </p>
+        </div>
+
+        {/* CTA Button */}
+        <button style={{
+          marginTop: '35px',
+          background: 'linear-gradient(135deg, #7b2cbf 0%, #9d4edd 50%, #c77dff 100%)',
+          border: 'none',
+          color: '#fff',
+          padding: '16px 40px',
+          borderRadius: '16px',
+          cursor: 'pointer',
+          fontFamily: '"Inter", sans-serif',
+          fontSize: '16px',
+          fontWeight: '600',
+          boxShadow: '0 10px 30px rgba(138, 43, 226, 0.5)',
+          transition: 'all 0.3s ease',
+          letterSpacing: '0.5px',
+        }}>
+          Set Your Times
+        </button>
+      </div>
+
+      <style jsx>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 15px 40px rgba(138, 43, 226, 0.6);
+          background: rgba(138, 43, 226, 0.3);
+        }
+      `}</style>
+    </div>
+  );
+}
+
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 text-white pb-20 overflow-hidden">

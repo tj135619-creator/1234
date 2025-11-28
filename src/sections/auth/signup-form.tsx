@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
@@ -13,8 +13,10 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getAuth, getRedirectResult } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { firestore } from "@/sections/creategoal/ConversationFlow";
+
+import { getApiKeys } from "@/backend/apikeys";
 
 const signupSchema = z.object({
   email: z.string().email("Oops! That email doesn't look right"),
@@ -86,6 +88,26 @@ export function SignupForm({ onSignupSuccess }: SignupFormProps) {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showThankYou, setShowThankYou] = useState(false);
   const [featureStep, setFeatureStep] = useState(0);
+
+
+   const [userName, setUserName] = useState("");
+   const [planGenerated, setPlanGenerated] = useState(false);
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+    const [currentStep, setCurrentStep] = useState(0);
+    const [localLoading, setLocalLoading] = useState(false);
+    const [answers, setAnswers] = useState({}); // or [] depending on type
+  
+  const [successfulDays, setSuccessfulDays] = useState(0);
+  const [planPreview, setPlanPreview] = useState<any>(null);
+  
+    const auth = getAuth();
+  const userId = auth.currentUser?.uid || "user_trial";
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+
+
+
   const { toast } = useToast();
 
   const navigate = useNavigate();
@@ -130,6 +152,187 @@ export function SignupForm({ onSignupSuccess }: SignupFormProps) {
       console.error("Error saving user:", error);
     }
   };
+
+  const MOCK_PLAN = {
+    // Structure to mimic the expected successful overview response
+    overview: {
+      days: [
+        { day: 1, title: "Understand Fundamentals", task: "Read and summarize 3 key articles on social skills." },
+        { day: 2, title: "Active Listening Practice", task: "Engage in a 15-minute conversation focusing only on listening and asking follow-up questions." },
+        { day: 3, title: "Body Language Awareness", task: "Spend 30 minutes observing non-verbal cues in public or from a video." },
+        { day: 4, title: "Initiate Small Talk", task: "Start a brief, friendly conversation with a stranger (e.g., barista, neighbor)." },
+        { day: 5, title: "Reflection & Planning", task: "Journal about the week's experiences and set one social goal for next week." },
+      ]
+    },
+    success: true,
+  };
+  
+  
+    const GENERATION_STEPS = [
+  { icon: "🔍", text: "Analyzing your goal..." },
+  { icon: "📊", text: "Finding similar success patterns..." },
+  { icon: "✍️", text: "Customizing Day 1: Foundation..." },
+  { icon: "✍️", text: "Customizing Day 2: Momentum..." },
+  { icon: "✍️", text: "Customizing Day 3: Breakthrough..." },
+  { icon: "✍️", text: "Customizing Day 4: Refinement..." },
+  { icon: "✍️", text: "Customizing Day 5: Commitment..." },
+  { icon: "✅", text: "Finalizing your personalized plan..." },
+  ];
+  
+    
+  
+  
+  
+    const markPlanAsCreated = async () => {
+    try {
+    if (!auth.currentUser) {
+    console.error("❌ No authenticated user found");
+    return;
+    }
+    const userRef = doc(firestore, "users", auth.currentUser.uid);
+    await updateDoc(userRef, {
+    planCreated: true,
+    planCreatedAt: serverTimestamp(),
+    });
+    console.log("✅ planCreated set to true");
+    } catch (error) {
+    console.error("❌ Error marking plan as created:", error);
+    }
+    };
+  
+    const handleGeneratePlan = async () => {
+      console.log("🚀 Starting 5-day task overview generation...");
+      setIsGeneratingPlan(true);
+      setCurrentStep(0);
+    
+      const userMessages = messages.filter((m) => m.role === "user");
+      const userAnswers = Object.values(answers);
+      const goalName =
+        (userMessages[0]?.content && userMessages[0].content.trim()) ||
+        (userAnswers[0] && userAnswers[0].toString().trim()) ||
+        "social skills";
+    
+      const joinDate = new Date().toISOString().split('T')[0];
+      const payload = {
+        user_id: userId,
+        goal_name: goalName,
+        user_answers: userAnswers,
+        join_date: joinDate,
+      };
+    
+      // Simulate step-by-step progress
+      const progressInterval = setInterval(() => {
+        setCurrentStep(prev => {
+          if (prev < GENERATION_STEPS.length) return prev + 1;
+          return prev;
+        });
+      }, 1200);
+    
+      let data: any = null;
+      let success = false;
+      let useMockPlan = false;
+    
+      try {
+        // Fetch API keys from Firebase
+        const apiKeys = await getApiKeys();
+        
+        if (apiKeys.length === 0) {
+          console.warn("⚠️ No API keys available. Using mock plan.");
+          data = MOCK_PLAN;
+          success = true;
+          useMockPlan = true;
+        } else {
+          // --- API KEY LOOP ---
+          for (let i = 0; i < apiKeys.length; i++) {
+            const apiKey = apiKeys[i];
+    
+            try {
+              const resp = await fetch(
+                "https://pythonbackend-74es.onrender.com/create-task-overview",
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${apiKey}`,
+                  },
+                  body: JSON.stringify(payload),
+                }
+              );
+    
+              try {
+                data = await resp.json();
+              } catch (jsonErr) {
+                const rawText = await resp.text();
+                console.warn(`Invalid JSON with key ${i + 1}:`, rawText);
+                continue;
+              }
+    
+              if (!resp.ok || !data.success || !data.overview) {
+                console.warn(`API key ${i + 1} failed or invalid response`, data);
+                continue;
+              }
+    
+              success = true;
+              console.log("✅ Task overview received:", data.overview);
+              break;
+    
+            } catch (err) {
+              console.warn(`Request failed with key ${i + 1}:`, err);
+            }
+          }
+          // --- END API KEY LOOP ---
+    
+          // Fallback to mock plan if all keys failed
+          if (!success) {
+            console.warn("⚠️ All API keys failed. Falling back to mock plan.");
+            data = MOCK_PLAN;
+            success = true;
+            useMockPlan = true;
+          }
+        }
+    
+        const overviewToSave = data.overview;
+    
+        // Save to Firebase
+        const courseId = "social_skills";
+        const userPlanRef = doc(firestore, "users", userId, "datedcourses", courseId);
+    
+        await setDoc(userPlanRef, {
+          task_overview: overviewToSave,
+          goal_name: goalName,
+          user_id: userId,
+          course_id: courseId,
+          generated_at: serverTimestamp(),
+          created_at: serverTimestamp(),
+          is_mock_plan: useMockPlan,
+        });
+    
+        console.log(`✅ 5-day task overview saved to Firebase (Mock: ${useMockPlan})`);
+    
+        setSuccessfulDays(5);
+        setCurrentStep(GENERATION_STEPS.length);
+        await markPlanAsCreated();
+    
+        setPlanPreview({
+          days: overviewToSave.days || [
+            { day: 1, title: "Build Foundation", task: "Start with 15min daily practice" },
+            { day: 2, title: "Gain Momentum", task: "Increase to 30min, track progress" },
+            { day: 3, title: "Push Boundaries", task: "Try one challenging scenario" },
+            { day: 4, title: "Reflect & Adjust", task: "Review what's working" },
+            { day: 5, title: "Commit Long-term", task: "Set up sustainable routine" },
+          ]
+        });
+    
+        console.log("🎉 Your 5-day plan is ready!");
+    
+      } catch (err: any) {
+        console.error("🔥 handleGeneratePlan error:", err);
+        
+      } finally {
+        clearInterval(progressInterval);
+        setIsGeneratingPlan(false);
+      }
+    };
 
   const handleGoogleSignup = async () => {
     setIsGoogleLoading(true);
@@ -176,6 +379,15 @@ export function SignupForm({ onSignupSuccess }: SignupFormProps) {
   const handleNextStep = () => navigate(returnUrl, { replace: true });
   const nextFeature = () => setFeatureStep((s) => Math.min(s + 1, detailedFeatures.length - 1));
   const prevFeature = () => setFeatureStep((s) => Math.max(s - 1, 0));
+
+  const handleNextFeature = () => {
+  nextFeature(); // move to next feature
+
+  if (!planGenerated) {
+    handleGeneratePlan(userId, messages, answers); // trigger plan generation
+    setPlanGenerated(true); // ensure it runs only once
+  }
+};
 
   // Success page
   if (showSuccess && !showThankYou) {
@@ -270,20 +482,22 @@ export function SignupForm({ onSignupSuccess }: SignupFormProps) {
                     </Button>
                   )}
                   {featureStep < detailedFeatures.length - 1 ? (
-                    <Button 
-                      onClick={nextFeature}
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-xl"
-                    >
-                      Next
-                    </Button>
-                  ) : (
-                    <Button 
-                      onClick={handleNextStep}
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-xl"
-                    >
-                      Start Your Journey
-                    </Button>
-                  )}
+  <Button
+    onClick={handleNextFeature}
+    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-xl"
+  >
+    Next
+  </Button>
+) : (
+  <Button
+    onClick={handleNextStep}
+    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-xl"
+  >
+    Start Your Journey
+  </Button>
+)}
+
+
                 </div>
               </div>
             </motion.div>

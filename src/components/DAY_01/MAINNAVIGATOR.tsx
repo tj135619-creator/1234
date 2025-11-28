@@ -2,6 +2,7 @@ import { useState, forwardRef, useImperativeHandle, useRef, useEffect } from "re
 import ReactDOM from "react-dom";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { db, auth } from "./firebase";
+
 import FindAPlace01 from "src/components/DAY_01/FINDAPLACE/01";
 import SetYourTimes02 from "src/components/DAY_01/SETYOURTIMES/02";
 import HelpWithAnxiety03 from "src/components/DAY_01/HELPWITHTHEIRANXIETY/03";
@@ -9,8 +10,8 @@ import YouAreNotAlone from "src/components/DAY_01/YOUARENOTALONE/youarenotalone"
 import SocialReflectionPage from "src/components/DAY_01/ANALYZEPASTDAYS/analysetasksupdate";
 import AIChatInterface from "src/components/AIBRAIN";
 import PersonalizedLearning from "./DAY1LEARNOR";
-// Skills
 
+// Skills
 import OpenBodyLanguage from "src/components/DAY_01/SKELETAL COMPONENTS/01";
 import SmileWarmUp from "src/components/DAY_01/SKELETAL COMPONENTS/02";
 import VoiceToneControl from "src/components/DAY_01/SKELETAL COMPONENTS/03";
@@ -19,8 +20,7 @@ import ActiveListening from "src/components/DAY_01/SKELETAL COMPONENTS/05";
 import GenuineAppreciation from "src/components/DAY_01/SKELETAL COMPONENTS/06";
 import HandleSilence from "src/components/DAY_01/SKELETAL COMPONENTS/07";
 
-// === Utility wrapper to make all child pages full-screen ===
-
+// === Fullscreen wrapper
 const FullScreenWrapper = ({ children }) => (
   <div
     style={{
@@ -39,15 +39,13 @@ const FullScreenWrapper = ({ children }) => (
   </div>
 );
 
-
-
 const Day1Navigator = forwardRef(({ onCompleteNavigator }, ref) => {
   const [pageIndex, setPageIndex] = useState(0);
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const scrollContainerRef = useRef(null);
   const hasLoadedInitialProgress = useRef(false);
 
-  // ===== LOAD SAVED PROGRESS =====
+  // ===== Load saved progress =====
   useEffect(() => {
     const loadProgress = async () => {
       if (!auth.currentUser) {
@@ -73,7 +71,7 @@ const Day1Navigator = forwardRef(({ onCompleteNavigator }, ref) => {
     loadProgress();
   }, []);
 
-  // ===== SAVE PROGRESS =====
+  // ===== Save progress =====
   useEffect(() => {
     const saveProgress = async () => {
       if (!auth.currentUser || !hasLoadedInitialProgress.current) return;
@@ -97,7 +95,7 @@ const Day1Navigator = forwardRef(({ onCompleteNavigator }, ref) => {
     saveProgress();
   }, [pageIndex]);
 
-  // ===== FULL SCREEN HIJACK =====
+  // ===== Full screen hijack =====
   useEffect(() => {
     const original = {
       bodyOverflow: document.body.style.overflow,
@@ -119,16 +117,13 @@ const Day1Navigator = forwardRef(({ onCompleteNavigator }, ref) => {
     };
   }, []);
 
-  // ===== SCROLL TO TOP WHEN PAGE CHANGES =====
-  useEffect(() => {
-    const scrollToTop = () => {
-      if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0;
-      window.scrollTo(0, 0);
-    };
-    requestAnimationFrame(scrollToTop);
-  }, [pageIndex]);
+  // ===== NEXT PAGE FUNCTION (auto scroll to top) =====
+  const nextPage = () => {
+    setPageIndex((p) => Math.min(p + 1, pages.length - 1));
+    if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0;
+    window.scrollTo({ top: 0, behavior: "instant" });
+  };
 
-  const nextPage = () => setPageIndex((p) => Math.min(p + 1, pages.length - 1));
   const handleComplete = () => onCompleteNavigator?.();
   const handleQuit = () => {
     if (window.confirm("Your progress is saved. Exit?")) onCompleteNavigator?.();
@@ -137,29 +132,22 @@ const Day1Navigator = forwardRef(({ onCompleteNavigator }, ref) => {
   const pages = [
     <FullScreenWrapper key="aibrain"><AIChatInterface onComplete={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="youarenotalone"><YouAreNotAlone onComplete={nextPage} /></FullScreenWrapper>,
-    //<FullScreenWrapper key="find"><FindAPlace01 onComplete={nextPage} /></FullScreenWrapper>,
-
     <FullScreenWrapper key="times"><SetYourTimes02 onComplete={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="anxiety"><HelpWithAnxiety03 onComplete={nextPage} /></FullScreenWrapper>,
-   // <FullScreenWrapper key="learnor"><PersonalizedLearning onComplete={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="body"><OpenBodyLanguage onNext={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="smile"><SmileWarmUp onNext={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="voice"><VoiceToneControl onNext={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="approach"><ApproachOpener onNext={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="listen"><ActiveListening onNext={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="appreciation"><GenuineAppreciation onNext={nextPage} /></FullScreenWrapper>,
-    
     <FullScreenWrapper key="silence"><HandleSilence onNext={handleComplete} /></FullScreenWrapper>,
   ];
 
   const pageNames = [
-    "aibrain",
+    "AI Brain",
     "You Are Not Alone",
-    "Find A Place",
-    "Social Reflection",
     "Set Your Times",
     "Help With Anxiety",
-    "Eye Contact Trainer",
     "Open Body Language",
     "Smile Warm-Up",
     "Voice Tone Control",
@@ -225,79 +213,72 @@ const Day1Navigator = forwardRef(({ onCompleteNavigator }, ref) => {
       }}
     >
       {/* Top bar */}
-      {/* Top bar */}
-<div
-  style={{
-    position: "fixed",
-    top: "20px",
-    left: "20px",
-    right: "20px",
-    display: "flex",
-    justifyContent: "space-between",
-    zIndex: 10000000,
-  }}
->
-  <div style={{ display: "flex", gap: "12px" }}>
-    {/* Previous Button */}
-    <button
-      onClick={() => setPageIndex((i) => Math.max(i - 1, 0))}
-      disabled={pageIndex === 0}
-      style={{
-        padding: "6px 12px",
-        background: pageIndex === 0 ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.08)",
-        color: pageIndex === 0 ? "rgba(255,255,255,0.3)" : "white",
-        borderRadius: "6px",
-        border: "1px solid rgba(255,255,255,0.15)",
-        fontSize: "12px",
-        fontWeight: "500",
-        cursor: pageIndex === 0 ? "default" : "pointer",
-      }}
-    >
-      ← Prev
-    </button>
+      <div
+        style={{
+          position: "fixed",
+          top: "20px",
+          left: "20px",
+          right: "20px",
+          display: "flex",
+          justifyContent: "space-between",
+          zIndex: 10000000,
+        }}
+      >
+        <div style={{ display: "flex", gap: "12px" }}>
+          <button
+            onClick={() => setPageIndex((i) => Math.max(i - 1, 0))}
+            disabled={pageIndex === 0}
+            style={{
+              padding: "6px 12px",
+              background: pageIndex === 0 ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.08)",
+              color: pageIndex === 0 ? "rgba(255,255,255,0.3)" : "white",
+              borderRadius: "6px",
+              border: "1px solid rgba(255,255,255,0.15)",
+              fontSize: "12px",
+              fontWeight: "500",
+              cursor: pageIndex === 0 ? "default" : "pointer",
+            }}
+          >
+            ← Prev
+          </button>
 
-    {/* Next Button */}
-    <button
-      onClick={() => setPageIndex((i) => Math.min(i + 1, pages.length - 1))}
-      disabled={pageIndex === pages.length - 1}
-      style={{
-        padding: "6px 12px",
-        background:
-          pageIndex === pages.length - 1
-            ? "rgba(255,255,255,0.02)"
-            : "rgba(255,255,255,0.08)",
-        color:
-          pageIndex === pages.length - 1 ? "rgba(255,255,255,0.3)" : "white",
-        borderRadius: "6px",
-        border: "1px solid rgba(255,255,255,0.15)",
-        fontSize: "12px",
-        fontWeight: "500",
-        cursor:
-          pageIndex === pages.length - 1 ? "default" : "pointer",
-      }}
-    >
-      Next →
-    </button>
+          <button
+            onClick={nextPage}
+            disabled={pageIndex === pages.length - 1}
+            style={{
+              padding: "6px 12px",
+              background:
+                pageIndex === pages.length - 1
+                  ? "rgba(255,255,255,0.02)"
+                  : "rgba(255,255,255,0.08)",
+              color: pageIndex === pages.length - 1 ? "rgba(255,255,255,0.3)" : "white",
+              borderRadius: "6px",
+              border: "1px solid rgba(255,255,255,0.15)",
+              fontSize: "12px",
+              fontWeight: "500",
+              cursor: pageIndex === pages.length - 1 ? "default" : "pointer",
+            }}
+          >
+            Next →
+          </button>
 
-    {/* Quit Button */}
-    <button
-      onClick={handleQuit}
-      style={{
-        padding: "6px 12px",
-        background: "rgba(255,255,255,0.08)",
-        color: "white",
-        borderRadius: "6px",
-        border: "1px solid rgba(255,255,255,0.15)",
-        fontSize: "12px",
-        fontWeight: "500",
-        cursor: "pointer",
-      }}
-    >
-      ✕ Quit
-    </button>
-  </div>
-</div>
-
+          <button
+            onClick={handleQuit}
+            style={{
+              padding: "6px 12px",
+              background: "rgba(255,255,255,0.08)",
+              color: "white",
+              borderRadius: "6px",
+              border: "1px solid rgba(255,255,255,0.15)",
+              fontSize: "12px",
+              fontWeight: "500",
+              cursor: "pointer",
+            }}
+          >
+            ✕ Quit
+          </button>
+        </div>
+      </div>
 
       {/* Fullscreen page content */}
       <div

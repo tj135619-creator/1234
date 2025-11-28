@@ -8,12 +8,26 @@ const ActiveListening = ({ onNext }) => {
   const [showTips, setShowTips] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [selectedChallenge, setSelectedChallenge] = useState(null);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [completedChallenges, setCompletedChallenges] = useState<Set<string>>(() => {
+  const saved = localStorage.getItem('completedChallenges');
+  return saved ? new Set(JSON.parse(saved)) : new Set();
+});
+
 
   const ScenarioMCQ = ({ challengeType, onComplete, onBack }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState([]);
   const [showFeedback, setShowFeedback] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [finishedChallenges, setFinishedChallenges] = useState({
+  casual: false,
+  problem: false,
+  conflict: false,
+  vulnerable: false
+});
+  const [completedChallenges, setCompletedChallenges] = useState<Set<string>>(new Set());
+
 
   const scenarios = {
     casual: [
@@ -170,17 +184,36 @@ const ActiveListening = ({ onNext }) => {
     setAnswers([...answers, isCorrect]);
   };
 
+  const markChallengeComplete = (type: string) => {
+  setCompletedChallenges((prev) => {
+    const updated = new Set(prev);
+    updated.add(type);
+    localStorage.setItem('completedChallenges', JSON.stringify([...updated]));
+    return updated;
+  });
+};
+
   const handleNext = () => {
-    if (currentQuestion < currentScenarios.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-      setSelectedAnswer(null);
-      setShowFeedback(false);
-    } else {
-      const score = answers.filter(a => a).length;
-      const percentage = (score / currentScenarios.length) * 100;
-      onComplete(percentage, answers);
-    }
-  };
+  if (selectedAnswer === null) return;
+
+  const isLast = currentQuestion === currentScenarios.length - 1;
+
+  if (!isLast) {
+    setCurrentQuestion(prev => prev + 1);
+    setSelectedAnswer(null);
+    setShowFeedback(false);
+    return;
+  }
+
+  // LAST SCENARIO → Finish
+  const score = answers.filter(a => a).length;
+  const percentage = (score / currentScenarios.length) * 100;
+
+  onComplete(percentage, answers);
+};
+
+
+
 
   const getChallengeColor = () => {
     switch(challengeType) {
@@ -650,82 +683,67 @@ const ActiveListening = ({ onNext }) => {
         <p className="text-center text-purple-200 mb-6">
           Choose a scenario to practice your active listening skills:
         </p>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button
-            onClick={() => setSelectedChallenge('casual')}
-            className="p-6 bg-gradient-to-br from-blue-800/40 to-cyan-800/40 backdrop-blur-sm rounded-2xl border-2 border-blue-500/30 hover:border-blue-400/50 transition-all hover:scale-105 text-left group"
-          >
-            <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">💬</div>
-            <h3 className="text-xl font-bold text-blue-100 mb-2">Casual Chat</h3>
-            <p className="text-sm text-blue-300 mb-3">Navigate everyday conversations effectively</p>
-            <div className="flex items-center gap-2 text-xs text-blue-400">
-              <Clock className="w-3 h-3" />
-              <span>3 scenarios</span>
-            </div>
-            <p className="text-xs text-blue-400 mt-2 font-medium">✓ Easy • ✓ Low pressure</p>
-          </button>
+          {['casual','problem','conflict','vulnerable'].map((type) => {
+            const isCompleted = completedChallenges.has(type);
+            const config = {
+              casual: { emoji: '💬', title: 'Casual Chat', desc: 'Navigate everyday conversations effectively', from: 'blue-800/40', to: 'cyan-800/40', border: 'blue-500/30' },
+              problem: { emoji: '🤝', title: 'Help Solve a Problem', desc: 'Support someone facing challenges', from: 'orange-800/40', to: 'amber-800/40', border: 'orange-500/30' },
+              conflict: { emoji: '🔥', title: 'Navigate Disagreement', desc: 'Handle differing viewpoints gracefully', from: 'red-800/40', to: 'rose-800/40', border: 'red-500/30' },
+              vulnerable: { emoji: '❤️', title: 'Deepen Vulnerability', desc: 'Create space for meaningful connection', from: 'purple-800/40', to: 'pink-800/40', border: 'purple-500/30' },
+            }[type];
 
-          <button
-            onClick={() => setSelectedChallenge('problem')}
-            className="p-6 bg-gradient-to-br from-orange-800/40 to-amber-800/40 backdrop-blur-sm rounded-2xl border-2 border-orange-500/30 hover:border-orange-400/50 transition-all hover:scale-105 text-left group"
-          >
-            <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">🤝</div>
-            <h3 className="text-xl font-bold text-orange-100 mb-2">Help Solve a Problem</h3>
-            <p className="text-sm text-orange-300 mb-3">Support someone facing challenges</p>
-            <div className="flex items-center gap-2 text-xs text-orange-400">
-              <Clock className="w-3 h-3" />
-              <span>3 scenarios</span>
-            </div>
-            <p className="text-xs text-orange-400 mt-2 font-medium">✓ Medium • ✓ Deeper connection</p>
-          </button>
-
-          <button
-            onClick={() => setSelectedChallenge('conflict')}
-            className="p-6 bg-gradient-to-br from-red-800/40 to-rose-800/40 backdrop-blur-sm rounded-2xl border-2 border-red-500/30 hover:border-red-400/50 transition-all hover:scale-105 text-left group"
-          >
-            <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">🔥</div>
-            <h3 className="text-xl font-bold text-red-100 mb-2">Navigate Disagreement</h3>
-            <p className="text-sm text-red-300 mb-3">Handle differing viewpoints gracefully</p>
-            <div className="flex items-center gap-2 text-xs text-red-400">
-              <Clock className="w-3 h-3" />
-              <span>3 scenarios</span>
-            </div>
-            <p className="text-xs text-red-400 mt-2 font-medium">✓ Hard • ✓ Advanced skill</p>
-          </button>
-
-          <button
-            onClick={() => setSelectedChallenge('vulnerable')}
-            className="p-6 bg-gradient-to-br from-purple-800/40 to-pink-800/40 backdrop-blur-sm rounded-2xl border-2 border-purple-500/30 hover:border-purple-400/50 transition-all hover:scale-105 text-left group"
-          >
-            <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">❤️</div>
-            <h3 className="text-xl font-bold text-purple-100 mb-2">Deepen Vulnerability</h3>
-            <p className="text-sm text-purple-300 mb-3">Create space for meaningful connection</p>
-            <div className="flex items-center gap-2 text-xs text-purple-400">
-              <Clock className="w-3 h-3" />
-              <span>3 scenarios</span>
-            </div>
-            <p className="text-xs text-purple-400 mt-2 font-medium">✓ Expert • ✓ Builds intimacy</p>
-          </button>
+            return (
+              <button
+                key={type}
+                onClick={() => setSelectedChallenge(type)}
+                className={`
+                  p-6 backdrop-blur-sm rounded-2xl border-2 transition-all text-left group
+                  ${isCompleted 
+                    ? 'bg-green-600/30 border-green-500/50 hover:bg-green-500/40' 
+                    : `bg-gradient-to-br from-${config.from} to-${config.to} border-${config.border} hover:scale-105 hover:border-opacity-50`}
+                `}
+              >
+                <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">{config.emoji}</div>
+                <h3 className="text-xl font-bold mb-2">{config.title}</h3>
+                <p className="text-sm mb-3">{config.desc}</p>
+              </button>
+            )
+          })}
         </div>
       </>
     ) : (
-      <ScenarioMCQ 
+      <ScenarioMCQ
         challengeType={selectedChallenge}
         onComplete={(score, answers) => {
-          setCompleted(true);
-          setRating(Math.ceil(score / 20)); // Convert score to 5-star rating
+          setRating(Math.ceil(score / 20));
+
+          setCompletedChallenges(prev => {
+            const newSet = new Set(prev);
+            newSet.add(selectedChallenge);
+
+            // All challenges done?
+            if (['casual','problem','conflict','vulnerable'].every(c => newSet.has(c))) {
+              setCompleted(true);
+            } else {
+              // Not all done → return home
+              setSelectedChallenge(null);
+            }
+
+            return newSet;
+          });
         }}
         onBack={() => setSelectedChallenge(null)}
       />
     )}
-    
+
     {completed && (
       <div className="text-center space-y-6 p-8 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-3xl border-2 border-green-500/30 mt-6">
         <div className="text-7xl">🎉</div>
         <div>
           <h3 className="text-3xl font-bold text-green-100 mb-2">Well Done!</h3>
-          <p className="text-green-200">You've practiced active listening through real scenarios.</p>
+          <p className="text-green-200">You've practiced active listening through all scenarios.</p>
         </div>
         <div className="flex gap-2 text-2xl justify-center">
           {[...Array(rating)].map((_, i) => <span key={i}>⭐</span>)}
@@ -744,6 +762,7 @@ const ActiveListening = ({ onNext }) => {
     )}
   </div>
 )}
+
         </div>
       </div>
 

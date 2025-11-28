@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState , useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { 
@@ -17,11 +17,44 @@ import {
   Swords
 } from "lucide-react";
 import { SignupForm } from "./signup-form";
+import { getApiKeys } from 'src/backend/apikeys';
+
+import { initializeApp, getApps } from "firebase/app";
+import { getFirestore, doc, setDoc, updateDoc , serverTimestamp } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
+
+
+// FIREBASE CONFIG (YOUR ORIGINAL)
+const firebaseConfig = {
+apiKey: "AIzaSyBNCXIOAX2HUdeLvUxkTJh7DVbv8JU485s",
+authDomain: "goalgrid-c5e9c.firebaseapp.com",
+projectId: "goalgrid-c5e9c",
+storageBucket: "goalgrid-c5e9c.firebasestorage.app",
+messagingSenderId: "544004357501",
+appId: "1:544004357501:web:4b81a3686422b28534e014",
+measurementId: "G-BJQMLK9JJ1",
+};
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+export const firestore = getFirestore(app);
 
 const SignInView = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState({});
   const [userName, setUserName] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [localLoading, setLocalLoading] = useState(false);
+  const [answers, setAnswers] = useState({}); // or [] depending on type
+
+const [successfulDays, setSuccessfulDays] = useState(0);
+const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+const [planPreview, setPlanPreview] = useState<any>(null);
+
+  const auth = getAuth();
+const userId = auth.currentUser?.uid || "user_trial";
+const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Quiz questions
   const quizQuestions = [
@@ -57,6 +90,7 @@ const SignInView = () => {
     }
   ];
 
+  
   const detailedFeatures = [
     {
       icon: Brain,
@@ -102,6 +136,192 @@ const SignInView = () => {
     },
   ];
 
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+setToast({ message, type });
+setTimeout(() => setToast(null), 3500);
+};
+
+  const MOCK_PLAN = {
+  // Structure to mimic the expected successful overview response
+  overview: {
+    days: [
+      { day: 1, title: "Understand Fundamentals", task: "Read and summarize 3 key articles on social skills." },
+      { day: 2, title: "Active Listening Practice", task: "Engage in a 15-minute conversation focusing only on listening and asking follow-up questions." },
+      { day: 3, title: "Body Language Awareness", task: "Spend 30 minutes observing non-verbal cues in public or from a video." },
+      { day: 4, title: "Initiate Small Talk", task: "Start a brief, friendly conversation with a stranger (e.g., barista, neighbor)." },
+      { day: 5, title: "Reflection & Planning", task: "Journal about the week's experiences and set one social goal for next week." },
+    ]
+  },
+  success: true,
+};
+
+
+  const GENERATION_STEPS = [
+{ icon: "🔍", text: "Analyzing your goal..." },
+{ icon: "📊", text: "Finding similar success patterns..." },
+{ icon: "✍️", text: "Customizing Day 1: Foundation..." },
+{ icon: "✍️", text: "Customizing Day 2: Momentum..." },
+{ icon: "✍️", text: "Customizing Day 3: Breakthrough..." },
+{ icon: "✍️", text: "Customizing Day 4: Refinement..." },
+{ icon: "✍️", text: "Customizing Day 5: Commitment..." },
+{ icon: "✅", text: "Finalizing your personalized plan..." },
+];
+
+  
+
+
+
+  const markPlanAsCreated = async () => {
+  try {
+  if (!auth.currentUser) {
+  console.error("❌ No authenticated user found");
+  return;
+  }
+  const userRef = doc(firestore, "users", auth.currentUser.uid);
+  await updateDoc(userRef, {
+  planCreated: true,
+  planCreatedAt: serverTimestamp(),
+  });
+  console.log("✅ planCreated set to true");
+  } catch (error) {
+  console.error("❌ Error marking plan as created:", error);
+  }
+  };
+
+  const handleGeneratePlan = async () => {
+    console.log("🚀 Starting 5-day task overview generation...");
+    setIsGeneratingPlan(true);
+    setCurrentStep(0);
+  
+    const userMessages = messages.filter((m) => m.role === "user");
+    const userAnswers = Object.values(answers);
+    const goalName =
+      (userMessages[0]?.content && userMessages[0].content.trim()) ||
+      (userAnswers[0] && userAnswers[0].toString().trim()) ||
+      "social skills";
+  
+    const joinDate = new Date().toISOString().split('T')[0];
+    const payload = {
+      user_id: userId,
+      goal_name: goalName,
+      user_answers: userAnswers,
+      join_date: joinDate,
+    };
+  
+    // Simulate step-by-step progress
+    const progressInterval = setInterval(() => {
+      setCurrentStep(prev => {
+        if (prev < GENERATION_STEPS.length) return prev + 1;
+        return prev;
+      });
+    }, 1200);
+  
+    let data: any = null;
+    let success = false;
+    let useMockPlan = false;
+  
+    try {
+      // Fetch API keys from Firebase
+      const apiKeys = await getApiKeys();
+      
+      if (apiKeys.length === 0) {
+        console.warn("⚠️ No API keys available. Using mock plan.");
+        data = MOCK_PLAN;
+        success = true;
+        useMockPlan = true;
+      } else {
+        // --- API KEY LOOP ---
+        for (let i = 0; i < apiKeys.length; i++) {
+          const apiKey = apiKeys[i];
+  
+          try {
+            const resp = await fetch(
+              "https://pythonbackend-74es.onrender.com/create-task-overview",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${apiKey}`,
+                },
+                body: JSON.stringify(payload),
+              }
+            );
+  
+            try {
+              data = await resp.json();
+            } catch (jsonErr) {
+              const rawText = await resp.text();
+              console.warn(`Invalid JSON with key ${i + 1}:`, rawText);
+              continue;
+            }
+  
+            if (!resp.ok || !data.success || !data.overview) {
+              console.warn(`API key ${i + 1} failed or invalid response`, data);
+              continue;
+            }
+  
+            success = true;
+            console.log("✅ Task overview received:", data.overview);
+            break;
+  
+          } catch (err) {
+            console.warn(`Request failed with key ${i + 1}:`, err);
+          }
+        }
+        // --- END API KEY LOOP ---
+  
+        // Fallback to mock plan if all keys failed
+        if (!success) {
+          console.warn("⚠️ All API keys failed. Falling back to mock plan.");
+          data = MOCK_PLAN;
+          success = true;
+          useMockPlan = true;
+        }
+      }
+  
+      const overviewToSave = data.overview;
+  
+      // Save to Firebase
+      const courseId = "social_skills";
+      const userPlanRef = doc(firestore, "users", userId, "datedcourses", courseId);
+  
+      await setDoc(userPlanRef, {
+        task_overview: overviewToSave,
+        goal_name: goalName,
+        user_id: userId,
+        course_id: courseId,
+        generated_at: serverTimestamp(),
+        created_at: serverTimestamp(),
+        is_mock_plan: useMockPlan,
+      });
+  
+      console.log(`✅ 5-day task overview saved to Firebase (Mock: ${useMockPlan})`);
+  
+      setSuccessfulDays(5);
+      setCurrentStep(GENERATION_STEPS.length);
+      await markPlanAsCreated();
+  
+      setPlanPreview({
+        days: overviewToSave.days || [
+          { day: 1, title: "Build Foundation", task: "Start with 15min daily practice" },
+          { day: 2, title: "Gain Momentum", task: "Increase to 30min, track progress" },
+          { day: 3, title: "Push Boundaries", task: "Try one challenging scenario" },
+          { day: 4, title: "Reflect & Adjust", task: "Review what's working" },
+          { day: 5, title: "Commit Long-term", task: "Set up sustainable routine" },
+        ]
+      });
+  
+      showToast(`🎉 Your 5-day plan is ready!${useMockPlan ? ' (Using a backup plan)' : ''}`, "success");
+  
+    } catch (err: any) {
+      console.error("🔥 handleGeneratePlan error:", err);
+      showToast(`⚠️ Plan generation failed: ${err.message}`, "error");
+    } finally {
+      clearInterval(progressInterval);
+      setIsGeneratingPlan(false);
+    }
+  };
+  
   const pages = [
     // Page 0: Welcome
     {
@@ -688,7 +908,11 @@ const SignInView = () => {
                       Back
                     </Button>
                     <Button
-                      onClick={() => setCurrentPage(currentPage + 1)}
+                     onClick={() => {
+  setCurrentPage(currentPage + 1);
+  handleGeneratePlan();
+}}
+
                       className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-lg"
                     >
                       Alright, let's try it

@@ -15,6 +15,8 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, getDoc, updateDoc, collection, query, limit, getDocs } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
+import { getApiKeys } from 'src/backend/apikeys';
+
 // ============ FIREBASE CONFIG ============
 const firebaseConfig = {
   apiKey: "AIzaSyBNCXIOAX2HUdeLvUxkTJh7DVbv8JU485s",
@@ -761,11 +763,20 @@ const handleTaskClick = (taskObj: Task, taskIndex: number) => {
 const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
   setLoadingLiveSupport(true);
 
+  // ✅ Fetch API keys from Firebase instead of static import
+  const apiKeys = await getApiKeys();
+  
+  if (!apiKeys || apiKeys.length === 0) {
+    alert('No API keys available. Please contact support.');
+    setLoadingLiveSupport(false);
+    return;
+  }
+
   for (let i = 0; i < apiKeys.length; i++) {
     const apiKey = apiKeys[i];
 
     try {
-      const response = await fetch('https://one23-u2ck.onrender.com/live-action-support', {
+      const response = await fetch('https://pythonbackend-74es.onrender.com/live-action-support', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -787,20 +798,21 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
       const data = await response.json();
 
       if (!response.ok) {
-        console.warn(`API key ${apiKey} failed:`, data.error || 'Unknown error');
+        console.warn(`API key ${i + 1} failed:`, data.error || 'Unknown error');
         continue; // Try next key
       }
 
       if (data.success && data.task) {
         window.location.href = `/connections?task=${encodeURIComponent(JSON.stringify(data.task))}`;
+        setLoadingLiveSupport(false);
         return; // Success, exit the function
       } else {
-        console.warn(`API key ${apiKey} returned invalid response`);
+        console.warn(`API key ${i + 1} returned invalid response`);
         continue; // Try next key
       }
 
     } catch (error) {
-      console.warn(`API key ${apiKey} request failed:`, error);
+      console.warn(`API key ${i + 1} request failed:`, error);
       // Try next key
     }
   }
