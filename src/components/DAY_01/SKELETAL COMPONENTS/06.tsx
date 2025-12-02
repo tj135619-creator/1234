@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { apiKeys } from 'src/backend/keys/apiKeys';
+import { getApiKeys } from "@/backend/apikeys";
 import { MessageCircle, Send, CheckCircle, Star, Sparkles, Target, TrendingUp, Award, Clock, Zap, ChevronRight, Volume2, Mic, XCircle, Trophy, Flame } from "lucide-react";
 
 // Types
@@ -121,6 +122,15 @@ const GenuineAppreciation: React.FC<GenuineAppreciationProps> = ({ onNext }) => 
   const [showConfetti, setShowConfetti] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [showScenarioButton, setShowScenarioButton] = useState(false);
+  const [apiKeys, setApiKeys] = useState<string[]>([]);
+
+useEffect(() => {
+  async function loadKeys() {
+    const keys = await getApiKeys();
+    setApiKeys(keys);
+  }
+  loadKeys();
+}, []);
 
   useEffect(() => {
     if (stage === 'chat' && messages.length === 0) {
@@ -172,11 +182,13 @@ const handleSendMessage = async () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer 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`
+          'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
           user_id: "HfwcJgkyNNb3T3UdWRDbrCiRQuS2",
           message: currentMessage,
+          session_id: "some_session",
+          api_key: "the_api_key",
           goal_name: "genuine-appreciation"
         })
       });

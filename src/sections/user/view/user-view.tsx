@@ -40,6 +40,49 @@ type Lesson,
 type Task
 } from '../../../services/lessonService';
 
+const Day1CompletionOverlay = ({ onDismiss }) => {
+  // Assuming Trophy, ArrowRight, X icons are available via the imports
+  return (
+    <AnimatePresence>
+      <motion.div
+        // Backdrop overlay
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      >
+        <motion.div
+          // Modal content box
+          initial={{ scale: 0.9, y: 50 }}
+          animate={{ scale: 1, y: 0 }}
+          exit={{ scale: 0.9, y: 50 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+          className="bg-white p-8 md:p-12 rounded-3xl shadow-2xl max-w-lg w-full m-4 text-center relative"
+        >
+          <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Day 1 Complete! You're Awesome!</h2>
+          <p className="text-gray-600 mb-8">
+            Congratulations on finishing your first day! Click below to access your exclusive Day 1 completion guide and next steps.
+          </p>
+          <button
+            onClick={onDismiss}
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-4 rounded-xl font-semibold shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
+          >
+            Claim Your Reward! <ArrowRight className="inline ml-2 w-5 h-5" />
+          </button>
+          <button
+            onClick={onDismiss}
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-2 rounded-full transition"
+            aria-label="Close"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
 export default function App() {
 const [user, setUser] = useState(null);
 const [authLoading, setAuthLoading] = useState(true);
@@ -55,6 +98,7 @@ const [showObstaclesPage, setShowObstaclesPage] = useState(false);
 const [userConcern, setUserConcern] = useState('');
 const [aiConversation, setAiConversation] = useState([]);
 const [isHubOpen, setIsHubOpen] = useState(false);
+const [showDay1CompletionOverlay, setShowDay1CompletionOverlay] = useState(false);
 const [isAiThinking, setIsAiThinking] = useState(false);
 const [day1Complete, setDay1Complete] = useState(false);
 const [completedCount, setCompletedCount] = useState(0);
@@ -69,6 +113,125 @@ streak: 0,
 timeInvested: '0h'
 });
 const subpageTypes = [ 'intro','chaku',  'reflection', 'complete'];
+// Inside your main component function (e.g., UserView, after your existing useState/useEffect calls)
+
+// State to control the visibility of the overlay
+
+
+// Assuming your user progress state is called 'progress' and has a 'day1Complete' field
+// Replace 'progress' with your actual state variable if it's named differently.
+// const [progress, setProgress] = useState(...); 
+const [userData, setUserData] = useState(null);
+
+const [progress, setProgress] = useState(null);
+
+const [profile, setProfile] = useState(null);
+
+const [dayNumber, setDayNumber] = useState(1);
+const [currentStepIndex, setCurrentStepIndex] = useState(0); 
+
+const contentVariants = {
+  initial: { opacity: 0, y: 50, scale: 0.95 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  exit: { opacity: 0, y: -50, scale: 0.95 },
+};
+
+// --- 2. Screen Data Array ---
+const screens = [
+  {
+    title: `Day ${dayNumber} Complete!`,
+    icon: (
+      <motion.div
+        initial={{ scale: 0, rotate: -120 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ type: "spring", duration: 0.8 }}
+        className="mb-6"
+      >
+        <div className="w-24 h-24 mx-auto bg-yellow-500 rounded-full flex items-center justify-center shadow-lg">
+          <Trophy className="w-12 h-12 text-white" />
+        </div>
+      </motion.div>
+    ),
+    text: "Strong start. Now lock in your Day 1 win by understanding what actually matters next.",
+    button: "Claim Your Reward",
+    stats: (
+      <div className="grid grid-cols-2 gap-4 mt-6">
+        <div className="bg-white/10 rounded-xl p-4 border border-white/20">
+          <p className="text-3xl font-bold text-white">
+            +{userData?.xp || 100}
+          </p>
+          <p className="text-purple-200 text-sm">XP</p>
+        </div>
+        <div className="bg-white/10 rounded-xl p-4 border border-white/20">
+          <p className="text-3xl font-bold text-white">{dayNumber}</p>
+          <p className="text-purple-200 text-sm">Streak</p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    title: "What Happens Now",
+    icon: null,
+    text: "Day 2 success depends on one thing: momentum. Your reward is designed to keep you moving without friction.",
+    button: "Next",
+  },
+  {
+    title: "Your Reward",
+    icon: null,
+    text: "You'll unlock your personalized 'Next Step Guide'—exact actions to follow so you don’t fall off tomorrow.",
+    button: "Show Guide",
+  },
+  {
+    title: "Your Daily Schedule",
+    icon: null,
+    text: "This is where you’ll see exactly what to do each day. No confusion. No guessing. Open it before you start your day — it’s your blueprint.",
+    button: "Next",
+  },
+  {
+    title: "Live Action Support",
+    icon: null,
+    text: "When you’re stuck or unsure what to say in a real conversation, open Live Action Support. You type your situation — you get instant guidance.",
+    button: "Next",
+  },
+  {
+    title: "Track Your Actions",
+    icon: null,
+    text: "If you don’t use Live Support, you can still mark what you completed. This keeps you accountable and stops you from drifting.",
+    button: "Next",
+  },
+  {
+    title: "Now Act",
+    icon: null,
+    text: "You already know what you said you would do today. Stop delaying. Go do it now — before momentum disappears.",
+    button: "Finish",
+  },
+];
+
+const currentScreen = screens[currentStepIndex];
+const isLastStep = currentStepIndex === screens.length - 1;
+
+// --- 3. Step Navigation Logic ---
+const handleNextStep123 = () => {
+  if (isLastStep) {
+    handleCelebrationComplete();
+  } else {
+    setCurrentStepIndex(currentStepIndex + 1);
+  }
+};
+
+
+
+
+useEffect(() => {
+    // 1. Check if progress data is available and day 1 is complete.
+    // 2. The localStorage check prevents the overlay from showing on every single page load after it's been seen once.
+    const hasSeenOverlay = localStorage.getItem('day1OverlaySeen');
+
+    // Replace `progress` with your actual state variable for user data
+    if (progress && progress.day1Complete && !hasSeenOverlay) {
+        setShowDay1CompletionOverlay(true);
+    }
+}, [progress]); // Add all relevant user/progress state variables here
 
 // In your loadUserData function (already in your code):
 
@@ -1375,6 +1538,125 @@ const DAY_NAVIGATORS = [Day1Navigator, Day2Navigator, Day3Navigator, Day4Navigat
 const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData, onBackToTimeline }) => {
   const dayNumber = currentDayNumber || 1;
   const [showCelebration, setShowCelebration] = useState(false);
+  
+  // --- FIX: Add Celebration State & Logic HERE inside the component ---
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+
+  const contentVariants = {
+    initial: { opacity: 0, y: 50, scale: 0.95 },
+    animate: { opacity: 1, y: 0, scale: 1 },
+    exit: { opacity: 0, y: -50, scale: 0.95 },
+  };
+
+  const screens = [
+    {
+      title: `Day ${dayNumber} Complete!`,
+      icon: (
+        <motion.div
+          initial={{ scale: 0, rotate: -120 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", duration: 0.8 }}
+          className="mb-6"
+        >
+          <div className="w-24 h-24 mx-auto bg-yellow-500 rounded-full flex items-center justify-center shadow-lg">
+            <Trophy className="w-12 h-12 text-white" />
+          </div>
+        </motion.div>
+      ),
+      text: "Strong start. Now lock in your Day 1 win by understanding what actually matters next.",
+      button: "Claim Your Reward",
+      stats: (
+        <div className="grid grid-cols-2 gap-4 mt-6">
+          <div className="bg-white/10 rounded-xl p-4 border border-white/20">
+            <p className="text-3xl font-bold text-white">
+              +{userData?.xp || 100}
+            </p>
+            <p className="text-purple-200 text-sm">XP</p>
+          </div>
+          <div className="bg-white/10 rounded-xl p-4 border border-white/20">
+            <p className="text-3xl font-bold text-white">{dayNumber}</p>
+            <p className="text-purple-200 text-sm">Streak</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: "What Happens Now",
+      icon: null,
+      text: "Day 2 success depends on one thing: momentum. Your reward is designed to keep you moving without friction.",
+      button: "Next",
+    },
+    {
+      title: "Your Reward",
+      icon: null,
+      text: "You'll unlock your personalized 'Next Step Guide'—exact actions to follow so you don’t fall off tomorrow.",
+      button: "Show Guide",
+    },
+    {
+      title: "Your Daily Schedule",
+      // 👇 IMAGE ADDED HERE
+      icon: (
+        <div className="mb-6">
+          <img 
+            src="/assets/schedule.png" /* 👈 REPLACE THIS with your image path */
+            alt="Daily Schedule"
+            className="w-64 h-auto rounded-xl shadow-2xl mx-auto border-2 border-purple-500/30"
+          />
+        </div>
+      ),
+      text: "This is where you’ll see exactly what to do each day. No confusion. No guessing. Open it before you start your day — it’s your blueprint.",
+      button: "Next",
+    },
+    {
+      title: "Live Action Support",
+      // 👇 IMAGE ADDED HERE
+      icon: (
+        <div className="mb-6">
+          <img 
+            src="/assets/liveaction.png" /* 👈 REPLACE THIS */
+            alt="Live Support"
+            className="w-64 h-auto rounded-xl shadow-2xl mx-auto border-2 border-purple-500/30"
+          />
+        </div>
+      ),
+      text: "When you’re stuck or unsure what to say in a real conversation, open Live Action Support. You type your situation — you get instant guidance.",
+      button: "Next",
+    },
+    {
+      title: "Track Your Actions",
+      // 👇 IMAGE ADDED HERE
+      icon: (
+        <div className="mb-6">
+          <img 
+            src="/assets/tasktracker.png" /* 👈 REPLACE THIS */
+            alt="Track Actions"
+            className="w-64 h-auto rounded-xl shadow-2xl mx-auto border-2 border-purple-500/30"
+          />
+        </div>
+      ),
+      text: "If you don’t use Live Support, you can still mark what you completed. This keeps you accountable and stops you from drifting.",
+      button: "Next",
+    },
+    {
+      title: "Now Act",
+      // 👇 IMAGE ADDED HERE
+      
+      text: "You already know what you said you would do today. Stop delaying. Go do it now — before momentum disappears.",
+      button: "Finish",
+    },
+  ];
+
+  const currentScreen = screens[currentStepIndex];
+  const isLastStep = currentStepIndex === screens.length - 1;
+
+  const handleNextStep123 = () => {
+    if (isLastStep) {
+      handleCelebrationComplete();
+    } else {
+      setCurrentStepIndex(currentStepIndex + 1);
+    }
+  };
+  // ----------------------------------------------------------------
 
   const DAY_NAVIGATORS_LIST = [Day1Navigator, Day2Navigator, Day3Navigator, Day4Navigator];
   const availableNavigatorsCount = DAY_NAVIGATORS_LIST.length;
@@ -1420,6 +1702,7 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData
       onNext();
     }
   };
+
   useEffect(() => {
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
@@ -1452,102 +1735,98 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData
   }
 
   // 🎉 Celebration Page
- if (showCelebration) {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="fixed inset-0 z-[9999] bg-purple-900 flex items-center justify-center p-4"
-    >
-      {/* LIGHT CONFETTI */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-        {[...Array(25)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-2 h-2 rounded-full"
-            style={{
-              background: ["#fbbf24", "#3b82f6", "#a855f7"][i % 3],
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{
-              scale: [0, 1, 0],
-              opacity: [0, 1, 0],
-              x: [0, (Math.random() - 0.5) * 150],
-              y: [0, (Math.random() - 0.5) * 150],
-            }}
-            transition={{
-              duration: 1.8,
-              delay: i * 0.03,
-              repeat: Infinity,
-              repeatDelay: 2,
-            }}
-          />
-        ))}
-      </div>
-
-      <div className="relative z-10 flex flex-col items-center text-center px-4">
-
-        {/* TROPHY */}
-        <motion.div
-          initial={{ scale: 0, rotate: -120 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: "spring", duration: 0.8 }}
-          className="mb-6"
-        >
-          <div className="w-24 h-24 mx-auto bg-yellow-500 rounded-full flex items-center justify-center shadow-lg">
-            <Trophy className="w-12 h-12 text-white" />
-          </div>
-        </motion.div>
-
-        {/* TITLE */}
-        <h1 className="text-4xl font-bold text-white mb-2">
-          Day {dayNumber} Complete
-        </h1>
-
-        {/* STATS — MINIMAL */}
-        <div className="grid grid-cols-2 gap-4 mt-6">
-          <div className="bg-white/10 rounded-xl p-4 border border-white/20">
-            <p className="text-3xl font-bold text-white">
-              +{userData?.xp || 100}
-            </p>
-            <p className="text-purple-200 text-sm">XP</p>
-          </div>
-          <div className="bg-white/10 rounded-xl p-4 border border-white/20">
-            <p className="text-3xl font-bold text-white">{dayNumber}</p>
-            <p className="text-purple-200 text-sm">Streak</p>
-          </div>
+  if (showCelebration) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="fixed inset-0 z-[9999] bg-purple-900 flex items-center justify-center p-4"
+      >
+        {/* LIGHT CONFETTI */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+          {[...Array(25)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-2 h-2 rounded-full"
+              style={{
+                background: ["#fbbf24", "#3b82f6", "#a855f7"][i % 3],
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+              }}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{
+                scale: [0, 1, 0],
+                opacity: [0, 1, 0],
+                x: [0, (Math.random() - 0.5) * 150],
+                y: [0, (Math.random() - 0.5) * 150],
+              }}
+              transition={{
+                duration: 1.8,
+                delay: i * 0.03,
+                repeat: Infinity,
+                repeatDelay: 2,
+              }}
+            />
+          ))}
         </div>
 
-        {/* BUTTON */}
-        <motion.button
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          onClick={handleCelebrationComplete}
-          className="mt-10 bg-green-600 text-white font-bold text-lg px-10 py-4 rounded-xl shadow-lg"
-        >
-          Continue <ArrowRight className="inline ml-2 w-4 h-4" />
-        </motion.button>
+        <div className="relative z-10 w-full h-full overflow-y-auto flex flex-col items-center text-center px-4 py-10">
 
-        {/* SMALL SKIP */}
-        <button
-          onClick={handleCelebrationComplete}
-          className="mt-4 text-purple-300 text-xs"
-        >
-          Skip →
-        </button>
-      </div>
-    </motion.div>
-  );
-}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStepIndex} 
+              variants={contentVariants} 
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="flex flex-col items-center"
+            >
+              {/* ICON */}
+              {currentScreen.icon}
 
+              {/* TITLE */}
+              <h1 className="text-4xl font-bold text-white mb-2">
+                {currentScreen.title}
+              </h1>
+
+              {/* STATS (Only on the first step) */}
+              {currentStepIndex === 0 && currentScreen.stats}
+
+              {/* TEXT */}
+              <p className="text-purple-200 text-lg mt-4 mb-8 max-w-sm">
+                {currentScreen.text}
+              </p>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* BUTTON */}
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            onClick={handleNextStep123} 
+            className="mt-10 bg-green-600 text-white font-bold text-lg px-10 py-4 rounded-xl shadow-lg"
+          >
+            {currentScreen.button}
+            <ArrowRight className="inline ml-2 w-4 h-4" />
+          </motion.button>
+
+          {/* SMALL SKIP */}
+          <button
+            onClick={handleCelebrationComplete} 
+            className="mt-4 text-purple-300 text-xs"
+          >
+            Skip Celebration →
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
 
   // 🚀 Fullscreen Navigator Render
   return (
     <>
-      {/* Background section */}
       <div className="w-full min-h-screen bg-slate-900 text-white">
         <div className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700/50 py-4 px-6">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -1564,7 +1843,6 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData
         </div>
       </div>
 
-      {/* Force the navigator to mount at document.body */}
       {typeof window !== "undefined" &&
         ReactDOM.createPortal(
           <CurrentNavigator
@@ -3273,7 +3551,14 @@ const CompletionSubpage = ({ lesson, onBackToTimeline }: any) => {
           />
         ))}
       </div>
+
+      {/* --- START ADDITION: Conditional rendering of the overlay --- */}
+    
+    {/* --- END ADDITION --- */}
     </motion.div>
+
+
+
   );
 
 }
