@@ -1555,7 +1555,7 @@ const handleGetLiveSupport = async (taskObj: Task, taskIndex: number) => {
       </>
     ) : (
       <>
-             Start your task now!
+             Start  task now!
         
       </>
     )}

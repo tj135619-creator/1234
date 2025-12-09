@@ -44,56 +44,193 @@ export default function AIChatInterface({ onComplete }) {
   };
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
-    const userMsg = { id: Date.now(), role: 'user', content: inputMessage, timestamp: Date.now() };
-    setMessages(prev => [...prev, userMsg]);
-    const userInput = inputMessage;
-    setInputMessage('');
-    setIsLoading(true);
+  if (!inputMessage.trim() || isLoading) return;
+  
+  const userMsg = { 
+    id: Date.now(), 
+    role: 'user', 
+    content: inputMessage, 
+    timestamp: Date.now() 
+  };
+  setMessages(prev => [...prev, userMsg]);
+  
+  const userInput = inputMessage;
+  setInputMessage('');
+  setIsLoading(true);
 
-    try {
-      const apiKeys = await getApiKeys();
-      const apiKey = apiKeys[apiKeys.length - 1];
+  try {
+    const apiKeys = await getApiKeys();
+    const apiKey = apiKeys[apiKeys.length - 1];
 
-      const response = await fetch(`${API_BASE}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, api_key: apiKey, message: userInput })
-      });
+    const response = await fetch(`${API_BASE}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        session_id: sessionId, 
+        api_key: apiKey, 
+        message: userInput 
+      })
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      setMessages(prev => [...prev, { id: Date.now() + 1, role: 'assistant', content: data.response, timestamp: Date.now() }]);
+    setMessages(prev => [...prev, { 
+      id: Date.now() + 1, 
+      role: 'assistant', 
+      content: data.response, 
+      timestamp: Date.now() 
+    }]);
 
-      if (data.phase_complete) {
+    // ✅ Check if we're in phase 3 and have all required data
+    if (data.phase === 3 && data.phase_data?.phase_3) {
+      const phase3Data = data.phase_data.phase_3;
+      const hasAllData = phase3Data.locations && 
+                         phase3Data.schedule && 
+                         phase3Data.anxiety_issues;
+      
+      if (hasAllData) {
         setPhaseComplete(true);
-        if (data.structured_data) {
-          setStructuredData(data.structured_data);
-          setShowDataPreview(true);
-        }
+        setStructuredData(data.phase_data);
+        setShowDataPreview(true);
       }
-    } catch (error) {
-      console.error('Send error:', error);
-      setMessages(prev => [...prev, { id: Date.now() + 1, role: 'assistant', content: '⚠️ Error sending message.', timestamp: Date.now() }]);
     }
 
-    setIsLoading(false);
-  };
-
-  const handleExportSession = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/export/${sessionId}`);
-      const data = await response.json();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `session-${sessionId}.json`;
-      a.click();
-    } catch (error) {
-      console.error('Export error:', error);
+    // ✅ Also check phase 1 and 2 completion for intermediate feedback
+    if (data.phase === 1 && data.phase_data?.phase_1) {
+      const phase1Data = data.phase_data.phase_1;
+      const phase1Complete = phase1Data.problem && 
+                             phase1Data.context && 
+                             phase1Data.emotion && 
+                             phase1Data.impact;
+      // You could show a progress indicator here
     }
-  };
+
+    if (data.phase === 2 && data.phase_data?.phase_2) {
+      const phase2Data = data.phase_data.phase_2;
+      const phase2Complete = phase2Data.skill_gaps && 
+                             phase2Data.tips;
+      // You could show a progress indicator here
+    }
+
+  } catch (error) {
+    console.error('Send error:', error);
+    setMessages(prev => [...prev, { 
+      id: Date.now() + 1, 
+      role: 'assistant', 
+      content: '⚠️ Error sending message. Please try again.', 
+      timestamp: Date.now() 
+    }]);
+  }
+
+  setIsLoading(false);
+};
+
+  const handleTransition = async () => {
+  setIsLoading(true);
+  
+  try {
+    const response = await fetch(`${API_BASE}/transition`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        session_id: sessionId 
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+      // Show error message to user
+      setMessages(prev => [...prev, { 
+        id: Date.now(), 
+        role: 'assistant', 
+        content: `⚠️ ${data.error}. Missing: ${data.missing?.join(', ')}`, 
+        timestamp: Date.now() 
+      }]);
+    } else if (data.firebase_doc_id) {
+      // Phase 3 complete - data saved to Firebase
+      setPhaseComplete(true);
+      setStructuredData({
+        firebase_doc_id: data.firebase_doc_id,
+        phase_data: data.phase_data,
+        task_overview: data.task_overview
+      });
+      setShowDataPreview(true);
+      
+      setMessages(prev => [...prev, { 
+        id: Date.now(), 
+        role: 'assistant', 
+        content: '🎉 All phases complete! Your 5-day action plan has been created and saved.', 
+        timestamp: Date.now() 
+      }]);
+    } else {
+      // Successfully moved to next phase
+      setMessages(prev => [...prev, { 
+        id: Date.now(), 
+        role: 'assistant', 
+        content: `✅ ${data.message}`, 
+        timestamp: Date.now() 
+      }]);
+    }
+
+  } catch (error) {
+    console.error('Transition error:', error);
+    setMessages(prev => [...prev, { 
+      id: Date.now(), 
+      role: 'assistant', 
+      content: '⚠️ Error transitioning to next phase. Please try again.', 
+      timestamp: Date.now() 
+    }]);
+  }
+
+  setIsLoading(false);
+};
+
+const handleExportSession = () => {
+  try {
+    // Export local session data as JSON
+    const exportData = {
+      session_id: sessionId,
+      timestamp: new Date().toISOString(),
+      messages: messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+        timestamp: new Date(msg.timestamp).toISOString()
+      })),
+      structured_data: structuredData,
+      phase_complete: phaseComplete
+    };
+    
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
+      type: 'application/json' 
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `jordan-session-${sessionId}-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    // Show success message
+    setMessages(prev => [...prev, { 
+      id: Date.now(), 
+      role: 'assistant', 
+      content: '✅ Session data exported successfully!', 
+      timestamp: Date.now() 
+    }]);
+    
+  } catch (error) {
+    console.error('Export error:', error);
+    setMessages(prev => [...prev, { 
+      id: Date.now(), 
+      role: 'assistant', 
+      content: '⚠️ Error exporting session data.', 
+      timestamp: Date.now() 
+    }]);
+  }
+};
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   useEffect(() => scrollToBottom(), [messages]);

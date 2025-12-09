@@ -12,7 +12,6 @@ import { getStoredAuth, isAuthenticated } from '@/utils/auth';
 // Instead, use:
 
 
-
 import { auth, signInWithGoogle, logOut  } from '../../../firebase';
 import { 
   Sparkles, Zap, Heart, Share2, ChevronLeft, ChevronRight, Users,
@@ -29,6 +28,12 @@ import EnhancedTaskHub from './liveactionsupport'
 import HeroSection from './HerosectionLive';
 import OnboardingOverlay from "./OnboardingOverlay"; // adjust path if needed
 import SocialCityMap from 'src/components/actionmap';
+import { Capacitor } from '@capacitor/core';
+
+
+
+
+
 
 
 const avatars = [Avatar01, Avatar02, Avatar03];
@@ -46,8 +51,11 @@ import EyeContactTrainer from 'src/components/07';
 import Day1Navigator from "src/components/DAY_01/MAINNAVIGATOR";
 
 
+
 const randomIndex = Math.floor(Math.random() * avatars.length);
 const selectedAvatar = avatars[randomIndex];
+
+
 
 
 export function OverviewAnalyticsView() {
@@ -166,6 +174,10 @@ useEffect(() => {
     checkDatedCourses();
   }, [user]);
 
+
+
+
+
   const handleFinish = async () => {
     if (user) {
       const userRef = doc(db, "users", user.uid);
@@ -210,6 +222,28 @@ useEffect(() => {
   }, 3000);
 };
 
+
+
+
+/*
+const handleStartTrial = async () => {
+  try {
+    await PurchasePlugin.startTrialPurchase({
+      sku: "your_trial_sku", // replace with your actual SKU
+    });
+    console.log("✅ Trial started");
+  } catch (err) {
+    console.error("❌ Error starting trial:", err);
+  }
+};
+*/
+
+
+
+
+
+
+
   if (isHubOpen) {
     return (
       <div className="fixed inset-0 z-[1000] overflow-y-auto bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950">
@@ -227,21 +261,36 @@ useEffect(() => {
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 text-center px-6">
-        <h1 className="text-3xl font-bold text-white mb-6">Welcome to GoalGrid</h1>
-        <p className="text-purple-200 mb-8 max-w-md">
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 px-6">
+      <div className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 rounded-3xl p-10 text-center shadow-xl animate-fadeIn">
+        <h1 className="text-4xl font-extrabold text-white mb-4">Welcome to GoalGrid</h1>
+        <p className="text-purple-200 mb-8 text-lg">
           Sign in to start your journey toward better connections and personal growth.
         </p>
+
         <button
           onClick={signInWithGoogle}
-          className="px-8 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-full shadow-2xl hover:scale-105 transition-all border-2 border-white/40"
+          className="w-full mb-4 px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-full shadow-2xl hover:scale-105 hover:shadow-pink-400/50 transition-transform duration-300"
         >
           Sign in with Google
         </button>
+
+        <button
+          onClick={() => (window.location.href = "/sign-in")}
+          className="w-full px-6 py-3 bg-white/20 text-white font-semibold rounded-full shadow-inner hover:bg-white/30 transition-colors duration-300"
+        >
+          First Time User? Sign Up
+        </button>
+
+        <p className="mt-6 text-purple-300 text-sm">
+          I promise to never sell your data. Hope this helps you as much as it helped me !
+        </p>
       </div>
-    );
-  }
+    </div>
+  );
+}
+
 
   return (
     <>
@@ -287,22 +336,31 @@ useEffect(() => {
                 />
                 <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-purple-100 text-center">
                   Welcome{userSignupStatus.isNewUser ? ' back' : ''}, {user?.displayName || 'User'}!
+                  
                 </h1>
+                <button
+  onClick={() => console.log("hello")}
+  className="mt-6 px-8 py-4 text-lg font-semibold bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg transition"
+>
+  Start 5-Day Trial
+</button>
+
               </div>
               <p className="text-base md:text-lg text-purple-200">Let's continue your journey.</p>
             </div>
 
             {/* Lesson + Transformation */}
-<div className="w-full flex justify-center">
 
-    <div ref={todayRef} className="relative">
-      <TodayActionCard />
-    </div>
 
-</div>
+<Grid item xs={12} md={8} lg={6} xl={5} className="tour-today-action-card">
 
+  
+ <TodayActionCard />
+</Grid>
 
               <Grid item xs={12} md={8} lg={6} xl={5} className="tour-today-action-card">
+
+  
   <TodayLessonHero 
     onStartLesson={handleStartLesson} 
     activeDay={testDay}

@@ -1,7 +1,4 @@
-
 import React, { useState } from "react";
-// FIX: Changing imports to simple relative paths, assuming the build system 
-// cannot resolve the 'src/' alias or absolute path structure.
 import ReviewConvos from "./REVIEWCONVOS/19";
 import IntroToDay4 from "./INTROTODAY4/21";
 import ConvoFramework from "./CONVOFRAMEWORK/22";
@@ -12,13 +9,13 @@ import SETYOURTIMES from "./SETYOURTIMES/02";
 import AuthenticEngagement from "./AUTHENTICENGAGEMENT/authenticengagement";
 import EmotionalControl from "./EMOTIONALCONTROL/emotionalcontrol";
 import Consistency from "./CONSISTENCY/consistency";
-import  ReconnectionRecovery from "./RECONNECTIONRECOVERY/reconnectionrecovery";
+import ReconnectionRecovery from "./RECONNECTIONRECOVERY/reconnectionrecovery";
 import SustainedConnection from "./SUSTAINEDCONNECTION/sustainedconnection";
+
 interface Day4ContainerProps {
   onCompleteNavigator?: () => void;
 }
 
-// 1. Structure the pages array exactly like Day3Container.jsx
 const pages = [
   { component: IntroToDay4, title: "Day 4 Introduction" },
   { component: ReviewConvos, title: "Review Previous Conversations" },
@@ -27,85 +24,27 @@ const pages = [
   { component: EmotionalControl, title: "Emotional Control" },
   { component: Consistency, title: "Consistency" },
   { component: ReconnectionRecovery, title: "Reconnection Recovery" },
+  { component: SustainedConnection, title: "Sustaining Connection" },
   { component: SETYOURTIMES, title: "Set Your Times" },
   { component: Day4ActionPlan, title: "Action Plan" },
-  
   { component: EveningReflection, title: "Evening Reflection & Commit" },
 ];
 
-// Renamed component from DAY4NAV to Day4Container for consistency
 export default function Day4Container({ onCompleteNavigator }: Day4ContainerProps) {
-  // Use currentIndex (instead of page) for consistency
-  const [currentIndex, setCurrentIndex] = useState(0); 
-  // NOTE: showSpotlight is currently not being used to toggle the overlay visibility in the JSX,
-  // but I will preserve the state declaration.
-  const [showSpotlight, setShowSpotlight] = useState(true);
-  
-  // Get the component to render
+  const [currentIndex, setCurrentIndex] = useState(0);
   const CurrentPage = pages[currentIndex].component;
 
-  // 2. Adopted the exact nextPage logic from Day3Container
   const nextPage = () => {
     setCurrentIndex((prev) => {
       if (prev < pages.length - 1) {
-        console.log(`✅ Page ${prev + 1} complete! Moving to page ${prev + 2}`);
         return prev + 1;
       }
-      console.log("✅ All Day 4 pages complete! Calling onCompleteNavigator...");
       if (onCompleteNavigator) onCompleteNavigator();
       return prev;
     });
   };
 
-  // Adopted the exact prevPage logic from Day3Container
   const prevPage = () => setCurrentIndex((prev) => Math.max(prev - 1, 0));
-
-  // Navigation Buttons component (reusable block)
-  const NavigationButtons = (
-    <div
-      style={{
-        position: "fixed",
-        bottom: 0,
-        width: "100%",
-        display: "flex",
-        justifyContent: "space-between",
-        padding: "10px 20px",
-        background: "rgba(0,0,0,0.5)",
-        backdropFilter: "blur(6px)",
-        zIndex: 1000001,
-      }}
-    >
-      <button 
-        onClick={prevPage} 
-        style={{ 
-          padding: "12px 24px", 
-          background: "#4b5563", 
-          color: "white", 
-          borderRadius: "8px", 
-          border: "none",
-          cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
-          opacity: currentIndex === 0 ? 0.5 : 1,
-        }}
-        disabled={currentIndex === 0}
-      >
-        Previous
-      </button>
-      <button 
-        onClick={nextPage} 
-        style={{ 
-          padding: "12px 24px", 
-          background: "#059669", 
-          color: "white", 
-          borderRadius: "8px", 
-          border: "none",
-          cursor: "pointer",
-        }}
-      >
-        {currentIndex === pages.length - 1 ? "Finish" : "Next"}
-      </button>
-    </div>
-  );
-
 
   return (
     <div
@@ -115,69 +54,61 @@ export default function Day4Container({ onCompleteNavigator }: Day4ContainerProp
         width: "100vw",
         height: "100vh",
         background: "black",
-        margin: 0,
-        padding: 0,
         overflow: "hidden",
         zIndex: 999999,
       }}
     >
-      {/* This block is the primary rendering path when showSpotlight is TRUE.
-        It contains the CurrentPage and the Navigation Buttons.
-      */}
-      {showSpotlight ? (
-        <div
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          overflowY: "auto",
+          backgroundColor: "transparent",
+          padding: "20px",
+          boxSizing: "border-box",
+        }}
+      >
+        <CurrentPage onNext={nextPage} onComplete={nextPage} />
+      </div>
+
+      {currentIndex > 0 && (
+        <button
+          onClick={prevPage}
           style={{
-            position: "absolute",
-            inset: 0,
-            backgroundColor: "rgba(0,0,0,0.85)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            overflow: "hidden",
-            zIndex: 1000000,
+            position: "fixed",
+            bottom: "20px",
+            left: "20px",
+            padding: "6px 12px",
+            fontSize: "12px",
+            borderRadius: "8px",
+            background: "rgba(128, 90, 213, 0.7)",
+            color: "white",
+            zIndex: 1000001,
+            cursor: currentIndex === 0 ? "not-allowed" : "pointer",
           }}
         >
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              overflowY: "auto",
-              backgroundColor: "transparent",
-              padding: "20px",
-              boxSizing: "border-box",
-              paddingBottom: "80px" /* Add space for nav buttons */
-            }}
-          >
-            {/* Pass onNext to the current component */}
-            <CurrentPage onNext={nextPage} /> 
-          </div>
-          {NavigationButtons} {/* ADDED NAVIGATION BUTTONS HERE */}
-        </div>
-      ) : (
-        /* This block is the primary rendering path when showSpotlight is FALSE.
-          It already contains the CurrentPage and the Navigation Buttons (now defined via NavigationButtons variable).
-        */
-        <>
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              overflowY: "auto",
-              backgroundColor: "transparent",
-              padding: "20px",
-              boxSizing: "border-box",
-              paddingBottom: "80px" /* Add space for nav buttons */
-            }}
-          >
-            {/* Pass onNext to the current component */}
-            <CurrentPage onNext={nextPage} /> 
-          </div>
-
-          {NavigationButtons} {/* Replaced duplicated code with NavigationButtons */}
-        </>
+          Previous
+        </button>
       )}
+
+      <button
+        onClick={nextPage}
+        style={{
+          position: "fixed",
+          bottom: "20px",
+          right: "20px",
+          padding: "6px 12px",
+          fontSize: "12px",
+          borderRadius: "8px",
+          background: "linear-gradient(to right, #14b8a6, #06b6d4)",
+          color: "white",
+          zIndex: 1000001,
+        }}
+      >
+        {currentIndex === pages.length - 1 ? "Finish" : "Next"}
+      </button>
     </div>
   );
 }
