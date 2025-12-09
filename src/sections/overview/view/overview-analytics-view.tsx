@@ -338,12 +338,7 @@ const handleStartTrial = async () => {
                   Welcome{userSignupStatus.isNewUser ? ' back' : ''}, {user?.displayName || 'User'}!
                   
                 </h1>
-                <button
-  onClick={() => console.log("hello")}
-  className="mt-6 px-8 py-4 text-lg font-semibold bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg transition"
->
-  Start 5-Day Trial
-</button>
+                
 
               </div>
               <p className="text-base md:text-lg text-purple-200">Let's continue your journey.</p>
