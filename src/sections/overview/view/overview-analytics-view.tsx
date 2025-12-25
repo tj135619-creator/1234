@@ -339,6 +339,7 @@ const handleStartTrial = async () => {
                   
                 </h1>
                 
+                <QuickActionsGrid />
 
               </div>
               <p className="text-base md:text-lg text-purple-200">Let's continue your journey.</p>
@@ -347,13 +348,13 @@ const handleStartTrial = async () => {
             {/* Lesson + Transformation */}
 
 
-<Grid item xs={12} md={8} lg={6} xl={5} className="tour-today-action-card">
+<Grid item xs={12} md={8} lg={6} xl={5} className="tour-today-action-card" id="daily-tasks">
 
-  <QuickActionsGrid/>
+  
  <TodayActionCard />
 </Grid>
 
-              <Grid item xs={12} md={8} lg={6} xl={5} className="tour-today-action-card">
+              <Grid item xs={12} md={8} lg={6} xl={5} className="tour-today-action-card" id="resume-lesson">
 
   
   <TodayLessonHero 
@@ -395,11 +396,14 @@ const handleStartTrial = async () => {
                   )}
 
                   <div
+
+                    id="progress"
+
                     className={`transition-all duration-700 rounded-2xl p-2 ${
                       highlight
                         ? "ring-8 ring-purple-500/70 shadow-[0_0_40px_rgba(168,85,247,0.8)] scale-105"
                         : ""
-                    }`}
+                    }` }
                   >
                     <DuolingoProgressMap />
                   </div>
