@@ -9,6 +9,8 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from './firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
+import BottomNav from './MobileNav'; // adjust path
+
 
 // ----------------------------------------------------------------------
 
@@ -167,15 +169,27 @@ export default function App({ children }: AppProps) {
 
   return (
     <ThemeProvider>
-      <CssBaseline />
-      <div
-        style={{
-          minHeight: '100vh',
-          background: 'linear-gradient(135deg, #240046 0%, #2d0066 50%, #330066 100%)',
-        }}
-      >
-        {children}
-      </div>
-    </ThemeProvider>
+  <CssBaseline />
+
+  <div style={{ height: '100vh',  display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, #240046 0%, #2d0066 50%, #330066 100%)', }} >
+
+  
+
+
+    {/* SCROLLABLE CONTENT */}
+    <div
+      style={{
+        flex: 1,
+        overflowY: 'auto',              // ⬅️ critical
+      }}
+    >
+      {children}
+    </div>
+
+    {/* NAV */}
+    <BottomNav />
+  </div>
+</ThemeProvider>
+
   );
 }

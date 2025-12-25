@@ -1759,37 +1759,37 @@ useEffect(() => {
           {/* Main City Map */}
          {/* Day Selector Grid */}
 <div className="lg:col-span-2">
-  <div className="bg-purple-900/40 backdrop-blur-md rounded-2xl border border-purple-500/30 p-6">
+  <div className="bg-gradient-to-br from-purple-900/50 via-purple-800/40 to-indigo-900/50 backdrop-blur-xl rounded-3xl border border-purple-400/20 shadow-2xl p-8">
     
-    {/* Header */}
-    <div className="mb-6">
-      <h2 className="text-2xl font-bold text-white mb-2">Choose Your Day</h2>
-      <p className="text-purple-300">Select a day to see who's on it and join their community</p>
+    {/* Header - Improved typography and spacing */}
+    <div className="mb-8">
+      <h2 className="text-3xl font-bold text-white mb-3 tracking-tight">Choose Your Day</h2>
+      <p className="text-lg text-purple-200/80">Select a day to explore communities and connect with others</p>
     </div>
 
-    {/* Current Day Highlight */}
-    <div className="mb-6 p-4 bg-gradient-to-r from-cyan-900/60 to-blue-900/60 rounded-xl border-2 border-cyan-500/50">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-cyan-500 flex items-center justify-center">
-            <span className="text-2xl font-bold text-white">{currentUserDay}</span>
+    {/* Current Day Highlight - More prominent and refined */}
+    <div className="mb-8 p-6 bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-indigo-500/20 rounded-2xl border-2 border-cyan-400/40 shadow-lg backdrop-blur-sm">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg ring-4 ring-cyan-400/20">
+            <span className="text-3xl font-bold text-white">{currentUserDay}</span>
           </div>
           <div>
-            <p className="text-sm text-cyan-300">You are currently on</p>
-            <p className="text-xl font-bold text-white">Day {currentUserDay}</p>
+            <p className="text-sm text-cyan-200/80 uppercase tracking-wider font-semibold mb-1">You are currently on</p>
+            <p className="text-2xl font-bold text-white">Day {currentUserDay}</p>
           </div>
         </div>
         <button
           onClick={() => openDayExplorer(currentUserDay)}
-          className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-white font-semibold transition-all"
+          className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 rounded-xl text-white font-semibold transition-all shadow-lg hover:shadow-cyan-500/50 hover:scale-105 active:scale-95"
         >
           Go to Your Day
         </button>
       </div>
     </div>
 
-    {/* Day Grid */}
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {/* Day Grid - Better responsive layout and card design */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
       {locations.map((location) => {
         const peopleOnThisDay = activeAvatars.filter(avatar => {
           const avatarLocation = locations.find(l => l.id === avatar.currentLocation);
@@ -1799,147 +1799,156 @@ useEffect(() => {
         const isYourDay = location.day === currentUserDay;
         const isCompleted = location.status === 'completed';
         const isInProgress = location.status === 'in-progress';
-        // MODIFIED CODE: All locations are now OPEN (isLocked is always false)
         const isLocked = false;
 
         return (
-    <div
-      key={location.id}
-      // FIXED: Removed '!isLocked &&' so the Day Explorer always opens on card click.
-      onClick={() => openDayExplorer(location.day)}
-      className={`relative p-5 rounded-xl border-2 transition-all duration-300 cursor-pointer ${
-        isYourDay
-          ? 'bg-gradient-to-br from-cyan-900/60 to-blue-900/60 border-cyan-500/60 shadow-lg shadow-cyan-500/20'
-          : 'bg-purple-900/40 border-purple-500/30 hover:border-purple-400/60 hover:shadow-lg hover:shadow-purple-500/20' // Removed isLocked styling
-      }`}
-    >
-      {/* Day Badge */}
-      <div className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg">
-        <span className="text-xl font-bold text-white">{location.day}</span>
-      </div>
+          <div
+            key={location.id}
+            onClick={() => openDayExplorer(location.day)}
+            className={`group relative p-6 rounded-2xl border-2 transition-all duration-300 cursor-pointer overflow-hidden ${
+              isYourDay
+                ? 'bg-gradient-to-br from-cyan-500/20 via-blue-500/15 to-indigo-500/20 border-cyan-400/50 shadow-xl shadow-cyan-500/20 hover:shadow-2xl hover:shadow-cyan-500/30'
+                : 'bg-gradient-to-br from-purple-800/30 to-indigo-900/30 border-purple-400/20 hover:border-purple-300/50 hover:shadow-xl hover:shadow-purple-500/20 hover:scale-[1.02]'
+            }`}
+          >
+            {/* Gradient overlay on hover */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            
+            {/* Day Badge - Redesigned */}
+            <div className="absolute -top-3 -right-3 w-14 h-14 bg-gradient-to-br from-amber-400 via-orange-400 to-pink-500 rounded-2xl flex items-center justify-center border-3 border-white shadow-xl rotate-3 group-hover:rotate-6 transition-transform">
+              <span className="text-xl font-bold text-white">{location.day}</span>
+            </div>
 
-      {/* Your Day Indicator */}
-      {isYourDay && (
-        <div className="absolute -top-2 -left-2 px-3 py-1 bg-cyan-500 rounded-full border-2 border-white shadow-lg">
-          <span className="text-xs font-bold text-white">YOUR DAY</span>
-        </div>
-      )}
+            {/* Your Day Indicator - More subtle */}
+            {isYourDay && (
+              <div className="absolute -top-2 -left-2 px-3 py-1.5 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-xl border-2 border-white shadow-lg">
+                <span className="text-xs font-bold text-white uppercase tracking-wide">Your Day</span>
+              </div>
+            )}
 
-      {/* Status Badge - Keeping these as they provide useful visual context, even if the user can click */}
-      {isCompleted && (
-        <div className="absolute top-2 left-2 px-2 py-1 bg-green-500/80 rounded-full">
-          <span className="text-xs font-bold text-white">✓ Done</span>
-        </div>
-      )}
-      {isInProgress && (
-        <div className="absolute top-2 left-2 px-2 py-1 bg-purple-500/80 rounded-full animate-pulse">
-          <span className="text-xs font-bold text-white">⚡ Active</span>
-        </div>
-      )}
-      {isLocked && (
-        <div className="absolute top-2 left-2 px-2 py-1 bg-purple-700/80 rounded-full">
-          <span className="text-xs font-bold text-white">🔒 Locked</span>
-        </div>
-      )}
+            {/* Status Badges - Refined positioning */}
+            <div className="absolute top-3 left-3 flex flex-col gap-2">
+              {isCompleted && (
+                <div className="px-2.5 py-1 bg-emerald-500/90 backdrop-blur-sm rounded-lg shadow-lg">
+                  <span className="text-xs font-bold text-white flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    Done
+                  </span>
+                </div>
+              )}
+              {isInProgress && (
+                <div className="px-2.5 py-1 bg-purple-500/90 backdrop-blur-sm rounded-lg shadow-lg animate-pulse">
+                  <span className="text-xs font-bold text-white flex items-center gap-1">
+                    ⚡ Active
+                  </span>
+                </div>
+              )}
+            </div>
 
-      {/* Location Icon & Info */}
-      <div className="flex items-center gap-3 mb-4 mt-2">
-        <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
-          isLocked ? 'bg-purple-800/50' : 'bg-gradient-to-br from-purple-600 to-pink-600'
-        }`}>
-          {/* Note: I'm leaving the Lock icon conditional rendering as a visual cue, but the location is still clickable */}
-          {isLocked ? (
-            <Lock className="w-7 h-7 text-purple-400" />
-          ) : (
-            <location.icon className="w-7 h-7 text-white" />
-          )}
-        </div>
-        <div className="flex-1">
-          <h3 className="font-bold text-white text-lg">{location.name}</h3>
-          <p className="text-sm text-purple-300">{location.mission}</p>
-        </div>
-      </div>
+            {/* Location Icon & Info - Better spacing */}
+            <div className="relative flex flex-col items-center text-center mb-5 mt-4">
+              <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform ${
+                isLocked ? 'bg-purple-700/50' : 'bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500'
+              }`}>
+                {isLocked ? (
+                  <Lock className="w-9 h-9 text-purple-200" />
+                ) : (
+                  <location.icon className="w-9 h-9 text-white" />
+                )}
+              </div>
+              <h3 className="font-bold text-white text-lg mb-2 line-clamp-1">{location.name}</h3>
+              <p className="text-sm text-purple-200/70 line-clamp-2 leading-relaxed">{location.mission}</p>
+            </div>
 
-      {/* People Count (Now always shown) */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-purple-400" />
-          <span className="text-sm text-purple-300">
-            {peopleOnThisDay.length} {peopleOnThisDay.length === 1 ? 'person' : 'people'} on this day
-          </span>
-        </div>
-        {/* Removed !isLocked wrapper for XP Reward */}
-        <div className="flex items-center gap-1">
-          <Star className="w-4 h-4 text-yellow-400" />
-          <span className="text-sm font-bold text-yellow-300">{location.xpReward} XP</span>
-        </div>
-      </div>
+            {/* Stats Row - Cleaner layout */}
+            <div className="flex items-center justify-between mb-4 pb-4 border-b border-purple-400/20">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-purple-500/30 flex items-center justify-center">
+                  <Users className="w-4 h-4 text-purple-200" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs text-purple-300/70 uppercase tracking-wide">People</span>
+                  <span className="text-sm font-bold text-white">{peopleOnThisDay.length}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/30 flex items-center justify-center">
+                  <Star className="w-4 h-4 text-amber-300" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs text-amber-300/70 uppercase tracking-wide">XP</span>
+                  <span className="text-sm font-bold text-amber-200">{location.xpReward}</span>
+                </div>
+              </div>
+            </div>
 
-      {/* Avatar Preview (Now always shown if people exist) */}
-      {/* Removed !isLocked check */}
-      {peopleOnThisDay.length > 0 && (
-        <div className="flex items-center gap-1 mb-3">
-          {peopleOnThisDay.slice(0, 5).map((avatar, i) => (
-            <div
-              key={avatar.id}
-              className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatar.color} border-2 border-white flex items-center justify-center text-xs font-bold text-white`}
-              style={{ marginLeft: i > 0 ? '-8px' : '0', zIndex: 5 - i }}
-              title={avatar.name}
+            {/* Avatar Preview - More compact and polished */}
+            {peopleOnThisDay.length > 0 && (
+              <div className="flex items-center justify-center mb-4">
+                <div className="flex items-center -space-x-3">
+                  {peopleOnThisDay.slice(0, 4).map((avatar, i) => (
+                    <div
+                      key={avatar.id}
+                      className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatar.color} border-3 border-white shadow-lg flex items-center justify-center text-sm font-bold text-white ring-2 ring-purple-500/20 hover:scale-110 transition-transform cursor-pointer`}
+                      style={{ zIndex: 10 - i }}
+                      title={avatar.name}
+                    >
+                      {avatar.name[0]}
+                    </div>
+                  ))}
+                  {peopleOnThisDay.length > 4 && (
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 border-3 border-white shadow-lg flex items-center justify-center text-xs font-bold text-white ring-2 ring-purple-500/20">
+                      +{peopleOnThisDay.length - 4}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Action Button - More prominent */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                openDayExplorer(location.day);
+              }}
+              className={`relative w-full py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-95 ${
+                isYourDay
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white'
+                  : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white'
+              }`}
             >
-              {avatar.name[0]}
-            </div>
-          ))}
-          {peopleOnThisDay.length > 5 && (
-            <div className="w-8 h-8 rounded-full bg-purple-700 border-2 border-white flex items-center justify-center text-xs font-bold text-white ml-[-8px]">
-              +{peopleOnThisDay.length - 5}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Action Button - FIXED: Removed the {!isLocked && (...)} wrapper */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation(); // Prevents the parent div's onClick from triggering immediately after this button's click
-          openDayExplorer(location.day);
-        }}
-        className={`w-full py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
-          isYourDay
-            ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
-            : 'bg-purple-700/50 hover:bg-purple-700/70 text-white'
-        }`}
-      >
-        {isYourDay ? (
-          <>
-            <Sparkles className="w-4 h-4" />
-            Your Community
-          </>
-        ) : (
-          <>
-            <Users className="w-4 h-4" />
-            Visit Day {location.day}
-          </>
-        )}
-      </button>
-
-      {/* Removed the locked message conditional rendering:
-        {isLocked && (
-          <div className="text-center py-2">
-            <p className="text-xs text-purple-400">Complete Day {location.day - 1} to unlock</p>
+              {isYourDay ? (
+                <>
+                  <Sparkles className="w-5 h-5" />
+                  <span>Your Community</span>
+                </>
+              ) : (
+                <>
+                  <Users className="w-5 h-5" />
+                  <span>Visit Day {location.day}</span>
+                </>
+              )}
+            </button>
           </div>
-        )}
-      */}
-    </div>
-  );
-  
+        );
       })}
     </div>
 
-    {/* Info Banner */}
-    <div className="mt-6 p-4 bg-gradient-to-r from-pink-900/40 to-purple-900/40 rounded-xl border border-pink-500/30">
-      <p className="text-sm text-pink-200 text-center">
-        💡 <strong>Tip:</strong> Visit any day to see their community, chat in their campfire, find buddies, and get inspired!
-      </p>
+    {/* Info Banner - More engaging design */}
+    <div className="mt-8 p-5 bg-gradient-to-r from-pink-500/20 via-purple-500/20 to-indigo-500/20 rounded-2xl border border-pink-400/30 backdrop-blur-sm">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center flex-shrink-0 shadow-lg">
+          <span className="text-xl">💡</span>
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-pink-100 mb-1">Pro Tip</p>
+          <p className="text-sm text-pink-200/80 leading-relaxed">
+            Visit any day to see their community, chat in their campfire, find buddies, and get inspired by others on their journey!
+          </p>
+        </div>
+      </div>
     </div>
   </div>
 </div>

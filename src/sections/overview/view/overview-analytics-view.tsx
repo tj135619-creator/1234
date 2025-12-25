@@ -29,8 +29,8 @@ import HeroSection from './HerosectionLive';
 import OnboardingOverlay from "./OnboardingOverlay"; // adjust path if needed
 import SocialCityMap from 'src/components/actionmap';
 import { Capacitor } from '@capacitor/core';
-
-
+import Communityfeed from "src/sections/product/view/Communityfeed"
+import QuickActionsGrid from 'src/components/quickboard';
 
 
 
@@ -349,7 +349,7 @@ const handleStartTrial = async () => {
 
 <Grid item xs={12} md={8} lg={6} xl={5} className="tour-today-action-card">
 
-  
+  <QuickActionsGrid/>
  <TodayActionCard />
 </Grid>
 
@@ -407,7 +407,7 @@ const handleStartTrial = async () => {
               </Grid>
 
               <Grid item xs={12} className="tour-friends-community">
-                <FriendsCommunity />
+                <Communityfeed />
                 
               </Grid>
               
