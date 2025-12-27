@@ -1638,7 +1638,7 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData
       button: "Next",
     },
     {
-      title: "Now Act",
+      title: "Now Click here to find your next task",
       // 👇 IMAGE ADDED HERE
       
       text: "You already know what you said you would do today. Stop delaying. Go do it now — before momentum disappears.",

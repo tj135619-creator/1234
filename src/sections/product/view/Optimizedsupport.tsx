@@ -12,6 +12,16 @@ where, orderBy, onSnapshot, updateDoc, doc, serverTimestamp,
 Timestamp, limit
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
+import EmotionalTriage from 'src/EmotionalTriage';
+import SafetyNets from 'src/SafetyNets';
+import ProgressiveTooltips from 'src/ProgressiveTooltips';
+import LivingFeed from '@/LivingFeed';
+import StruggleIdentification from '@/StruggleIdentification';
+import LivePreview from '@/LivePreview';
+import PostCreationModal from '@/Postcreationmodal';
+import CrisisIntervention from '@/CrisisIntervention';
+import AnonymousEntry
+ from '@/AnonymousEntry';
 
 // STRUGGLE-SPECIFIC GROUP CATEGORIES
 const SUPPORT_GROUP_CATEGORIES = [
@@ -311,6 +321,26 @@ const [currentUser, setCurrentUser] = useState(null);
 // MAIN STATE
 // ============================================
 
+// ADD THESE AFTER YOUR EXISTING STATE:
+
+// Flow Management
+const [userFlowStage, setUserFlowStage] = useState('triage'); 
+const [showSettings, setShowSettings] = useState(false);
+// Values: 'triage', 'crisis', 'struggle', 'preview', 'anonymous-entry', 'feed', 'first-post'
+
+const [emotionalScore, setEmotionalScore] = useState(null); // 1-10 from slider
+const [selectedStruggle, setSelectedStruggle] = useState(null);
+const [isFirstVisit, setIsFirstVisit] = useState(true);
+const [unlockedFeatures, setUnlockedFeatures] = useState({
+  liveChat: false,
+  quietRoom: false,
+  safePeople: false,
+  accountabilityBuddy: false
+});
+const [dailyCheckIns, setDailyCheckIns] = useState([]);
+const [userAvatar, setUserAvatar] = useState(null);
+
+
 // View State
 const [activeView, setActiveView] = useState('groups'); // 'groups', 'group-detail', 'crisis-resources'
 const [selectedGroup, setSelectedGroup] = useState(null);
@@ -356,21 +386,28 @@ const [contentWarningFilters, setContentWarningFilters] = useState([]);
 const [sortBy, setSortBy] = useState('recent'); // 'recent', 'needs-support', 'similar'
 const [showOnlyListening, setShowOnlyListening] = useState(false);
 
+
 // ============================================
 // AUTH LISTENER
 // ============================================
 
 useEffect(() => {
-const unsubscribe = auth.onAuthStateChanged(user => {
-if (user) {
-setCurrentUser(user);
-loadUserData(user.uid);
-} else {
-setCurrentUser(null);
-}
-});
+  const unsubscribe = auth.onAuthStateChanged(user => {
+    if (user) {
+      setCurrentUser(user);
+      loadUserData(user.uid);
+      checkIfReturningUser(user.uid); // ← ADD THIS
+    } else {
+      setCurrentUser(null);
+      // For anonymous users, check localStorage
+      const hasVisited = localStorage.getItem('hasVisitedBefore');
+      setIsFirstVisit(!hasVisited);
+      // Force triage for everyone
+      setUserFlowStage('triage');
+    }
+  });
 
-return () => unsubscribe();
+  return () => unsubscribe();
 }, []);
 
 // ============================================
@@ -408,6 +445,34 @@ setContentWarningFilters(prefs.hiddenContentWarnings || []);
 } catch (error) {
 console.error('Error loading user data:', error);
 }
+};
+
+const checkIfReturningUser = async (userId) => {
+  try {
+    const userDoc = await getDocs(
+      query(collection(db, 'users', userId, 'profile'), limit(1))
+    );
+    
+    if (!userDoc.empty) {
+      const profile = userDoc.docs[0].data();
+      setIsFirstVisit(false);
+      setUserFlowStage('triage');  // Always start with triage
+      setUnlockedFeatures(profile.unlockedFeatures || {});
+      setUserAvatar(profile.avatar);
+      
+      // Load recent check-ins
+      const checkInsDoc = await getDocs(
+        query(
+          collection(db, 'users', userId, 'check_ins'),
+          orderBy('date', 'desc'),
+          limit(7)
+        )
+      );
+      setDailyCheckIns(checkInsDoc.docs.map(doc => doc.data()));
+    }
+  } catch (error) {
+    console.error('Error checking returning user:', error);
+  }
 };
 
 // ============================================
@@ -677,91 +742,104 @@ alert('Failed to leave group. Please try again.');
 // CREATE POST
 // ============================================
 
-const handleCreatePost = async () => {
-if (!currentUser || !selectedGroup || !selectedTemplate) {
-alert('Please fill in all required information');
-return;
-}
+const handleCreatePost = async (submittedPostData) => {
+  console.log('🔍 handleCreatePost called');
+  console.log('🔍 submittedPostData:', submittedPostData);
+  console.log('🔍 currentUser:', currentUser);
 
-// Validate required fields
-const requiredFields = selectedTemplate.fields.filter(f => !f.optional);
-const missingFields = requiredFields.filter(f => !postData[f.name]?.trim());
+  if (!currentUser) {
+    alert('Please sign in to create posts');
+    return;
+  }
 
-if (missingFields.length > 0) {
-alert(`Please fill in: ${missingFields.map(f => f.label).join(', ')}`);
-return;
-}
+  // Get groupId from the submitted data instead of checking selectedGroup
+  const { groupId, template, content, anonymityLevel, contentWarnings, adviceWanted } = submittedPostData;
 
-try {
-// Determine author info based on anonymity level
-const anonymitySettings = ANONYMITY_LEVELS.find(l => l.id === anonymityLevel);
+  if (!groupId) {
+    alert('Please select a support group');
+    return;
+  }
 
-let authorData = {
-userId: currentUser.uid,
-anonymityLevel
+  console.log('✅ Validation passed, creating post...');
+
+  try {
+    // Find the group from the groupId
+    const group = supportGroups.find(g => g.id === groupId);
+    
+    if (!group) {
+      alert('Selected group not found');
+      return;
+    }
+
+    const anonymitySettings = ANONYMITY_LEVELS.find(l => l.id === anonymityLevel);
+
+    let authorData = {
+      userId: currentUser.uid,
+      anonymityLevel
+    };
+
+    if (anonymitySettings.showsName) {
+      const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', currentUser.uid)));
+      if (!userDoc.empty) {
+        const userData = userDoc.docs[0].data();
+
+        if (anonymitySettings.showsName === 'first') {
+          authorData.name = userData.name?.split(' ')[0] || 'Anonymous';
+        } else {
+          authorData.name = userData.name;
+          authorData.username = userData.username;
+        }
+
+        if (anonymitySettings.showsAvatar) {
+          authorData.avatar = userData.avatar;
+        }
+      }
+    } else {
+      authorData.name = 'Anonymous';
+      authorData.avatar = '👤';
+    }
+
+    const postDoc = await addDoc(collection(db, 'support_posts'), {
+      groupId: groupId,
+      author: authorData,
+      template: template,
+      content: content,
+      adviceWanted,
+      contentWarnings,
+      createdAt: serverTimestamp(),
+      reactions: {
+        meToo: 0,
+        thisHelped: 0,
+        saved: 0,
+        iUnderstand: 0
+      },
+      responseCount: 0,
+      flagCount: 0
+    });
+
+    const groupRef = doc(db, 'support_groups', groupId);
+    await updateDoc(groupRef, {
+      postCount: (group.postCount || 0) + 1
+    });
+
+    console.log('✅ Post created successfully:', postDoc.id);
+    alert('Post created successfully!');
+
+    // ✅ Close the modal after successful post
+    setShowPostModal(false);
+
+    // ✅ Reload posts for the selected group if user is viewing it
+    if (selectedGroup?.id === groupId) {
+      await loadPosts();
+    }
+
+  } catch (error) {
+    console.error('Error creating post:', error);
+    alert('Failed to create post. Please try again.');
+  }
 };
 
-if (anonymitySettings.showsName) {
-// Load user profile
-const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', currentUser.uid)));
-if (!userDoc.empty) {
-const userData = userDoc.docs[0].data();
 
-if (anonymitySettings.showsName === 'first') {
-authorData.name = userData.name?.split(' ')[0] || 'Anonymous';
-} else {
-authorData.name = userData.name;
-authorData.username = userData.username;
-}
-
-if (anonymitySettings.showsAvatar) {
-authorData.avatar = userData.avatar;
-}
-}
-} else {
-authorData.name = 'Anonymous';
-authorData.avatar = '👤';
-}
-
-// Create post
-const postDoc = await addDoc(collection(db, 'support_posts'), {
-groupId: selectedGroup.id,
-author: authorData,
-template: selectedTemplate,
-content: postData,
-adviceWanted,
-contentWarnings,
-createdAt: serverTimestamp(),
-reactions: {
-meToo: 0,
-thisHelped: 0,
-saved: 0,
-iUnderstand: 0
-},
-responseCount: 0,
-flagCount: 0
-});
-
-// Update group post count
-const groupRef = doc(db, 'support_groups', selectedGroup.id);
-await updateDoc(groupRef, {
-postCount: (selectedGroup.postCount || 0) + 1
-});
-
-// Reset form
-setShowPostModal(false);
-setSelectedTemplate(null);
-setPostData({});
-setContentWarnings([]);
-setAdviceWanted(false);
-
-console.log('✅ Post created successfully:', postDoc.id);
-
-} catch (error) {
-console.error('Error creating post:', error);
-alert('Failed to create post. Please try again.');
-}
-};
 
 // ============================================
 // PANIC BUTTON
@@ -1141,271 +1219,249 @@ I Understand & Agree
 // POST CREATION MODAL
 // ============================================
 
-const PostCreationModal = () => {
-const [step, setStep] = useState(1); // 1: select template, 2: fill form
 
-if (!showPostModal) return null;
+
+// ============================================
+// POST CARD COMPONENT
+// ============================================
+
+const SafePeopleManager = () => {
+const [showManager, setShowManager] = useState(false);
+const [searchQuery, setSearchQuery] = useState('');
+const [suggestedPeers, setSuggestedPeers] = useState([]);
+const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+
+// Load suggested peers (people who've been helpful)
+useEffect(() => {
+if (!showManager || !selectedGroup) return;
+
+const loadSuggestions = async () => {
+setLoadingSuggestions(true);
+
+try {
+// Find users with helpful responses in this group
+const postsSnapshot = await getDocs(
+query(
+collection(db, 'support_posts'),
+where('groupId', '==', selectedGroup.id),
+orderBy('createdAt', 'desc'),
+limit(50)
+)
+);
+
+const helpfulUsers = new Map();
+
+for (const postDoc of postsSnapshot.docs) {
+const responsesSnapshot = await getDocs(
+query(
+collection(db, 'support_posts', postDoc.id, 'responses'),
+orderBy('reactions.helpful', 'desc'),
+limit(10)
+)
+);
+
+responsesSnapshot.docs.forEach(responseDoc => {
+const response = responseDoc.data();
+if (response.author?.userId && response.author.userId !== currentUser?.uid) {
+const userId = response.author.userId;
+const current = helpfulUsers.get(userId) || {
+count: 0,
+helpful: 0,
+author: response.author
+};
+current.count++;
+current.helpful += (response.reactions?.helpful || 0);
+helpfulUsers.set(userId, current);
+}
+});
+}
+
+// Sort by helpfulness
+const sorted = Array.from(helpfulUsers.entries())
+.sort((a, b) => b[1].helpful - a[1].helpful)
+.slice(0, 10)
+.map(([userId, data]) => ({
+userId,
+...data.author,
+helpfulCount: data.helpful,
+responseCount: data.count
+}));
+
+setSuggestedPeers(sorted);
+setLoadingSuggestions(false);
+
+} catch (error) {
+console.error('Error loading suggestions:', error);
+setLoadingSuggestions(false);
+}
+};
+
+loadSuggestions();
+}, [showManager, selectedGroup, currentUser]);
+
+const handleRemoveSafePerson = async (personId) => {
+if (!currentUser) return;
+
+try {
+const q = query(
+collection(db, 'users', currentUser.uid, 'safe_people'),
+where('userId', '==', personId)
+);
+const snapshot = await getDocs(q);
+snapshot.docs.forEach(doc => doc.ref.delete());
+
+setSafePeople(safePeople.filter(p => p.userId !== personId));
+
+} catch (error) {
+console.error('Error removing safe person:', error);
+}
+};
+
+if (!showSafePeopleModal) return null;
 
 return (
 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-<div className="bg-gradient-to-br from-purple-900 to-indigo-900 rounded-2xl border-2 border-purple-500/50 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+<div className="bg-gradient-to-br from-purple-900 to-indigo-900 rounded-2xl border-2 border-purple-500/50 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
 <div className="p-8">
 {/* Header */}
 <div className="flex items-center justify-between mb-6">
-<h2 className="text-2xl font-bold text-white">
-{step === 1 ? 'What do you need?' : selectedTemplate?.title}
+<div>
+<h2 className="text-2xl font-bold text-white mb-2">
+💜 Safe People List
 </h2>
+<p className="text-purple-300 text-sm">
+People whose support feels safe and helpful to you
+</p>
+</div>
 <button
-onClick={() => {
-setShowPostModal(false);
-setStep(1);
-setSelectedTemplate(null);
-setPostData({});
-}}
+onClick={() => setShowSafePeopleModal(false)}
 className="text-purple-300 hover:text-white transition-colors"
 >
 <X className="w-6 h-6" />
 </button>
 </div>
 
-{/* Step 1: Select Template */}
-{step === 1 && (
-<div className="space-y-4">
-<p className="text-purple-300 mb-6">
-Choose what kind of post you want to create:
-</p>
-
-{SUPPORT_POST_TEMPLATES.map((template) => (
-<button
-key={template.type}
-onClick={() => {
-setSelectedTemplate(template);
-setAdviceWanted(template.adviceDefault);
-setStep(2);
-}}
-className={`w-full p-5 rounded-xl border-2 transition-all text-left
-bg-gradient-to-br ${template.color}/10 border-purple-500/30
-hover:border-purple-400/60 hover:scale-[1.02]`}
->
-<div className="flex items-start gap-4">
-<div className="text-3xl">{template.icon}</div>
-<div className="flex-1">
-<h3 className="font-bold text-white text-lg mb-1">
-{template.title}
+{/* Your Safe People */}
+<div className="mb-8">
+<h3 className="font-bold text-white mb-4 flex items-center gap-2">
+<Shield className="w-5 h-5 text-green-400" />
+Your Safe People ({safePeople.length})
 </h3>
+
+{safePeople.length === 0 ? (
+<div className="p-6 bg-purple-950/30 rounded-xl border border-purple-500/30 text-center">
+<Users className="w-12 h-12 text-purple-400 mx-auto mb-3" />
 <p className="text-purple-300 text-sm">
-{template.description}
+No safe people added yet. Add people whose responses feel helpful and validating.
 </p>
-{!template.adviceDefault && (
-<div className="mt-2 flex items-center gap-2">
-<Shield className="w-4 h-4 text-green-400" />
-<span className="text-green-300 text-xs font-semibold">
-Just listening mode by default
-</span>
-</div>
-)}
-</div>
-</div>
-</button>
-))}
-</div>
-)}
-
-{/* Step 2: Fill Form */}
-{step === 2 && selectedTemplate && (
-<div className="space-y-6">
-{/* Template Description */}
-<div className="p-4 bg-purple-950/50 rounded-xl border border-purple-500/30">
-<p className="text-purple-200 text-sm">
-{selectedTemplate.description}
-</p>
-</div>
-
-{/* Form Fields */}
-{selectedTemplate.fields.map((field) => (
-<div key={field.name}>
-<label className="block text-white font-semibold mb-2">
-{field.label}
-{field.optional && (
-<span className="text-purple-400 text-sm ml-2">(optional)</span>
-)}
-</label>
-
-{field.type === 'textarea' ? (
-<textarea
-value={postData[field.name] || ''}
-onChange={(e) => setPostData({
-...postData,
-[field.name]: e.target.value
-})}
-placeholder={field.placeholder}
-rows={field.rows || 4}
-className="w-full px-4 py-3 bg-purple-950/50 border-2 border-purple-500/30
-rounded-xl text-white placeholder-purple-400 focus:border-purple-400
-focus:outline-none resize-none"
-/>
-) : field.type === 'select' ? (
-<select
-value={postData[field.name] || ''}
-onChange={(e) => setPostData({
-...postData,
-[field.name]: e.target.value
-})}
-className="w-full px-4 py-3 bg-purple-950/50 border-2 border-purple-500/30
-rounded-xl text-white focus:border-purple-400 focus:outline-none"
->
-<option value="">Select...</option>
-{field.options?.map((option) => (
-<option key={option} value={option}>
-{option}
-</option>
-))}
-</select>
-) : field.type === 'range' ? (
-<div>
-<input
-type="range"
-min={field.min || 1}
-max={field.max || 10}
-value={postData[field.name] || 5}
-onChange={(e) => setPostData({
-...postData,
-[field.name]: e.target.value
-})}
-className="w-full"
-/>
-<div className="flex justify-between text-purple-300 text-sm mt-2">
-<span>1 (Worst)</span>
-<span className="font-bold text-white text-lg">
-{postData[field.name] || 5}
-</span>
-<span>10 (Best)</span>
-</div>
 </div>
 ) : (
-<input
-type="text"
-value={postData[field.name] || ''}
-onChange={(e) => setPostData({
-...postData,
-[field.name]: e.target.value
-})}
-placeholder={field.placeholder}
-className="w-full px-4 py-3 bg-purple-950/50 border-2 border-purple-500/30
-rounded-xl text-white placeholder-purple-400 focus:border-purple-400
-focus:outline-none"
-/>
-)}
+<div className="space-y-3">
+{safePeople.map((person) => (
+<div
+key={person.userId}
+className="p-4 bg-purple-950/30 rounded-xl border border-purple-500/30
+flex items-center justify-between"
+>
+<div className="flex items-center gap-3">
+<div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center">
+{person.avatar || '👤'}
+</div>
+<div>
+<p className="text-white font-semibold">
+{person.name || 'Anonymous'}
+</p>
+<p className="text-purple-400 text-xs">
+Added {person.addedAt?.toDate ?
+new Date(person.addedAt.toDate()).toLocaleDateString() : 'recently'}
+</p>
+</div>
+</div>
+<button
+onClick={() => handleRemoveSafePerson(person.userId)}
+className="px-4 py-2 bg-red-600/20 border border-red-500/50
+hover:bg-red-600/30 rounded-lg text-red-300 text-sm font-semibold transition-all"
+>
+Remove
+</button>
 </div>
 ))}
+</div>
+)}
+</div>
 
-{/* Anonymity Level */}
+{/* Suggested People */}
 <div>
-<label className="block text-white font-semibold mb-3">
-How do you want to appear?
-</label>
-<div className="grid grid-cols-2 gap-3">
-{ANONYMITY_LEVELS.map((level) => (
-<button
-key={level.id}
-onClick={() => setAnonymityLevel(level.id)}
-className={`p-4 rounded-xl border-2 transition-all text-left
-${anonymityLevel === level.id
-? 'bg-purple-600/30 border-purple-400'
-: 'bg-purple-950/30 border-purple-500/30 hover:border-purple-400/60'
-}`}
+<h3 className="font-bold text-white mb-4 flex items-center gap-2">
+<ThumbsUp className="w-5 h-5 text-blue-400" />
+Suggested People to Add
+</h3>
+
+{loadingSuggestions ? (
+<div className="text-center py-6">
+<div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent
+rounded-full mx-auto mb-2"></div>
+<p className="text-purple-400 text-sm">Finding helpful peers...</p>
+</div>
+) : suggestedPeers.length === 0 ? (
+<div className="p-6 bg-purple-950/30 rounded-xl border border-purple-500/30 text-center">
+<p className="text-purple-300 text-sm">
+No suggestions yet. Interact more in the group to find helpful peers.
+</p>
+</div>
+) : (
+<div className="space-y-3">
+{suggestedPeers.map((peer) => {
+const isAlreadyAdded = safePeople.some(p => p.userId === peer.userId);
+
+return (
+<div
+key={peer.userId}
+className="p-4 bg-purple-950/30 rounded-xl border border-purple-500/30
+flex items-center justify-between"
 >
-<div className="flex items-center gap-2 mb-2">
-<span className="text-2xl">{level.icon}</span>
-<span className="font-bold text-white text-sm">
-{level.name}
+<div className="flex items-center gap-3">
+<div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-pink-600
+flex items-center justify-center">
+{peer.avatar || '👤'}
+</div>
+<div>
+<p className="text-white font-semibold">
+{peer.name || 'Anonymous'}
+</p>
+<div className="flex items-center gap-3 text-xs">
+<span className="text-green-400">
+{peer.helpfulCount} helpful reactions
+</span>
+<span className="text-purple-400">
+{peer.responseCount} responses
 </span>
 </div>
-<p className="text-purple-300 text-xs">
-{level.description}
-</p>
-</button>
-))}
 </div>
 </div>
-
-{/* Advice Toggle */}
-<div className="p-4 bg-purple-950/40 rounded-xl border border-purple-500/30">
-<div className="flex items-center justify-between">
-<div>
-<p className="text-white font-semibold mb-1">
-{adviceWanted ? '💡 Open to Advice' : '👂 Just Listening'}
-</p>
-<p className="text-purple-400 text-sm">
-{adviceWanted
-? 'People can offer suggestions and coping strategies'
-: 'People will focus on validation and understanding'
-}
-</p>
+{isAlreadyAdded ? (
+<div className="px-4 py-2 bg-green-600/20 border border-green-500/50
+rounded-lg text-green-300 text-sm font-semibold">
+✓ Added
 </div>
+) : (
 <button
-onClick={() => setAdviceWanted(!adviceWanted)}
-className={`w-16 h-8 rounded-full transition-all relative ${
-adviceWanted ? 'bg-purple-500' : 'bg-gray-600'
-}`}
+onClick={() => handleAddSafePerson(peer.userId, {
+name: peer.name,
+avatar: peer.avatar
+})}
+className="px-4 py-2 bg-purple-600 hover:bg-purple-500
+rounded-lg text-white text-sm font-semibold transition-all"
 >
-<div className={`absolute w-6 h-6 bg-white rounded-full top-1 transition-all ${
-adviceWanted ? 'left-9' : 'left-1'
-}`} />
+Add
 </button>
+)}
 </div>
-</div>
-
-{/* Content Warnings */}
-<div>
-<label className="block text-white font-semibold mb-3">
-Content Warnings (select all that apply)
-</label>
-<div className="flex flex-wrap gap-2">
-{CONTENT_WARNING_TAGS.map((tag) => (
-<button
-key={tag.id}
-onClick={() => {
-if (contentWarnings.includes(tag.id)) {
-setContentWarnings(contentWarnings.filter(cw => cw !== tag.id));
-} else {
-setContentWarnings([...contentWarnings, tag.id]);
-}
-}}
-className={`px-4 py-2 rounded-full border-2 transition-all text-sm font-semibold
-${contentWarnings.includes(tag.id)
-? `bg-${tag.color}-600/30 border-${tag.color}-400 text-${tag.color}-200`
-: 'bg-gray-800/50 border-gray-600 text-gray-400 hover:border-gray-500'
-}`}
->
-{tag.label}
-</button>
-))}
-</div>
-</div>
-
-{/* Buttons */}
-<div className="flex gap-3 pt-4">
-<button
-onClick={() => {
-setStep(1);
-setSelectedTemplate(null);
-setPostData({});
-}}
-className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-bold transition-all"
->
-Back
-</button>
-<button
-onClick={handleCreatePost}
-className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600
-hover:from-purple-500 hover:to-pink-500 rounded-xl font-bold transition-all"
->
-Share with Group
-</button>
-</div>
+);
+})}
 </div>
 )}
+</div>
 </div>
 </div>
 </div>
@@ -1413,8 +1469,619 @@ Share with Group
 };
 
 // ============================================
-// POST CARD COMPONENT
+// ACCOUNTABILITY BUDDY MATCHER
 // ============================================
+
+const AccountabilityBuddyMatcher = () => {
+const [showMatcher, setShowMatcher] = useState(false);
+const [buddyPreferences, setBuddyPreferences] = useState({
+struggles: [],
+checkInFrequency: 'daily',
+timezone: '',
+goals: ''
+});
+const [matches, setMatches] = useState([]);
+const [currentBuddy, setCurrentBuddy] = useState(null);
+
+// Load current buddy
+useEffect(() => {
+if (!currentUser) return;
+
+const loadBuddy = async () => {
+try {
+const q = query(
+collection(db, 'users', currentUser.uid, 'accountability_buddy'),
+limit(1)
+);
+const snapshot = await getDocs(q);
+
+if (!snapshot.empty) {
+setCurrentBuddy({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
+}
+} catch (error) {
+console.error('Error loading buddy:', error);
+}
+};
+
+loadBuddy();
+}, [currentUser]);
+
+const handleFindBuddy = async () => {
+// TODO: Implement matching algorithm
+alert('Buddy matching coming soon! This will match you with someone with similar struggles and goals.');
+};
+
+return (
+<div className="p-6 bg-gradient-to-br from-indigo-900/50 to-purple-900/50 rounded-xl border-2 border-indigo-500/50">
+<div className="flex items-center gap-3 mb-4">
+<Users className="w-6 h-6 text-indigo-400" />
+<div>
+<h3 className="font-bold text-white text-lg">Accountability Buddy</h3>
+<p className="text-indigo-300 text-sm">
+Get matched with someone for daily check-ins
+</p>
+</div>
+</div>
+
+{currentBuddy ? (
+<div className="p-4 bg-indigo-950/50 rounded-xl border border-indigo-500/30">
+<div className="flex items-center justify-between mb-3">
+<div className="flex items-center gap-3">
+<div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center">
+{currentBuddy.avatar || '👤'}
+</div>
+<div>
+<p className="text-white font-semibold">{currentBuddy.name || 'Your Buddy'}</p>
+<p className="text-indigo-400 text-xs">
+Check-ins: {currentBuddy.checkInFrequency || 'daily'}
+</p>
+</div>
+</div>
+<button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-sm font-semibold">
+Message
+</button>
+</div>
+<button className="text-red-400 hover:text-red-300 text-sm">
+End buddy relationship
+</button>
+</div>
+) : (
+<button
+onClick={handleFindBuddy}
+className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600
+hover:from-indigo-500 hover:to-purple-500 rounded-xl font-bold transition-all"
+>
+Find an Accountability Buddy
+</button>
+)}
+</div>
+);
+};
+
+// ============================================
+// SEARCH & FILTER SYSTEM
+// ============================================
+
+const SearchAndFilter = () => {
+const [showFilters, setShowFilters] = useState(false);
+const [searchTerm, setSearchTerm] = useState('');
+const [filters, setFilters] = useState({
+templates: [],
+dateRange: 'all', // 'today', 'week', 'month', 'all'
+hasResponses: false,
+savedOnly: false,
+hideRead: false
+});
+
+return (
+<div className="mb-6">
+{/* Search Bar */}
+<div className="flex gap-3 mb-4">
+<div className="flex-1 relative">
+<input
+type="text"
+value={searchTerm}
+onChange={(e) => setSearchTerm(e.target.value)}
+placeholder="Search posts by content, struggles, or keywords..."
+className="w-full px-5 py-3 pl-12 bg-purple-950/50 border-2 border-purple-500/30
+rounded-xl text-white placeholder-purple-400 focus:border-purple-400
+focus:outline-none"
+/>
+<MessageCircle className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-400" />
+</div>
+
+<button
+onClick={() => setShowFilters(!showFilters)}
+className={`px-6 py-3 rounded-xl font-semibold transition-all flex items-center gap-2
+${showFilters
+? 'bg-purple-600 text-white'
+: 'bg-purple-900/50 border-2 border-purple-500/30 text-purple-300 hover:border-purple-400'
+}`}
+>
+<Flag className="w-5 h-5" />
+Filters
+</button>
+</div>
+
+{/* Filter Panel */}
+{showFilters && (
+<div className="p-6 bg-purple-950/30 rounded-xl border-2 border-purple-500/30 space-y-4">
+{/* Template Filter */}
+<div>
+<label className="block text-white font-semibold mb-3">Post Type:</label>
+<div className="flex flex-wrap gap-2">
+{SUPPORT_POST_TEMPLATES.map((template) => {
+const isSelected = filters.templates.includes(template.type);
+return (
+<button
+key={template.type}
+onClick={() => {
+setFilters({
+...filters,
+templates: isSelected
+? filters.templates.filter(t => t !== template.type)
+: [...filters.templates, template.type]
+});
+}}
+className={`px-4 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-2
+${isSelected
+? `bg-gradient-to-r ${template.color}/30 border-2 border-purple-400 text-white`
+: 'bg-purple-900/30 border border-purple-500/30 text-purple-300 hover:border-purple-400'
+}`}
+>
+<span>{template.icon}</span>
+{template.title}
+</button>
+);
+})}
+</div>
+</div>
+
+{/* Date Range */}
+<div>
+<label className="block text-white font-semibold mb-3">Time Period:</label>
+<div className="flex gap-2">
+{[
+{ value: 'today', label: 'Today' },
+{ value: 'week', label: 'This Week' },
+{ value: 'month', label: 'This Month' },
+{ value: 'all', label: 'All Time' }
+].map((option) => (
+<button
+key={option.value}
+onClick={() => setFilters({ ...filters, dateRange: option.value })}
+className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all
+${filters.dateRange === option.value
+? 'bg-purple-600 text-white'
+: 'bg-purple-900/30 text-purple-300 hover:bg-purple-800/40'
+}`}
+>
+{option.label}
+</button>
+))}
+</div>
+</div>
+
+{/* Toggle Filters */}
+<div className="space-y-2">
+<label className="flex items-center justify-between p-3 bg-purple-900/30 rounded-lg cursor-pointer">
+<span className="text-white">Only show posts with responses</span>
+<input
+type="checkbox"
+checked={filters.hasResponses}
+onChange={(e) => setFilters({ ...filters, hasResponses: e.target.checked })}
+className="w-5 h-5 accent-purple-600"
+/>
+</label>
+
+<label className="flex items-center justify-between p-3 bg-purple-900/30 rounded-lg cursor-pointer">
+<span className="text-white">Only show saved posts</span>
+<input
+type="checkbox"
+checked={filters.savedOnly}
+onChange={(e) => setFilters({ ...filters, savedOnly: e.target.checked })}
+className="w-5 h-5 accent-purple-600"
+/>
+</label>
+
+<label className="flex items-center justify-between p-3 bg-purple-900/30 rounded-lg cursor-pointer">
+<span className="text-white">Hide posts I've read</span>
+<input
+type="checkbox"
+checked={filters.hideRead}
+onChange={(e) => setFilters({ ...filters, hideRead: e.target.checked })}
+className="w-5 h-5 accent-purple-600"
+/>
+</label>
+</div>
+
+{/* Clear Filters */}
+<button
+onClick={() => {
+setFilters({
+templates: [],
+dateRange: 'all',
+hasResponses: false,
+savedOnly: false,
+hideRead: false
+});
+setSearchTerm('');
+}}
+className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-semibold transition-all"
+>
+Clear All Filters
+</button>
+</div>
+)}
+</div>
+);
+};
+
+// ============================================
+// NOTIFICATION CENTER
+// ============================================
+
+const NotificationCenter = () => {
+const [showNotifications, setShowNotifications] = useState(false);
+const [notifications, setNotifications] = useState([]);
+const [unreadCount, setUnreadCount] = useState(0);
+
+// Load notifications
+useEffect(() => {
+if (!currentUser) return;
+
+const q = query(
+collection(db, 'users', currentUser.uid, 'notifications'),
+orderBy('createdAt', 'desc'),
+limit(50)
+);
+
+const unsubscribe = onSnapshot(q, (snapshot) => {
+const notifs = snapshot.docs.map(doc => ({
+id: doc.id,
+...doc.data()
+}));
+
+setNotifications(notifs);
+setUnreadCount(notifs.filter(n => !n.read).length);
+});
+
+return () => unsubscribe();
+}, [currentUser]);
+
+const handleMarkAsRead = async (notificationId) => {
+if (!currentUser) return;
+
+try {
+const notifRef = doc(db, 'users', currentUser.uid, 'notifications', notificationId);
+await updateDoc(notifRef, { read: true });
+} catch (error) {
+console.error('Error marking notification as read:', error);
+}
+};
+
+const handleMarkAllRead = async () => {
+if (!currentUser) return;
+
+try {
+const batch = [];
+notifications.filter(n => !n.read).forEach(notif => {
+const notifRef = doc(db, 'users', currentUser.uid, 'notifications', notif.id);
+batch.push(updateDoc(notifRef, { read: true }));
+});
+
+await Promise.all(batch);
+} catch (error) {
+console.error('Error marking all as read:', error);
+}
+};
+
+const getNotificationIcon = (type) => {
+switch (type) {
+case 'panic-alert': return <Zap className="w-5 h-5 text-red-400" />;
+case 'new-response': return <MessageCircle className="w-5 h-5 text-blue-400" />;
+case 'reaction': return <Heart className="w-5 h-5 text-pink-400" />;
+case 'buddy-checkin': return <Users className="w-5 h-5 text-purple-400" />;
+default: return <AlertCircle className="w-5 h-5 text-purple-400" />;
+}
+};
+
+return (
+<>
+{/* Notification Bell */}
+<button
+onClick={() => setShowNotifications(!showNotifications)}
+className="relative p-3 bg-purple-900/50 hover:bg-purple-800/50 rounded-xl transition-all"
+>
+<AlertCircle className="w-6 h-6 text-purple-300" />
+{unreadCount > 0 && (
+<div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full
+flex items-center justify-center text-xs font-bold text-white">
+{unreadCount > 9 ? '9+' : unreadCount}
+</div>
+)}
+</button>
+
+{/* Notification Panel */}
+{showNotifications && (
+<div className="fixed top-20 right-4 w-96 max-h-[600px] bg-gradient-to-br from-purple-900 to-indigo-900
+rounded-2xl border-2 border-purple-500/50 shadow-2xl z-50 overflow-hidden flex flex-col">
+
+{/* Header */}
+<div className="p-4 border-b border-purple-500/30 flex items-center justify-between">
+<div>
+<h3 className="font-bold text-white">Notifications</h3>
+<p className="text-purple-400 text-xs">{unreadCount} unread</p>
+</div>
+<div className="flex gap-2">
+{unreadCount > 0 && (
+<button
+onClick={handleMarkAllRead}
+className="text-purple-300 hover:text-white text-xs font-semibold"
+>
+Mark all read
+</button>
+)}
+<button
+onClick={() => setShowNotifications(false)}
+className="p-1 hover:bg-purple-800/50 rounded-lg transition-all"
+>
+<X className="w-5 h-5 text-purple-400" />
+</button>
+</div>
+</div>
+
+{/* Notifications List */}
+<div className="flex-1 overflow-y-auto">
+{notifications.length === 0 ? (
+<div className="p-8 text-center">
+<AlertCircle className="w-12 h-12 text-purple-400 mx-auto mb-3" />
+<p className="text-purple-300">No notifications yet</p>
+</div>
+) : (
+<div className="divide-y divide-purple-500/20">
+{notifications.map((notif) => (
+<div
+key={notif.id}
+onClick={() => handleMarkAsRead(notif.id)}
+className={`p-4 cursor-pointer transition-all
+${notif.read
+? 'bg-purple-950/20 hover:bg-purple-900/30'
+: 'bg-purple-600/20 hover:bg-purple-600/30'
+}`}
+>
+<div className="flex gap-3">
+<div className="flex-shrink-0 mt-1">
+{getNotificationIcon(notif.type)}
+</div>
+<div className="flex-1">
+<p className={`text-sm mb-1 ${notif.read ? 'text-purple-300' : 'text-white font-semibold'}`}>
+{notif.message}
+</p>
+<p className="text-purple-400 text-xs">
+{notif.createdAt?.toDate ?
+new Date(notif.createdAt.toDate()).toLocaleString() : 'Just now'}
+</p>
+</div>
+{!notif.read && (
+<div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0 mt-2"></div>
+)}
+</div>
+</div>
+))}
+</div>
+)}
+</div>
+</div>
+)}
+</>
+);
+};
+
+// ============================================
+// USER SETTINGS PANEL
+// ============================================
+
+const UserSettingsPanel = () => {
+const [showSettings, setShowSettings] = useState(false);
+const [settings, setSettings] = useState({
+defaultAnonymity: 'group-anonymous',
+hiddenContentWarnings: [],
+emailNotifications: true,
+panicAlertSound: true,
+autoMarkRead: false,
+theme: 'dark'
+});
+
+// Load settings
+useEffect(() => {
+if (!currentUser) return;
+
+const loadSettings = async () => {
+try {
+const q = query(
+collection(db, 'users', currentUser.uid, 'preferences'),
+limit(1)
+);
+const snapshot = await getDocs(q);
+
+if (!snapshot.empty) {
+setSettings({ ...settings, ...snapshot.docs[0].data() });
+}
+} catch (error) {
+console.error('Error loading settings:', error);
+}
+};
+
+loadSettings();
+}, [currentUser]);
+
+const handleSaveSettings = async () => {
+if (!currentUser) return;
+
+try {
+const q = query(
+collection(db, 'users', currentUser.uid, 'preferences'),
+limit(1)
+);
+const snapshot = await getDocs(q);
+
+if (snapshot.empty) {
+await addDoc(collection(db, 'users', currentUser.uid, 'preferences'), settings);
+} else {
+await updateDoc(snapshot.docs[0].ref, settings);
+}
+
+alert('Settings saved!');
+setShowSettings(false);
+
+} catch (error) {
+console.error('Error saving settings:', error);
+alert('Failed to save settings');
+}
+};
+
+if (!showSettings) return null;
+
+return (
+<div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+<div className="bg-gradient-to-br from-purple-900 to-indigo-900 rounded-2xl border-2 border-purple-500/50 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+<div className="p-8">
+{/* Header */}
+<div className="flex items-center justify-between mb-6">
+<h2 className="text-2xl font-bold text-white">⚙️ Settings</h2>
+<button
+onClick={() => setShowSettings(false)}
+className="text-purple-300 hover:text-white transition-colors"
+>
+<X className="w-6 h-6" />
+</button>
+</div>
+
+{/* Default Anonymity */}
+<div className="mb-6">
+<label className="block text-white font-semibold mb-3">
+Default Anonymity Level:
+</label>
+<select
+value={settings.defaultAnonymity}
+onChange={(e) => setSettings({ ...settings, defaultAnonymity: e.target.value })}
+className="w-full px-4 py-3 bg-purple-950/50 border-2 border-purple-500/30
+rounded-xl text-white focus:border-purple-400 focus:outline-none"
+>
+{ANONYMITY_LEVELS.map((level) => (
+<option key={level.id} value={level.id}>
+{level.icon} {level.name}
+</option>
+))}
+</select>
+</div>
+
+{/* Content Warning Preferences */}
+<div className="mb-6">
+<label className="block text-white font-semibold mb-3">
+Hide Content Warnings:
+</label>
+<div className="flex flex-wrap gap-2">
+{CONTENT_WARNING_TAGS.map((tag) => {
+const isHidden = settings.hiddenContentWarnings.includes(tag.id);
+return (
+<button
+key={tag.id}
+onClick={() => {
+ // ============================================
+// CONTINUATION OF USER SETTINGS PANEL
+// ============================================
+
+// Continue from where ContentWarnings left off:
+
+setSettings({
+...settings,
+hiddenContentWarnings: isHidden
+? settings.hiddenContentWarnings.filter(cw => cw !== tag.id)
+: [...settings.hiddenContentWarnings, tag.id]
+});
+}}
+className={`px-4 py-2 rounded-full text-sm font-semibold transition-all
+${isHidden
+? 'bg-gray-700 border-2 border-gray-600 text-gray-400'
+: `bg-${tag.color}-600/30 border-2 border-${tag.color}-500/50 text-${tag.color}-200`
+}`}
+>
+{isHidden ? <EyeOff className="w-4 h-4 inline mr-1" /> : <Eye className="w-4 h-4 inline mr-1" />}
+{tag.label}
+</button>
+);
+})}
+</div>
+<p className="text-purple-400 text-xs mt-2">
+Posts with these warnings will be automatically hidden
+</p>
+</div>
+
+{/* Toggle Settings */}
+<div className="space-y-3 mb-6">
+<label className="flex items-center justify-between p-4 bg-purple-950/30 rounded-xl cursor-pointer">
+<div>
+<p className="text-white font-semibold">Email Notifications</p>
+<p className="text-purple-400 text-xs">Receive emails for important updates</p>
+</div>
+<input
+type="checkbox"
+checked={settings.emailNotifications}
+onChange={(e) => setSettings({ ...settings, emailNotifications: e.target.checked })}
+className="w-5 h-5 accent-purple-600"
+/>
+</label>
+
+<label className="flex items-center justify-between p-4 bg-purple-950/30 rounded-xl cursor-pointer">
+<div>
+<p className="text-white font-semibold">Panic Alert Sound</p>
+<p className="text-purple-400 text-xs">Play sound when someone needs immediate support</p>
+</div>
+<input
+type="checkbox"
+checked={settings.panicAlertSound}
+onChange={(e) => setSettings({ ...settings, panicAlertSound: e.target.checked })}
+className="w-5 h-5 accent-purple-600"
+/>
+</label>
+
+<label className="flex items-center justify-between p-4 bg-purple-950/30 rounded-xl cursor-pointer">
+<div>
+<p className="text-white font-semibold">Auto-mark Posts as Read</p>
+<p className="text-purple-400 text-xs">Automatically mark posts when you view them</p>
+</div>
+<input
+type="checkbox"
+checked={settings.autoMarkRead}
+onChange={(e) => setSettings({ ...settings, autoMarkRead: e.target.checked })}
+className="w-5 h-5 accent-purple-600"
+/>
+</label>
+</div>
+
+{/* Save Button */}
+<div className="flex gap-3">
+<button
+onClick={() => setShowSettings(false)}
+className="flex-1 px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-bold transition-all"
+>
+Cancel
+</button>
+<button
+onClick={handleSaveSettings}
+className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600
+hover:from-purple-500 hover:to-pink-500 rounded-xl font-bold transition-all"
+>
+Save Settings
+</button>
+</div>
+</div>
+</div>
+</div>
+);
+};
 
 
 
@@ -1424,244 +2091,168 @@ Share with Group
 // ============================================
 
 return (
-<div className="min-h-screen bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 text-white">
-{/* Crisis Resources Banner (Always visible) */}
-<div className="sticky top-0 z-40 bg-gradient-to-br from-purple-950/95 via-purple-900/95 to-indigo-950/95 backdrop-blur-lg border-b-2 border-purple-500/30">
-<div className="container mx-auto px-4 py-4">
-<CrisisResourcesBanner />
-</div>
-</div>
+  <div className="min-h-screen bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 text-white">
+    
+    {/* FLOW STAGE ROUTER */}
+    {userFlowStage === 'triage' && (
+      <EmotionalTriage
+        onScoreSelected={(score) => {
+          setEmotionalScore(score);
+          if (score <= 3) {
+            setUserFlowStage('crisis');
+          } else if (score <= 6) {
+            setUserFlowStage('struggle');
+          } else {
+            setUserFlowStage('anonymous-entry');
+          }
+        }}
+      />
+    )}
 
-<div className="container mx-auto px-4 py-8">
-{/* Header */}
-<div className="mb-8">
-<div className="flex items-center justify-between mb-4"> <div> <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent"> Peer Support Groups </h1> <p className="text-purple-300"> Real people who understand. No toxic positivity. No waiting weeks. </p> </div>
+    {userFlowStage === 'crisis' && (
+      <CrisisIntervention
+        onPeerSupportRequested={() => {
+          handlePanicButton();
+          setUserFlowStage('feed');
+        }}
+        onResourceUsed={() => {
+          // Track that they used crisis resources
+          setUserFlowStage('triage');
+        }}
+      />
+    )}
 
- 
-{activeView === 'group-detail' && (
-<button
-onClick={() => {
-setActiveView('groups');
-setSelectedGroup(null);
-}}
-className="px-6 py-3 bg-purple-700 hover:bg-purple-600 rounded-xl font-bold transition-all"
->
-← Back to Groups
-</button>
+    {userFlowStage === 'struggle' && (
+      <StruggleIdentification
+        onStruggleSelected={(struggle) => {
+          setSelectedStruggle(struggle);
+          
+          // Auto-match to group
+          const matchedGroup = supportGroups.find(g => 
+            g.commonStruggles?.includes(struggle)
+          );
+          
+          if (matchedGroup) {
+            setSelectedGroup(matchedGroup);
+            setUserFlowStage('preview');
+          }
+        }}
+      />
+    )}
+
+    {userFlowStage === 'preview' && selectedGroup && (
+      <LivePreview
+        group={selectedGroup}
+        posts={posts.slice(0, 3)} // Show latest 3 posts
+        onJoin={() => setUserFlowStage('anonymous-entry')}
+        onBack={() => setUserFlowStage('struggle')}
+      />
+    )}
+
+    {userFlowStage === 'anonymous-entry' && (
+  <AnonymousEntry
+    onComplete={(anonymityLevel, avatar) => {
+      setAnonymityLevel(anonymityLevel);
+      setUserAvatar(avatar);
+      
+      // Mark as visited
+      localStorage.setItem('hasVisitedBefore', 'true');
+      
+      // Auto-join selected group if exists
+      if (selectedGroup) {
+        handleJoinGroup(selectedGroup.id);
+      }
+      
+      setUserFlowStage('first-post');  // ✅ Route to first-post
+      setShowPostModal(true);           // ✅ Open modal immediately
+    }}
+  />
 )}
-</div>
 
-{/* Key Features Banner */}
-{activeView === 'groups' && (
-<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-<div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
-<div className="text-2xl mb-2">👤</div>
-<p className="font-semibold text-white mb-1">Anonymous Options</p>
-<p className="text-purple-300 text-sm">Share without revealing identity</p>
-</div>
-<div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
-<div className="text-2xl mb-2">👂</div>
-<p className="font-semibold text-white mb-1">Just Listening Mode</p>
-<p className="text-purple-300 text-sm">No unwanted advice</p>
-</div>
-<div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
-<div className="text-2xl mb-2">🚫</div>
-<p className="font-semibold text-white mb-1">No Toxic Positivity</p>
-<p className="text-purple-300 text-sm">Real validation for real struggles</p>
-</div>
-<div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
-<div className="text-2xl mb-2">💬</div>
-<p className="font-semibold text-white mb-1">Live Support</p>
-<p className="text-purple-300 text-sm">Chat with peers right now</p>
-</div>
-</div>
+
+  
+{userFlowStage === 'feed' && (
+  <>
+    {/* Header */}
+    <div className="mb-6 flex justify-between items-center">
+      <h2 className="text-2xl font-bold text-white">Support Groups</h2>
+      <button 
+    onClick={() => setShowPostModal(true)}
+    className="px-3 py-1.5 text-sm bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-medium"
+  >
+    + Post
+  </button>
+    </div>
+
+    {/* Support Groups Grid */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      {supportGroups.map(group => (
+        <SupportGroupCard 
+          key={group.id}
+          group={group}
+          isJoined={joinedGroupIds.includes(group.id)}
+        />
+      ))}
+    </div>
+
+    {/* Selected Group Posts */}
+    {selectedGroup && (
+      <div className="mb-8">
+        <h3 className="text-xl font-bold text-white mb-4">
+          {selectedGroup.icon} {selectedGroup.name}
+        </h3>
+        
+        {loadingPosts ? (
+          <div className="text-center py-8">
+            <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full mx-auto"></div>
+          </div>
+        ) : posts.length === 0 ? (
+          <p className="text-purple-300 text-center py-8">No posts yet. Be the first to share!</p>
+        ) : (
+          <div className="space-y-4">
+            {posts.map(post => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
+        )}
+      </div>
+    )}
+
+    {/* Post Creation Modal */}
+    <PostCreationModal
+      isOpen={showPostModal}
+      onClose={() => setShowPostModal(false)}
+      onSubmit={handleCreatePost}
+      availableGroups={supportGroups}
+      preSelectedGroup={selectedGroup?.id}
+    />
+  </>
 )}
-</div>
 
-{/* GROUPS LIST VIEW */}
-{activeView === 'groups' && (
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-{loadingGroups ? (
-<div className="col-span-2 text-center py-12">
-<div className="animate-spin w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-<p className="text-purple-300">Loading support groups...</p>
-</div>
-) : supportGroups.length === 0 ? (
-<div className="col-span-2 text-center py-12">
-<p className="text-purple-300">No support groups available yet.</p>
-</div>
-) : (
-supportGroups.map(group => (
-<SupportGroupCard
-key={group.id}
-group={group}
-isJoined={joinedGroupIds.includes(group.id)}
-/>
-))
-)}
-</div>
+    
+{userFlowStage === 'first-post' && (
+  <PostCreationModal
+    isOpen={showPostModal}
+    onClose={() => {
+      setShowPostModal(false);
+      setUserFlowStage('feed');
+    }}
+    onSubmit={(postData) => {
+      handleCreatePost(postData);
+      setUnlockedFeatures({...unlockedFeatures, liveChat: true});
+      setUserFlowStage('feed');
+      setShowPostModal(false);
+    }}
+  />
 )}
 
-{/* GROUP DETAIL VIEW */}
-{activeView === 'group-detail' && selectedGroup && (
-<div className="space-y-6">
-{/* Group Header */}
-<div className="p-6 bg-gradient-to-br from-purple-900/50 to-indigo-900/50 rounded-xl border-2 border-purple-500/50">
-<div className="flex items-start justify-between mb-4">
-<div className="flex items-center gap-4">
-<div className="text-5xl">{selectedGroup.icon}</div>
-<div>
-<h2 className="text-3xl font-bold text-white mb-2">
-{selectedGroup.name}
-</h2>
-<p className="text-purple-300">
-{selectedGroup.description}
-</p>
-</div>
-</div>
 
-<div className="flex gap-3">
-<button
-onClick={() => setShowPostModal(true)}
-className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600
-hover:from-purple-500 hover:to-pink-500 rounded-xl font-bold transition-all
-flex items-center gap-2"
->
-<MessageCircle className="w-5 h-5" />
-New Post
-</button>
-
-<button
-onClick={() => setShowLiveChat(!showLiveChat)}
-className="px-6 py-3 bg-green-600/20 border-2 border-green-500/50
-hover:bg-green-600/30 rounded-xl font-bold transition-all
-flex items-center gap-2"
->
-<Radio className="w-5 h-5 text-green-400" />
-Live Chat
-</button>
-</div>
-</div>
-
-{/* Stats Bar */}
-<div className="flex items-center gap-6 text-sm border-t border-purple-500/30 pt-4 mt-4">
-<div className="flex items-center gap-2">
-<Users className="w-5 h-5 text-purple-400" />
-<span className="text-purple-300">
-{selectedGroup.memberCount || 0} members
-</span>
-</div>
-<div className="flex items-center gap-2">
-<Radio className="w-5 h-5 text-green-400" />
-<span className="text-green-300">
-{activePeers.length} active now
-</span>
-</div>
-<div className="flex items-center gap-2">
-<MessageCircle className="w-5 h-5 text-blue-400" />
-<span className="text-blue-300">
-{selectedGroup.postCount || 0} posts
-</span>
-</div>
-</div>
-</div>
-
-{/* Panic Button */}
-<div className="p-4 bg-red-900/20 border-2 border-red-500/50 rounded-xl">
-<div className="flex items-center justify-between">
-<div className="flex items-center gap-3">
-<Zap className="w-6 h-6 text-red-400" />
-<div>
-<p className="font-bold text-red-200">
-Need support right now?
-</p>
-<p className="text-red-300 text-sm">
-Alert {availablePeers.length} available peers who can help
-</p>
-</div>
-</div>
-<button
-onClick={handlePanicButton}
-disabled={panicAlertActive}
-className={`px-6 py-3 rounded-xl font-bold transition-all ${
-panicAlertActive
-? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-: 'bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white'
-}`}
->
-{panicAlertActive ? '✓ Alert Sent' : '🆘 Send Alert'}
-</button>
-</div>
-</div>
-
-{/* Filter Controls */}
-<div className="flex items-center gap-4">
-<select
-value={sortBy}
-onChange={(e) => setSortBy(e.target.value)}
-className="px-4 py-2 bg-purple-900/50 border-2 border-purple-500/30
-rounded-xl text-white focus:border-purple-400 focus:outline-none"
->
-<option value="recent">Most Recent</option>
-<option value="needs-support">Needs Support First</option>
-</select>
-
-<button
-onClick={() => setShowOnlyListening(!showOnlyListening)}
-className={`px-4 py-2 rounded-xl font-semibold transition-all border-2 ${
-showOnlyListening
-? 'bg-green-600/30 border-green-500/50 text-green-200'
-: 'bg-purple-900/30 border-purple-500/30 text-purple-300'
-}`}
->
-👂 Just Listening Only
-</button>
-</div>
-
-{/* Posts Feed */}
-<div className="space-y-4">
-{loadingPosts ? (
-<div className="text-center py-12">
-<div className="animate-spin w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-<p className="text-purple-300">Loading posts...</p>
-</div>
-) : posts.length === 0 ? (
-<div className="text-center py-12 p-8 bg-purple-900/30 rounded-xl border-2 border-purple-500/30">
-<MessageCircle className="w-16 h-16 text-purple-400 mx-auto mb-4" />
-<p className="text-purple-300 mb-4">
-No posts yet. Be the first to share!
-</p>
-<button
-onClick={() => setShowPostModal(true)}
-className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600
-hover:from-purple-500 hover:to-pink-500 rounded-xl font-bold transition-all"
->
-Create First Post
-</button>
-</div>
-) : (
-posts.map(post => <PostCard key={post.id} post={post} />)
-)}
-</div>
-</div>
-)}
-</div>
-
-{/* Post Creation Modal */}
-<PostCreationModal />
-
-{/* Guidelines Modal (shown when joining) */}
-{selectedGroup && !joinedGroupIds.includes(selectedGroup.id) && activeView === 'group-detail' && (
-<SafeSpaceGuidelines
-group={selectedGroup}
-onAccept={() => handleJoinGroup(selectedGroup.id)}
-onClose={() => {
-setActiveView('groups');
-setSelectedGroup(null);
-}}
-/>
-)}
-</div> ); 
+    {/* All your existing modals */}
+    {showSafePeopleModal && <SafePeopleManager />}
+    {showSettings && <UserSettingsPanel />}
+    <NotificationCenter />
+  </div>
+);
 
 
 // OptimizedSupport.tsx - PART 4: REAL-TIME FEATURES
@@ -2527,1198 +3118,16 @@ Quiet Room
 // SAFE PEOPLE LIST & PEER CONNECTIONS
 // ============================================
 
-const SafePeopleManager = () => {
-const [showManager, setShowManager] = useState(false);
-const [searchQuery, setSearchQuery] = useState('');
-const [suggestedPeers, setSuggestedPeers] = useState([]);
-const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
-// Load suggested peers (people who've been helpful)
-useEffect(() => {
-if (!showManager || !selectedGroup) return;
-
-const loadSuggestions = async () => {
-setLoadingSuggestions(true);
-
-try {
-// Find users with helpful responses in this group
-const postsSnapshot = await getDocs(
-query(
-collection(db, 'support_posts'),
-where('groupId', '==', selectedGroup.id),
-orderBy('createdAt', 'desc'),
-limit(50)
-)
-);
-
-const helpfulUsers = new Map();
-
-for (const postDoc of postsSnapshot.docs) {
-const responsesSnapshot = await getDocs(
-query(
-collection(db, 'support_posts', postDoc.id, 'responses'),
-orderBy('reactions.helpful', 'desc'),
-limit(10)
-)
-);
-
-responsesSnapshot.docs.forEach(responseDoc => {
-const response = responseDoc.data();
-if (response.author?.userId && response.author.userId !== currentUser?.uid) {
-const userId = response.author.userId;
-const current = helpfulUsers.get(userId) || {
-count: 0,
-helpful: 0,
-author: response.author
-};
-current.count++;
-current.helpful += (response.reactions?.helpful || 0);
-helpfulUsers.set(userId, current);
-}
-});
-}
-
-// Sort by helpfulness
-const sorted = Array.from(helpfulUsers.entries())
-.sort((a, b) => b[1].helpful - a[1].helpful)
-.slice(0, 10)
-.map(([userId, data]) => ({
-userId,
-...data.author,
-helpfulCount: data.helpful,
-responseCount: data.count
-}));
-
-setSuggestedPeers(sorted);
-setLoadingSuggestions(false);
-
-} catch (error) {
-console.error('Error loading suggestions:', error);
-setLoadingSuggestions(false);
-}
-};
-
-loadSuggestions();
-}, [showManager, selectedGroup, currentUser]);
-
-const handleRemoveSafePerson = async (personId) => {
-if (!currentUser) return;
-
-try {
-const q = query(
-collection(db, 'users', currentUser.uid, 'safe_people'),
-where('userId', '==', personId)
-);
-const snapshot = await getDocs(q);
-snapshot.docs.forEach(doc => doc.ref.delete());
-
-setSafePeople(safePeople.filter(p => p.userId !== personId));
-
-} catch (error) {
-console.error('Error removing safe person:', error);
-}
-};
-
-if (!showSafePeopleModal) return null;
-
-return (
-<div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-<div className="bg-gradient-to-br from-purple-900 to-indigo-900 rounded-2xl border-2 border-purple-500/50 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-<div className="p-8">
-{/* Header */}
-<div className="flex items-center justify-between mb-6">
-<div>
-<h2 className="text-2xl font-bold text-white mb-2">
-💜 Safe People List
-</h2>
-<p className="text-purple-300 text-sm">
-People whose support feels safe and helpful to you
-</p>
-</div>
-<button
-onClick={() => setShowSafePeopleModal(false)}
-className="text-purple-300 hover:text-white transition-colors"
->
-<X className="w-6 h-6" />
-</button>
-</div>
-
-{/* Your Safe People */}
-<div className="mb-8">
-<h3 className="font-bold text-white mb-4 flex items-center gap-2">
-<Shield className="w-5 h-5 text-green-400" />
-Your Safe People ({safePeople.length})
-</h3>
-
-{safePeople.length === 0 ? (
-<div className="p-6 bg-purple-950/30 rounded-xl border border-purple-500/30 text-center">
-<Users className="w-12 h-12 text-purple-400 mx-auto mb-3" />
-<p className="text-purple-300 text-sm">
-No safe people added yet. Add people whose responses feel helpful and validating.
-</p>
-</div>
-) : (
-<div className="space-y-3">
-{safePeople.map((person) => (
-<div
-key={person.userId}
-className="p-4 bg-purple-950/30 rounded-xl border border-purple-500/30
-flex items-center justify-between"
->
-<div className="flex items-center gap-3">
-<div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center">
-{person.avatar || '👤'}
-</div>
-<div>
-<p className="text-white font-semibold">
-{person.name || 'Anonymous'}
-</p>
-<p className="text-purple-400 text-xs">
-Added {person.addedAt?.toDate ?
-new Date(person.addedAt.toDate()).toLocaleDateString() : 'recently'}
-</p>
-</div>
-</div>
-<button
-onClick={() => handleRemoveSafePerson(person.userId)}
-className="px-4 py-2 bg-red-600/20 border border-red-500/50
-hover:bg-red-600/30 rounded-lg text-red-300 text-sm font-semibold transition-all"
->
-Remove
-</button>
-</div>
-))}
-</div>
-)}
-</div>
-
-{/* Suggested People */}
-<div>
-<h3 className="font-bold text-white mb-4 flex items-center gap-2">
-<ThumbsUp className="w-5 h-5 text-blue-400" />
-Suggested People to Add
-</h3>
-
-{loadingSuggestions ? (
-<div className="text-center py-6">
-<div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent
-rounded-full mx-auto mb-2"></div>
-<p className="text-purple-400 text-sm">Finding helpful peers...</p>
-</div>
-) : suggestedPeers.length === 0 ? (
-<div className="p-6 bg-purple-950/30 rounded-xl border border-purple-500/30 text-center">
-<p className="text-purple-300 text-sm">
-No suggestions yet. Interact more in the group to find helpful peers.
-</p>
-</div>
-) : (
-<div className="space-y-3">
-{suggestedPeers.map((peer) => {
-const isAlreadyAdded = safePeople.some(p => p.userId === peer.userId);
-
-return (
-<div
-key={peer.userId}
-className="p-4 bg-purple-950/30 rounded-xl border border-purple-500/30
-flex items-center justify-between"
->
-<div className="flex items-center gap-3">
-<div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-pink-600
-flex items-center justify-center">
-{peer.avatar || '👤'}
-</div>
-<div>
-<p className="text-white font-semibold">
-{peer.name || 'Anonymous'}
-</p>
-<div className="flex items-center gap-3 text-xs">
-<span className="text-green-400">
-{peer.helpfulCount} helpful reactions
-</span>
-<span className="text-purple-400">
-{peer.responseCount} responses
-</span>
-</div>
-</div>
-</div>
-{isAlreadyAdded ? (
-<div className="px-4 py-2 bg-green-600/20 border border-green-500/50
-rounded-lg text-green-300 text-sm font-semibold">
-✓ Added
-</div>
-) : (
-<button
-onClick={() => handleAddSafePerson(peer.userId, {
-name: peer.name,
-avatar: peer.avatar
-})}
-className="px-4 py-2 bg-purple-600 hover:bg-purple-500
-rounded-lg text-white text-sm font-semibold transition-all"
->
-Add
-</button>
-)}
-</div>
-);
-})}
-</div>
-)}
-</div>
-</div>
-</div>
-</div>
-);
-};
-
-// ============================================
-// ACCOUNTABILITY BUDDY MATCHER
-// ============================================
-
-const AccountabilityBuddyMatcher = () => {
-const [showMatcher, setShowMatcher] = useState(false);
-const [buddyPreferences, setBuddyPreferences] = useState({
-struggles: [],
-checkInFrequency: 'daily',
-timezone: '',
-goals: ''
-});
-const [matches, setMatches] = useState([]);
-const [currentBuddy, setCurrentBuddy] = useState(null);
-
-// Load current buddy
-useEffect(() => {
-if (!currentUser) return;
-
-const loadBuddy = async () => {
-try {
-const q = query(
-collection(db, 'users', currentUser.uid, 'accountability_buddy'),
-limit(1)
-);
-const snapshot = await getDocs(q);
-
-if (!snapshot.empty) {
-setCurrentBuddy({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
-}
-} catch (error) {
-console.error('Error loading buddy:', error);
-}
-};
-
-loadBuddy();
-}, [currentUser]);
-
-const handleFindBuddy = async () => {
-// TODO: Implement matching algorithm
-alert('Buddy matching coming soon! This will match you with someone with similar struggles and goals.');
-};
-
-return (
-<div className="p-6 bg-gradient-to-br from-indigo-900/50 to-purple-900/50 rounded-xl border-2 border-indigo-500/50">
-<div className="flex items-center gap-3 mb-4">
-<Users className="w-6 h-6 text-indigo-400" />
-<div>
-<h3 className="font-bold text-white text-lg">Accountability Buddy</h3>
-<p className="text-indigo-300 text-sm">
-Get matched with someone for daily check-ins
-</p>
-</div>
-</div>
-
-{currentBuddy ? (
-<div className="p-4 bg-indigo-950/50 rounded-xl border border-indigo-500/30">
-<div className="flex items-center justify-between mb-3">
-<div className="flex items-center gap-3">
-<div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center">
-{currentBuddy.avatar || '👤'}
-</div>
-<div>
-<p className="text-white font-semibold">{currentBuddy.name || 'Your Buddy'}</p>
-<p className="text-indigo-400 text-xs">
-Check-ins: {currentBuddy.checkInFrequency || 'daily'}
-</p>
-</div>
-</div>
-<button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-sm font-semibold">
-Message
-</button>
-</div>
-<button className="text-red-400 hover:text-red-300 text-sm">
-End buddy relationship
-</button>
-</div>
-) : (
-<button
-onClick={handleFindBuddy}
-className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600
-hover:from-indigo-500 hover:to-purple-500 rounded-xl font-bold transition-all"
->
-Find an Accountability Buddy
-</button>
-)}
-</div>
-);
-};
-
-// ============================================
-// SEARCH & FILTER SYSTEM
-// ============================================
-
-const SearchAndFilter = () => {
-const [showFilters, setShowFilters] = useState(false);
-const [searchTerm, setSearchTerm] = useState('');
-const [filters, setFilters] = useState({
-templates: [],
-dateRange: 'all', // 'today', 'week', 'month', 'all'
-hasResponses: false,
-savedOnly: false,
-hideRead: false
-});
-
-return (
-<div className="mb-6">
-{/* Search Bar */}
-<div className="flex gap-3 mb-4">
-<div className="flex-1 relative">
-<input
-type="text"
-value={searchTerm}
-onChange={(e) => setSearchTerm(e.target.value)}
-placeholder="Search posts by content, struggles, or keywords..."
-className="w-full px-5 py-3 pl-12 bg-purple-950/50 border-2 border-purple-500/30
-rounded-xl text-white placeholder-purple-400 focus:border-purple-400
-focus:outline-none"
-/>
-<MessageCircle className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-400" />
-</div>
-
-<button
-onClick={() => setShowFilters(!showFilters)}
-className={`px-6 py-3 rounded-xl font-semibold transition-all flex items-center gap-2
-${showFilters
-? 'bg-purple-600 text-white'
-: 'bg-purple-900/50 border-2 border-purple-500/30 text-purple-300 hover:border-purple-400'
-}`}
->
-<Flag className="w-5 h-5" />
-Filters
-</button>
-</div>
-
-{/* Filter Panel */}
-{showFilters && (
-<div className="p-6 bg-purple-950/30 rounded-xl border-2 border-purple-500/30 space-y-4">
-{/* Template Filter */}
-<div>
-<label className="block text-white font-semibold mb-3">Post Type:</label>
-<div className="flex flex-wrap gap-2">
-{SUPPORT_POST_TEMPLATES.map((template) => {
-const isSelected = filters.templates.includes(template.type);
-return (
-<button
-key={template.type}
-onClick={() => {
-setFilters({
-...filters,
-templates: isSelected
-? filters.templates.filter(t => t !== template.type)
-: [...filters.templates, template.type]
-});
-}}
-className={`px-4 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-2
-${isSelected
-? `bg-gradient-to-r ${template.color}/30 border-2 border-purple-400 text-white`
-: 'bg-purple-900/30 border border-purple-500/30 text-purple-300 hover:border-purple-400'
-}`}
->
-<span>{template.icon}</span>
-{template.title}
-</button>
-);
-})}
-</div>
-</div>
-
-{/* Date Range */}
-<div>
-<label className="block text-white font-semibold mb-3">Time Period:</label>
-<div className="flex gap-2">
-{[
-{ value: 'today', label: 'Today' },
-{ value: 'week', label: 'This Week' },
-{ value: 'month', label: 'This Month' },
-{ value: 'all', label: 'All Time' }
-].map((option) => (
-<button
-key={option.value}
-onClick={() => setFilters({ ...filters, dateRange: option.value })}
-className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all
-${filters.dateRange === option.value
-? 'bg-purple-600 text-white'
-: 'bg-purple-900/30 text-purple-300 hover:bg-purple-800/40'
-}`}
->
-{option.label}
-</button>
-))}
-</div>
-</div>
-
-{/* Toggle Filters */}
-<div className="space-y-2">
-<label className="flex items-center justify-between p-3 bg-purple-900/30 rounded-lg cursor-pointer">
-<span className="text-white">Only show posts with responses</span>
-<input
-type="checkbox"
-checked={filters.hasResponses}
-onChange={(e) => setFilters({ ...filters, hasResponses: e.target.checked })}
-className="w-5 h-5 accent-purple-600"
-/>
-</label>
-
-<label className="flex items-center justify-between p-3 bg-purple-900/30 rounded-lg cursor-pointer">
-<span className="text-white">Only show saved posts</span>
-<input
-type="checkbox"
-checked={filters.savedOnly}
-onChange={(e) => setFilters({ ...filters, savedOnly: e.target.checked })}
-className="w-5 h-5 accent-purple-600"
-/>
-</label>
-
-<label className="flex items-center justify-between p-3 bg-purple-900/30 rounded-lg cursor-pointer">
-<span className="text-white">Hide posts I've read</span>
-<input
-type="checkbox"
-checked={filters.hideRead}
-onChange={(e) => setFilters({ ...filters, hideRead: e.target.checked })}
-className="w-5 h-5 accent-purple-600"
-/>
-</label>
-</div>
-
-{/* Clear Filters */}
-<button
-onClick={() => {
-setFilters({
-templates: [],
-dateRange: 'all',
-hasResponses: false,
-savedOnly: false,
-hideRead: false
-});
-setSearchTerm('');
-}}
-className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-semibold transition-all"
->
-Clear All Filters
-</button>
-</div>
-)}
-</div>
-);
-};
-
-// ============================================
-// NOTIFICATION CENTER
-// ============================================
-
-const NotificationCenter = () => {
-const [showNotifications, setShowNotifications] = useState(false);
-const [notifications, setNotifications] = useState([]);
-const [unreadCount, setUnreadCount] = useState(0);
-
-// Load notifications
-useEffect(() => {
-if (!currentUser) return;
-
-const q = query(
-collection(db, 'users', currentUser.uid, 'notifications'),
-orderBy('createdAt', 'desc'),
-limit(50)
-);
-
-const unsubscribe = onSnapshot(q, (snapshot) => {
-const notifs = snapshot.docs.map(doc => ({
-id: doc.id,
-...doc.data()
-}));
-
-setNotifications(notifs);
-setUnreadCount(notifs.filter(n => !n.read).length);
-});
-
-return () => unsubscribe();
-}, [currentUser]);
-
-const handleMarkAsRead = async (notificationId) => {
-if (!currentUser) return;
-
-try {
-const notifRef = doc(db, 'users', currentUser.uid, 'notifications', notificationId);
-await updateDoc(notifRef, { read: true });
-} catch (error) {
-console.error('Error marking notification as read:', error);
-}
-};
-
-const handleMarkAllRead = async () => {
-if (!currentUser) return;
-
-try {
-const batch = [];
-notifications.filter(n => !n.read).forEach(notif => {
-const notifRef = doc(db, 'users', currentUser.uid, 'notifications', notif.id);
-batch.push(updateDoc(notifRef, { read: true }));
-});
-
-await Promise.all(batch);
-} catch (error) {
-console.error('Error marking all as read:', error);
-}
-};
-
-const getNotificationIcon = (type) => {
-switch (type) {
-case 'panic-alert': return <Zap className="w-5 h-5 text-red-400" />;
-case 'new-response': return <MessageCircle className="w-5 h-5 text-blue-400" />;
-case 'reaction': return <Heart className="w-5 h-5 text-pink-400" />;
-case 'buddy-checkin': return <Users className="w-5 h-5 text-purple-400" />;
-default: return <AlertCircle className="w-5 h-5 text-purple-400" />;
-}
-};
-
-return (
-<>
-{/* Notification Bell */}
-<button
-onClick={() => setShowNotifications(!showNotifications)}
-className="relative p-3 bg-purple-900/50 hover:bg-purple-800/50 rounded-xl transition-all"
->
-<AlertCircle className="w-6 h-6 text-purple-300" />
-{unreadCount > 0 && (
-<div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full
-flex items-center justify-center text-xs font-bold text-white">
-{unreadCount > 9 ? '9+' : unreadCount}
-</div>
-)}
-</button>
-
-{/* Notification Panel */}
-{showNotifications && (
-<div className="fixed top-20 right-4 w-96 max-h-[600px] bg-gradient-to-br from-purple-900 to-indigo-900
-rounded-2xl border-2 border-purple-500/50 shadow-2xl z-50 overflow-hidden flex flex-col">
-
-{/* Header */}
-<div className="p-4 border-b border-purple-500/30 flex items-center justify-between">
-<div>
-<h3 className="font-bold text-white">Notifications</h3>
-<p className="text-purple-400 text-xs">{unreadCount} unread</p>
-</div>
-<div className="flex gap-2">
-{unreadCount > 0 && (
-<button
-onClick={handleMarkAllRead}
-className="text-purple-300 hover:text-white text-xs font-semibold"
->
-Mark all read
-</button>
-)}
-<button
-onClick={() => setShowNotifications(false)}
-className="p-1 hover:bg-purple-800/50 rounded-lg transition-all"
->
-<X className="w-5 h-5 text-purple-400" />
-</button>
-</div>
-</div>
-
-{/* Notifications List */}
-<div className="flex-1 overflow-y-auto">
-{notifications.length === 0 ? (
-<div className="p-8 text-center">
-<AlertCircle className="w-12 h-12 text-purple-400 mx-auto mb-3" />
-<p className="text-purple-300">No notifications yet</p>
-</div>
-) : (
-<div className="divide-y divide-purple-500/20">
-{notifications.map((notif) => (
-<div
-key={notif.id}
-onClick={() => handleMarkAsRead(notif.id)}
-className={`p-4 cursor-pointer transition-all
-${notif.read
-? 'bg-purple-950/20 hover:bg-purple-900/30'
-: 'bg-purple-600/20 hover:bg-purple-600/30'
-}`}
->
-<div className="flex gap-3">
-<div className="flex-shrink-0 mt-1">
-{getNotificationIcon(notif.type)}
-</div>
-<div className="flex-1">
-<p className={`text-sm mb-1 ${notif.read ? 'text-purple-300' : 'text-white font-semibold'}`}>
-{notif.message}
-</p>
-<p className="text-purple-400 text-xs">
-{notif.createdAt?.toDate ?
-new Date(notif.createdAt.toDate()).toLocaleString() : 'Just now'}
-</p>
-</div>
-{!notif.read && (
-<div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0 mt-2"></div>
-)}
-</div>
-</div>
-))}
-</div>
-)}
-</div>
-</div>
-)}
-</>
-);
-};
-
-// ============================================
-// USER SETTINGS PANEL
-// ============================================
-
-const UserSettingsPanel = () => {
-const [showSettings, setShowSettings] = useState(false);
-const [settings, setSettings] = useState({
-defaultAnonymity: 'group-anonymous',
-hiddenContentWarnings: [],
-emailNotifications: true,
-panicAlertSound: true,
-autoMarkRead: false,
-theme: 'dark'
-});
-
-// Load settings
-useEffect(() => {
-if (!currentUser) return;
-
-const loadSettings = async () => {
-try {
-const q = query(
-collection(db, 'users', currentUser.uid, 'preferences'),
-limit(1)
-);
-const snapshot = await getDocs(q);
-
-if (!snapshot.empty) {
-setSettings({ ...settings, ...snapshot.docs[0].data() });
-}
-} catch (error) {
-console.error('Error loading settings:', error);
-}
-};
-
-loadSettings();
-}, [currentUser]);
-
-const handleSaveSettings = async () => {
-if (!currentUser) return;
-
-try {
-const q = query(
-collection(db, 'users', currentUser.uid, 'preferences'),
-limit(1)
-);
-const snapshot = await getDocs(q);
-
-if (snapshot.empty) {
-await addDoc(collection(db, 'users', currentUser.uid, 'preferences'), settings);
-} else {
-await updateDoc(snapshot.docs[0].ref, settings);
-}
-
-alert('Settings saved!');
-setShowSettings(false);
-
-} catch (error) {
-console.error('Error saving settings:', error);
-alert('Failed to save settings');
-}
-};
-
-if (!showSettings) return null;
-
-return (
-<div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-<div className="bg-gradient-to-br from-purple-900 to-indigo-900 rounded-2xl border-2 border-purple-500/50 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-<div className="p-8">
-{/* Header */}
-<div className="flex items-center justify-between mb-6">
-<h2 className="text-2xl font-bold text-white">⚙️ Settings</h2>
-<button
-onClick={() => setShowSettings(false)}
-className="text-purple-300 hover:text-white transition-colors"
->
-<X className="w-6 h-6" />
-</button>
-</div>
-
-{/* Default Anonymity */}
-<div className="mb-6">
-<label className="block text-white font-semibold mb-3">
-Default Anonymity Level:
-</label>
-<select
-value={settings.defaultAnonymity}
-onChange={(e) => setSettings({ ...settings, defaultAnonymity: e.target.value })}
-className="w-full px-4 py-3 bg-purple-950/50 border-2 border-purple-500/30
-rounded-xl text-white focus:border-purple-400 focus:outline-none"
->
-{ANONYMITY_LEVELS.map((level) => (
-<option key={level.id} value={level.id}>
-{level.icon} {level.name}
-</option>
-))}
-</select>
-</div>
-
-{/* Content Warning Preferences */}
-<div className="mb-6">
-<label className="block text-white font-semibold mb-3">
-Hide Content Warnings:
-</label>
-<div className="flex flex-wrap gap-2">
-{CONTENT_WARNING_TAGS.map((tag) => {
-const isHidden = settings.hiddenContentWarnings.includes(tag.id);
-return (
-<button
-key={tag.id}
-onClick={() => {
- // ============================================
-// CONTINUATION OF USER SETTINGS PANEL
-// ============================================
-
-// Continue from where ContentWarnings left off:
-
-setSettings({
-...settings,
-hiddenContentWarnings: isHidden
-? settings.hiddenContentWarnings.filter(cw => cw !== tag.id)
-: [...settings.hiddenContentWarnings, tag.id]
-});
-}}
-className={`px-4 py-2 rounded-full text-sm font-semibold transition-all
-${isHidden
-? 'bg-gray-700 border-2 border-gray-600 text-gray-400'
-: `bg-${tag.color}-600/30 border-2 border-${tag.color}-500/50 text-${tag.color}-200`
-}`}
->
-{isHidden ? <EyeOff className="w-4 h-4 inline mr-1" /> : <Eye className="w-4 h-4 inline mr-1" />}
-{tag.label}
-</button>
-);
-})}
-</div>
-<p className="text-purple-400 text-xs mt-2">
-Posts with these warnings will be automatically hidden
-</p>
-</div>
-
-{/* Toggle Settings */}
-<div className="space-y-3 mb-6">
-<label className="flex items-center justify-between p-4 bg-purple-950/30 rounded-xl cursor-pointer">
-<div>
-<p className="text-white font-semibold">Email Notifications</p>
-<p className="text-purple-400 text-xs">Receive emails for important updates</p>
-</div>
-<input
-type="checkbox"
-checked={settings.emailNotifications}
-onChange={(e) => setSettings({ ...settings, emailNotifications: e.target.checked })}
-className="w-5 h-5 accent-purple-600"
-/>
-</label>
-
-<label className="flex items-center justify-between p-4 bg-purple-950/30 rounded-xl cursor-pointer">
-<div>
-<p className="text-white font-semibold">Panic Alert Sound</p>
-<p className="text-purple-400 text-xs">Play sound when someone needs immediate support</p>
-</div>
-<input
-type="checkbox"
-checked={settings.panicAlertSound}
-onChange={(e) => setSettings({ ...settings, panicAlertSound: e.target.checked })}
-className="w-5 h-5 accent-purple-600"
-/>
-</label>
-
-<label className="flex items-center justify-between p-4 bg-purple-950/30 rounded-xl cursor-pointer">
-<div>
-<p className="text-white font-semibold">Auto-mark Posts as Read</p>
-<p className="text-purple-400 text-xs">Automatically mark posts when you view them</p>
-</div>
-<input
-type="checkbox"
-checked={settings.autoMarkRead}
-onChange={(e) => setSettings({ ...settings, autoMarkRead: e.target.checked })}
-className="w-5 h-5 accent-purple-600"
-/>
-</label>
-</div>
-
-{/* Save Button */}
-<div className="flex gap-3">
-<button
-onClick={() => setShowSettings(false)}
-className="flex-1 px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-bold transition-all"
->
-Cancel
-</button>
-<button
-onClick={handleSaveSettings}
-className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600
-hover:from-purple-500 hover:to-pink-500 rounded-xl font-bold transition-all"
->
-Save Settings
-</button>
-</div>
-</div>
-</div>
-</div>
-);
-};
 
 // ============================================
 // COMPLETE MAIN RENDER FUNCTION
 // ============================================
 
-return (
-<div className="min-h-screen bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 text-white">
-{/* Crisis Resources Banner (Sticky at top) */}
-<div className="sticky top-0 z-40 bg-gradient-to-br from-purple-950/95 via-purple-900/95 to-indigo-950/95 backdrop-blur-lg border-b-2 border-purple-500/30">
-<div className="container mx-auto px-4 py-4">
-<CrisisResourcesBanner />
-</div>
-</div>
+// DELETE EVERYTHING IN YOUR return() STATEMENT
+// REPLACE WITH THIS:
 
-{/* Main Content Container */}
-<div className="container mx-auto px-4 py-8">
-{/* Header Section */}
-<div className="mb-8">
-<div className="flex items-center justify-between mb-4">
-<div>
-<h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-Peer Support Groups
-</h1>
-<p className="text-purple-300">
-Real people who understand. No toxic positivity. No waiting weeks.
-</p>
-</div>
 
-{/* User Actions */}
-<div className="flex items-center gap-3">
-{/* Notification Bell */}
-<NotificationCenter />
-
-{/* Settings Button */}
-<button
-onClick={() => setShowSettings(true)}
-className="p-3 bg-purple-900/50 hover:bg-purple-800/50 rounded-xl transition-all"
->
-<Flag className="w-6 h-6 text-purple-300" />
-</button>
-
-{/* Back Button (when in group detail) */}
-{activeView === 'group-detail' && (
-<button
-onClick={() => {
-setActiveView('groups');
-setSelectedGroup(null);
-}}
-className="px-6 py-3 bg-purple-700 hover:bg-purple-600 rounded-xl font-bold transition-all"
->
-← Back to Groups
-</button>
-)}
-</div>
-</div>
-
-{/* Key Features Banner (only on groups view) */}
-{activeView === 'groups' && (
-<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-<div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
-<div className="text-2xl mb-2">👤</div>
-<p className="font-semibold text-white mb-1">Anonymous Options</p>
-<p className="text-purple-300 text-sm">Share without revealing identity</p>
-</div>
-<div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
-<div className="text-2xl mb-2">👂</div>
-<p className="font-semibold text-white mb-1">Just Listening Mode</p>
-<p className="text-purple-300 text-sm">No unwanted advice</p>
-</div>
-<div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
-<div className="text-2xl mb-2">🚫</div>
-<p className="font-semibold text-white mb-1">No Toxic Positivity</p>
-<p className="text-purple-300 text-sm">Real validation for real struggles</p>
-</div>
-<div className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-xl">
-<div className="text-2xl mb-2">💬</div>
-<p className="font-semibold text-white mb-1">Live Support</p>
-<p className="text-purple-300 text-sm">Chat with peers right now</p>
-</div>
-</div>
-)}
-</div>
-
-{/* ============================================ */}
-{/* GROUPS LIST VIEW */}
-{/* ============================================ */}
-{activeView === 'groups' && (
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-{loadingGroups ? (
-<div className="col-span-2 text-center py-12">
-<div className="animate-spin w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-<p className="text-purple-300">Loading support groups...</p>
-</div>
-) : supportGroups.length === 0 ? (
-<div className="col-span-2 text-center py-12">
-<p className="text-purple-300">No support groups available yet.</p>
-</div>
-) : (
-supportGroups.map(group => (
-<SupportGroupCard
-key={group.id}
-group={group}
-isJoined={joinedGroupIds.includes(group.id)}
-/>
-))
-)}
-</div>
-)}
-
-{/* ============================================ */}
-{/* GROUP DETAIL VIEW */}
-{/* ============================================ */}
-{activeView === 'group-detail' && selectedGroup && (
-<div className="space-y-6">
-{/* Group Header */}
-<div className="p-6 bg-gradient-to-br from-purple-900/50 to-indigo-900/50 rounded-xl border-2 border-purple-500/50">
-<div className="flex items-start justify-between mb-4">
-<div className="flex items-center gap-4">
-<div className="text-5xl">{selectedGroup.icon}</div>
-<div>
-<h2 className="text-3xl font-bold text-white mb-2">
-{selectedGroup.name}
-</h2>
-<p className="text-purple-300">
-{selectedGroup.description}
-</p>
-</div>
-</div>
-
-{/* Action Buttons */}
-<div className="flex gap-3">
-<button
-onClick={() => setShowPostModal(true)}
-className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600
-hover:from-purple-500 hover:to-pink-500 rounded-xl font-bold transition-all
-flex items-center gap-2"
->
-<MessageCircle className="w-5 h-5" />
-New Post
-</button>
-
-<button
-onClick={() => setShowLiveChat(!showLiveChat)}
-className={`px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2
-${showLiveChat
-? 'bg-green-600/30 border-2 border-green-500/50 text-green-200'
-: 'bg-green-600/20 border-2 border-green-500/50 hover:bg-green-600/30 text-green-300'
-}`}
->
-<Radio className="w-5 h-5" />
-Live Chat
-{activePeers.filter(p => p.inLiveChat).length > 0 && (
-<span className="px-2 py-0.5 bg-green-500 text-white text-xs rounded-full">
-{activePeers.filter(p => p.inLiveChat).length}
-</span>
-)}
-</button>
-
-<button
-onClick={() => setShowQuietRoom(!showQuietRoom)}
-className={`px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2
-${showQuietRoom
-? 'bg-indigo-600/30 border-2 border-indigo-500/50 text-indigo-200'
-: 'bg-indigo-600/20 border-2 border-indigo-500/50 hover:bg-indigo-600/30 text-indigo-300'
-}`}
->
-<span className="text-xl">🤫</span>
-Quiet Room
-{quietRoomPeers.length > 0 && (
-<span className="px-2 py-0.5 bg-indigo-500 text-white text-xs rounded-full">
-{quietRoomPeers.length}
-</span>
-)}
-</button>
-</div>
-</div>
-
-{/* Stats Bar */}
-<div className="flex items-center gap-6 text-sm border-t border-purple-500/30 pt-4 mt-4">
-<div className="flex items-center gap-2">
-<Users className="w-5 h-5 text-purple-400" />
-<span className="text-purple-300">
-{selectedGroup.memberCount || 0} members
-</span>
-</div>
-<div className="flex items-center gap-2">
-<Radio className="w-5 h-5 text-green-400" />
-<span className="text-green-300">
-{activePeers.length} active now
-</span>
-</div>
-<div className="flex items-center gap-2">
-<MessageCircle className="w-5 h-5 text-blue-400" />
-<span className="text-blue-300">
-{selectedGroup.postCount || 0} posts
-</span>
-</div>
-</div>
-</div>
-
-{/* Panic Button Banner */}
-<div className="p-4 bg-red-900/20 border-2 border-red-500/50 rounded-xl">
-<div className="flex items-center justify-between">
-<div className="flex items-center gap-3">
-<Zap className="w-6 h-6 text-red-400" />
-<div>
-<p className="font-bold text-red-200">
-Need support right now?
-</p>
-<p className="text-red-300 text-sm">
-Alert {availablePeers.length} available peers who can help
-</p>
-</div>
-</div>
-<button
-onClick={handlePanicButton}
-disabled={panicAlertActive}
-className={`px-6 py-3 rounded-xl font-bold transition-all ${
-panicAlertActive
-? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-: 'bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white'
-}`}
->
-{panicAlertActive ? '✓ Alert Sent' : '🆘 Send Alert'}
-</button>
-</div>
-</div>
-
-{/* Safe People & Buddy System */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-<button
-onClick={() => setShowSafePeopleModal(true)}
-className="p-5 bg-gradient-to-br from-green-900/30 to-emerald-900/30
-border-2 border-green-500/50 rounded-xl hover:border-green-400/70 transition-all text-left"
->
-<div className="flex items-center gap-3 mb-2">
-<Shield className="w-6 h-6 text-green-400" />
-<h3 className="font-bold text-white text-lg">Safe People</h3>
-</div>
-<p className="text-green-300 text-sm">
-{safePeople.length} people whose support feels safe to you
-</p>
-</button>
-
-<AccountabilityBuddyMatcher />
-</div>
-
-{/* Search & Filter */}
-<SearchAndFilter />
-
-{/* Filter Controls */}
-<div className="flex items-center gap-4 flex-wrap">
-<select
-value={sortBy}
-onChange={(e) => setSortBy(e.target.value)}
-className="px-4 py-2 bg-purple-900/50 border-2 border-purple-500/30
-rounded-xl text-white focus:border-purple-400 focus:outline-none"
->
-<option value="recent">Most Recent</option>
-<option value="needs-support">Needs Support First</option>
-</select>
-
-<button
-onClick={() => setShowOnlyListening(!showOnlyListening)}
-className={`px-4 py-2 rounded-xl font-semibold transition-all border-2 ${
-showOnlyListening
-? 'bg-green-600/30 border-green-500/50 text-green-200'
-: 'bg-purple-900/30 border-purple-500/30 text-purple-300'
-}`}
->
-👂 Just Listening Only
-</button>
-</div>
-
-{/* Posts Feed */}
-<div className="space-y-4">
-{loadingPosts ? (
-<div className="text-center py-12">
-<div className="animate-spin w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-<p className="text-purple-300">Loading posts...</p>
-</div>
-) : posts.length === 0 ? (
-<div className="text-center py-12 p-8 bg-purple-900/30 rounded-xl border-2 border-purple-500/30">
-<MessageCircle className="w-16 h-16 text-purple-400 mx-auto mb-4" />
-<p className="text-purple-300 mb-4">
-No posts yet. Be the first to share!
-</p>
-<button
-onClick={() => setShowPostModal(true)}
-className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600
-hover:from-purple-500 hover:to-pink-500 rounded-xl font-bold transition-all"
->
-Create First Post
-</button>
-</div>
-) : (
-posts.map(post => <PostCard key={post.id} post={post} />)
-)}
-</div>
-</div>
-)}
-</div>
-
-{/* ============================================ */}
-{/* MODALS & FLOATING COMPONENTS */}
-{/* ============================================ */}
-
-{/* Post Creation Modal */}
-<PostCreationModal />
-
-{/* Guidelines Modal (shown when joining a new group) */}
-{selectedGroup && !joinedGroupIds.includes(selectedGroup.id) && activeView === 'group-detail' && (
-<SafeSpaceGuidelines
-group={selectedGroup}
-onAccept={() => handleJoinGroup(selectedGroup.id)}
-onClose={() => {
-setActiveView('groups');
-setSelectedGroup(null);
-}}
-/>
-)}
-
-{/* Safe People Manager Modal */}
-<SafePeopleManager />
-
-{/* User Settings Panel */}
-<UserSettingsPanel />
-
-{/* Live Chat Room (floating) */}
-<LiveChatRoom />
-
-{/* Quiet Company Room (floating) */}
-<QuietCompanyRoom />
-</div>
-);
 }; // End of OptimizedSupport component
 
 export default OptimizedSupport;

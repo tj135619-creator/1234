@@ -5,6 +5,7 @@ import App from './app';
 import { routesSection } from './routes/sections';
 import { ErrorBoundary } from './routes/components';
 import { OnboardingProvider } from './contexts/OnboardingContext';
+import { TourProvider } from './contexts/TourContext'; // ✅ ADD THIS
 
 // ----------------------------------------------------------------------
 
@@ -16,7 +17,6 @@ const AppLayout = () => {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    // Add Poppins font globally
     const link = document.createElement("link");
     link.href = "https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap";
     link.rel = "stylesheet";
@@ -28,7 +28,6 @@ const AppLayout = () => {
     handleResize();
     window.addEventListener('resize', handleResize);
 
-    // Prevent pinch-to-zoom
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length > 1) e.preventDefault();
     };
@@ -40,7 +39,6 @@ const AppLayout = () => {
     };
   }, []);
 
-  // Force viewport scaling to 1
   useEffect(() => {
     let viewport = document.querySelector("meta[name=viewport]");
     if (!viewport) {
@@ -54,13 +52,13 @@ const AppLayout = () => {
   const wrapperStyle: React.CSSProperties = {
     overflowX: 'hidden',
     width: '100%',
-    maxWidth: 'none',        // allow full width on large screens
-    padding: isMobile ? '0 10px' : '0 40px', // responsive padding
+    maxWidth: 'none',
+    padding: isMobile ? '0 10px' : '0 40px',
   };
 
   const contentStyle: React.CSSProperties = {
-    margin: '0 auto',        // center content
-    maxWidth: '1400px',      // optional max width for readability on large screens
+    margin: '0 auto',
+    maxWidth: '1400px',
     paddingBottom: '0px',
     marginTop: '0px',
   };
@@ -72,7 +70,6 @@ const AppLayout = () => {
           <Outlet />
         </div>
       </div>
-      {/* {!isNavHidden && <MobileNav />} */}
     </App>
   );
 };
@@ -92,7 +89,9 @@ const root = createRoot(document.getElementById('root')!);
 root.render(
   <StrictMode>
     <OnboardingProvider>
-      <RouterProvider router={router} />
+      <TourProvider> {/* ✅ ADD THIS */}
+        <RouterProvider router={router} />
+      </TourProvider>
     </OnboardingProvider>
   </StrictMode>
 );
