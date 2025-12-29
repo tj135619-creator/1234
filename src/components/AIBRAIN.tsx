@@ -4,7 +4,7 @@ import { Send, User, Bot, Loader2, CheckCircle, Download, Sparkles, Calendar, Ma
 const API_BASE = "https://pythonbackend-74es.onrender.com";
 
 const getApiKeys = async () => {
-  return ["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"];
+  return ["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"];
 };
 
 export default function AIBRAINPhaseFlow({ onComplete }) {
@@ -59,7 +59,9 @@ export default function AIBRAINPhaseFlow({ onComplete }) {
 
   // ✅ FIXED: Phase 4 data structure matches backend expectations
   // At the top of your component where you initialize phase4Data state:
+// ✅ UPDATED phase4Data state (add to your component)
 const [phase4Data, setPhase4Data] = useState({
+  // EXISTING FIELDS
   weekly_schedule: {
     monday: { morning: "", afternoon: "", evening: "", energy: "", stress: "" },
     tuesday: { morning: "", afternoon: "", evening: "", energy: "", stress: "" },
@@ -71,7 +73,6 @@ const [phase4Data, setPhase4Data] = useState({
   },
   existing_social_touchpoints: [],
   stress_peaks: [],
-  // NEW FIELDS FOR MULTI-STEP FORM:
   energy_peak: "",
   stressed_days: [],
   morning_routine: "",
@@ -79,10 +80,24 @@ const [phase4Data, setPhase4Data] = useState({
   evening_routine: "",
   work_touchpoints: [],
   regular_social: "",
-  hardest_time: ""
+  hardest_time: "",
+  
+  // NEW FIELDS FOR BETTER EXTRACTION
+  daily_strangers: "",
+  daily_regulars: [],
+  forced_interactions: [],
+  proximity_spaces: [],
+  digital_vs_irl: "",
+  eating_habits: "",
+  commute_type: "",
+  commute_regulars: "",
+  weekend_routine: "",
+  group_chats: [],
+  who_initiates: "",
+  same_route_daily: ""
 });
 
-const [phase4Step, setPhase4Step] = useState(1); // ✅ ADD THIS LINE
+const [phase4Step, setPhase4Step] = useState(1);
 
 
   const messagesEndRef = useRef(null);
@@ -904,6 +919,12 @@ const renderPhase4Form = () => {
   const totalSteps = 3;
 
   // Step 1: Energy & Stress Patterns
+ 
+// ✅ UPDATED renderPhase4Form function
+const renderPhase4Form = () => {
+  const totalSteps = 6; // Changed from 3 to 6
+
+  // Step 1: Energy & Stress Patterns (KEEP SAME)
   const renderStep1 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
@@ -923,10 +944,7 @@ const renderPhase4Form = () => {
             <button
               key={value}
               type="button"
-              onClick={() => setPhase4Data({
-                ...phase4Data,
-                energy_peak: value
-              })}
+              onClick={() => setPhase4Data({ ...phase4Data, energy_peak: value })}
               className={`w-full p-4 rounded-xl text-left transition flex items-center gap-3 ${
                 phase4Data.energy_peak === value
                   ? 'bg-purple-600 border-2 border-purple-400'
@@ -955,10 +973,7 @@ const renderPhase4Form = () => {
                   const updated = isSelected
                     ? current.filter(d => d !== day)
                     : [...current, day];
-                  setPhase4Data({
-                    ...phase4Data,
-                    stressed_days: updated
-                  });
+                  setPhase4Data({ ...phase4Data, stressed_days: updated });
                 }}
                 className={`p-3 rounded-lg transition ${
                   isSelected
@@ -984,7 +999,7 @@ const renderPhase4Form = () => {
     </div>
   );
 
-  // Step 2: Your Routine
+  // Step 2: Your Routine (KEEP SAME)
   const renderStep2 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
@@ -1006,10 +1021,7 @@ const renderPhase4Form = () => {
             <button
               key={option}
               type="button"
-              onClick={() => setPhase4Data({
-                ...phase4Data,
-                morning_routine: option
-              })}
+              onClick={() => setPhase4Data({ ...phase4Data, morning_routine: option })}
               className={`w-full p-3 rounded-xl text-left transition ${
                 phase4Data.morning_routine === option
                   ? 'bg-purple-600 border-2 border-purple-400'
@@ -1035,10 +1047,7 @@ const renderPhase4Form = () => {
             <button
               key={option}
               type="button"
-              onClick={() => setPhase4Data({
-                ...phase4Data,
-                lunch_routine: option
-              })}
+              onClick={() => setPhase4Data({ ...phase4Data, lunch_routine: option })}
               className={`w-full p-3 rounded-xl text-left transition ${
                 phase4Data.lunch_routine === option
                   ? 'bg-purple-600 border-2 border-purple-400'
@@ -1064,10 +1073,7 @@ const renderPhase4Form = () => {
             <button
               key={option}
               type="button"
-              onClick={() => setPhase4Data({
-                ...phase4Data,
-                evening_routine: option
-              })}
+              onClick={() => setPhase4Data({ ...phase4Data, evening_routine: option })}
               className={`w-full p-3 rounded-xl text-left transition ${
                 phase4Data.evening_routine === option
                   ? 'bg-purple-600 border-2 border-purple-400'
@@ -1100,7 +1106,7 @@ const renderPhase4Form = () => {
     </div>
   );
 
-  // Step 3: Social Touchpoints
+  // Step 3: Social Touchpoints (KEEP SAME)
   const renderStep3 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
@@ -1128,10 +1134,7 @@ const renderPhase4Form = () => {
                 const updated = isSelected
                   ? current.filter(t => t !== option)
                   : [...current, option];
-                setPhase4Data({
-                  ...phase4Data,
-                  work_touchpoints: updated
-                });
+                setPhase4Data({ ...phase4Data, work_touchpoints: updated });
               }}
               className={`w-full p-3 rounded-xl text-left transition ${
                 phase4Data.work_touchpoints?.includes(option)
@@ -1167,10 +1170,7 @@ const renderPhase4Form = () => {
             <button
               key={option}
               type="button"
-              onClick={() => setPhase4Data({
-                ...phase4Data,
-                regular_social: option
-              })}
+              onClick={() => setPhase4Data({ ...phase4Data, regular_social: option })}
               className={`w-full p-3 rounded-xl text-left transition ${
                 phase4Data.regular_social === option
                   ? 'bg-purple-600 border-2 border-purple-400'
@@ -1188,10 +1188,7 @@ const renderPhase4Form = () => {
         <input
           type="text"
           value={phase4Data.hardest_time || ""}
-          onChange={(e) => setPhase4Data({
-            ...phase4Data,
-            hardest_time: e.target.value
-          })}
+          onChange={(e) => setPhase4Data({ ...phase4Data, hardest_time: e.target.value })}
           placeholder="E.g., Monday mornings, Friday afternoons..."
           className="w-full p-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400"
         />
@@ -1206,8 +1203,404 @@ const renderPhase4Form = () => {
           Back
         </button>
         <button
+          type="button"
+          onClick={() => setPhase4Step(4)}
+          disabled={!phase4Data.work_touchpoints?.length || !phase4Data.regular_social}
+          className="flex-1 py-4 bg-purple-600 rounded-xl font-semibold hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+
+  // ✅ NEW Step 4: Daily Micro-interactions
+  const renderStep4 = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-6">
+        <div className="text-sm text-gray-400 mb-2">Step 4 of {totalSteps}</div>
+        <h3 className="text-xl font-bold">Daily micro-interactions</h3>
+        <p className="text-sm text-gray-400 mt-2">Who do you see every day?</p>
+      </div>
+
+      <div>
+        <label className="block text-base font-medium mb-3">How many strangers do you see daily?</label>
+        <div className="space-y-2">
+          {[
+            { value: "0-5", label: "0-5 people (work from home, rarely go out)" },
+            { value: "5-20", label: "5-20 people (some commute, occasional errands)" },
+            { value: "20-50", label: "20-50 people (busy commute, office job)" },
+            { value: "50+", label: "50+ people (public transit, retail, busy city)" }
+          ].map(({ value, label }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setPhase4Data({ ...phase4Data, daily_strangers: value })}
+              className={`w-full p-3 rounded-xl text-left transition ${
+                phase4Data.daily_strangers === value
+                  ? 'bg-purple-600 border-2 border-purple-400'
+                  : 'bg-white/10 border border-white/20 hover:bg-white/20'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-base font-medium mb-3">Who do you see EVERY day?</label>
+        <p className="text-sm text-gray-400 mb-3">Select all that apply</p>
+        <div className="space-y-2">
+          {[
+            "Coffee shop barista",
+            "Building doorman/security",
+            "Coworkers/classmates",
+            "Gym staff/regulars",
+            "Neighbors",
+            "Bus driver/commute people",
+            "No one - different people daily"
+          ].map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => {
+                const current = phase4Data.daily_regulars || [];
+                const isSelected = current.includes(option);
+                const updated = isSelected
+                  ? current.filter(r => r !== option)
+                  : [...current, option];
+                setPhase4Data({ ...phase4Data, daily_regulars: updated });
+              }}
+              className={`w-full p-3 rounded-xl text-left transition ${
+                phase4Data.daily_regulars?.includes(option)
+                  ? 'bg-purple-600 border-2 border-purple-400'
+                  : 'bg-white/10 border border-white/20 hover:bg-white/20'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                  phase4Data.daily_regulars?.includes(option)
+                    ? 'border-purple-300 bg-purple-500'
+                    : 'border-white/40'
+                }`}>
+                  {phase4Data.daily_regulars?.includes(option) && '✓'}
+                </div>
+                {option}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-base font-medium mb-3">Do you take the same route/go to same places daily?</label>
+        <div className="space-y-2">
+          {[
+            "Yes - exact same routine every day",
+            "Mostly - same places but varies slightly",
+            "No - always different routes/places"
+          ].map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setPhase4Data({ ...phase4Data, same_route_daily: option })}
+              className={`w-full p-3 rounded-xl text-left transition ${
+                phase4Data.same_route_daily === option
+                  ? 'bg-purple-600 border-2 border-purple-400'
+                  : 'bg-white/10 border border-white/20 hover:bg-white/20'
+              }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={() => setPhase4Step(3)}
+          className="flex-1 py-4 bg-white/10 rounded-xl font-semibold hover:bg-white/20 transition"
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          onClick={() => setPhase4Step(5)}
+          disabled={!phase4Data.daily_strangers || !phase4Data.same_route_daily}
+          className="flex-1 py-4 bg-purple-600 rounded-xl font-semibold hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+
+  // ✅ NEW Step 5: Forced Interactions & Communication Style
+  const renderStep5 = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-6">
+        <div className="text-sm text-gray-400 mb-2">Step 5 of {totalSteps}</div>
+        <h3 className="text-xl font-bold">Your communication style</h3>
+        <p className="text-sm text-gray-400 mt-2">How do you interact now?</p>
+      </div>
+
+      <div>
+        <label className="block text-base font-medium mb-3">Do you HAVE to talk to anyone for work/school?</label>
+        <p className="text-sm text-gray-400 mb-3">Select all that apply</p>
+        <div className="space-y-2">
+          {[
+            "Daily presentations or reports",
+            "Customer service / client calls",
+            "Team check-ins or standups",
+            "Teaching or tutoring",
+            "No required speaking"
+          ].map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => {
+                const current = phase4Data.forced_interactions || [];
+                const isSelected = current.includes(option);
+                const updated = isSelected
+                  ? current.filter(f => f !== option)
+                  : [...current, option];
+                setPhase4Data({ ...phase4Data, forced_interactions: updated });
+              }}
+              className={`w-full p-3 rounded-xl text-left transition ${
+                phase4Data.forced_interactions?.includes(option)
+                  ? 'bg-purple-600 border-2 border-purple-400'
+                  : 'bg-white/10 border border-white/20 hover:bg-white/20'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                  phase4Data.forced_interactions?.includes(option)
+                    ? 'border-purple-300 bg-purple-500'
+                    : 'border-white/40'
+                }`}>
+                  {phase4Data.forced_interactions?.includes(option) && '✓'}
+                </div>
+                {option}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-base font-medium mb-3">How do you communicate most?</label>
+        <div className="space-y-2">
+          {[
+            "90% text/email, 10% face-to-face",
+            "70% text/email, 30% face-to-face",
+            "50/50 digital and in-person",
+            "Mostly face-to-face, some text"
+          ].map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setPhase4Data({ ...phase4Data, digital_vs_irl: option })}
+              className={`w-full p-3 rounded-xl text-left transition ${
+                phase4Data.digital_vs_irl === option
+                  ? 'bg-purple-600 border-2 border-purple-400'
+                  : 'bg-white/10 border border-white/20 hover:bg-white/20'
+              }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-base font-medium mb-3">Who initiates conversations with YOU?</label>
+        <div className="space-y-2">
+          {[
+            "Coworkers/classmates reach out often",
+            "Only close friends initiate",
+            "Family initiates, no one else",
+            "Almost no one initiates with me"
+          ].map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setPhase4Data({ ...phase4Data, who_initiates: option })}
+              className={`w-full p-3 rounded-xl text-left transition ${
+                phase4Data.who_initiates === option
+                  ? 'bg-purple-600 border-2 border-purple-400'
+                  : 'bg-white/10 border border-white/20 hover:bg-white/20'
+              }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={() => setPhase4Step(4)}
+          className="flex-1 py-4 bg-white/10 rounded-xl font-semibold hover:bg-white/20 transition"
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          onClick={() => setPhase4Step(6)}
+          disabled={!phase4Data.digital_vs_irl || !phase4Data.who_initiates}
+          className="flex-1 py-4 bg-purple-600 rounded-xl font-semibold hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+
+  // ✅ NEW Step 6: Proximity & Habits
+  const renderStep6 = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-6">
+        <div className="text-sm text-gray-400 mb-2">Step 6 of {totalSteps}</div>
+        <h3 className="text-xl font-bold">Your proximity to people</h3>
+        <p className="text-sm text-gray-400 mt-2">Where are you physically near others?</p>
+      </div>
+
+      <div>
+        <label className="block text-base font-medium mb-3">Where do you sit/spend time near people?</label>
+        <p className="text-sm text-gray-400 mb-3">Select all that apply</p>
+        <div className="space-y-2">
+          {[
+            "Open office / shared workspace",
+            "Classroom / lecture hall",
+            "Coffee shop tables",
+            "Gym locker room / equipment area",
+            "Public transit",
+            "Waiting areas (doctor, DMV, etc.)",
+            "I'm usually alone"
+          ].map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => {
+                const current = phase4Data.proximity_spaces || [];
+                const isSelected = current.includes(option);
+                const updated = isSelected
+                  ? current.filter(p => p !== option)
+                  : [...current, option];
+                setPhase4Data({ ...phase4Data, proximity_spaces: updated });
+              }}
+              className={`w-full p-3 rounded-xl text-left transition ${
+                phase4Data.proximity_spaces?.includes(option)
+                  ? 'bg-purple-600 border-2 border-purple-400'
+                  : 'bg-white/10 border border-white/20 hover:bg-white/20'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                  phase4Data.proximity_spaces?.includes(option)
+                    ? 'border-purple-300 bg-purple-500'
+                    : 'border-white/40'
+                }`}>
+                  {phase4Data.proximity_spaces?.includes(option) && '✓'}
+                </div>
+                {option}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-base font-medium mb-3">Do you eat alone or with others?</label>
+        <div className="space-y-2">
+          {[
+            "Always eat alone",
+            "Usually alone, sometimes with others",
+            "Usually with others, sometimes alone",
+            "Always with a group"
+          ].map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setPhase4Data({ ...phase4Data, eating_habits: option })}
+              className={`w-full p-3 rounded-xl text-left transition ${
+                phase4Data.eating_habits === option
+                  ? 'bg-purple-600 border-2 border-purple-400'
+                  : 'bg-white/10 border border-white/20 hover:bg-white/20'
+              }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-base font-medium mb-3">How do you commute?</label>
+        <div className="space-y-2">
+          {[
+            "Drive alone",
+            "Carpool with coworkers/friends",
+            "Public transit (see same people)",
+            "Public transit (different people daily)",
+            "Walk/bike",
+            "Work from home"
+          ].map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setPhase4Data({ ...phase4Data, commute_type: option })}
+              className={`w-full p-3 rounded-xl text-left transition ${
+                phase4Data.commute_type === option
+                  ? 'bg-purple-600 border-2 border-purple-400'
+                  : 'bg-white/10 border border-white/20 hover:bg-white/20'
+              }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-base font-medium mb-3">Weekend routine?</label>
+        <div className="space-y-2">
+          {[
+            "Stay home mostly",
+            "Run errands (grocery, gym, etc.)",
+            "Social events or outings",
+            "Mix of alone time and social"
+          ].map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setPhase4Data({ ...phase4Data, weekend_routine: option })}
+              className={`w-full p-3 rounded-xl text-left transition ${
+                phase4Data.weekend_routine === option
+                  ? 'bg-purple-600 border-2 border-purple-400'
+                  : 'bg-white/10 border border-white/20 hover:bg-white/20'
+              }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={() => setPhase4Step(5)}
+          className="flex-1 py-4 bg-white/10 rounded-xl font-semibold hover:bg-white/20 transition"
+        >
+          Back
+        </button>
+        <button
           type="submit"
-          disabled={loading || !phase4Data.work_touchpoints?.length || !phase4Data.regular_social}
+          disabled={loading || !phase4Data.eating_habits || !phase4Data.commute_type || !phase4Data.weekend_routine}
           className="flex-1 py-4 bg-green-600 rounded-xl font-semibold hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? "..." : "Create My Plan"}
@@ -1216,13 +1609,14 @@ const renderPhase4Form = () => {
     </div>
   );
 
+
+  // ✅ RENDER CURRENT STEP
   return (
     <form onSubmit={(e) => {
       e.preventDefault();
       // Transform the collected data to match backend expectations
       const transformedData = {
         weekly_schedule: {
-          // Convert collected data into expected format
           monday: {
             morning: phase4Data.morning_routine,
             afternoon: phase4Data.lunch_routine,
@@ -1230,7 +1624,6 @@ const renderPhase4Form = () => {
             energy: phase4Data.energy_peak === 'morning' ? 'high' : 'medium',
             stress: phase4Data.stressed_days?.includes('Monday') ? 'high' : 'low'
           },
-          // Repeat for other days with similar logic
           tuesday: {
             morning: phase4Data.morning_routine,
             afternoon: phase4Data.lunch_routine,
@@ -1278,18 +1671,28 @@ const renderPhase4Form = () => {
         stress_peaks: [phase4Data.hardest_time].filter(Boolean)
       };
       
-      submitPhase4({
-  ...phase4Data,
-  weekly_schedule: transformedData.weekly_schedule,
-  existing_social_touchpoints: transformedData.existing_social_touchpoints,
-  stress_peaks: transformedData.stress_peaks
-});
+      // Merge all the new fields into the submission
+      const finalData = {
+        ...phase4Data,
+        weekly_schedule: transformedData.weekly_schedule,
+        existing_social_touchpoints: transformedData.existing_social_touchpoints,
+        stress_peaks: transformedData.stress_peaks
+      };
+      
+      submitPhase4(finalData);
     }} className="max-w-2xl mx-auto">
       {phase4Step === 1 && renderStep1()}
-   {phase4Step === 2 && renderStep2()}
-   {phase4Step === 3 && renderStep3()}
+      {phase4Step === 2 && renderStep2()}
+      {phase4Step === 3 && renderStep3()}
+      {phase4Step === 4 && renderStep4()}
+      {phase4Step === 5 && renderStep5()}
+      {phase4Step === 6 && renderStep6()}
     </form>
   );
+};
+
+
+
 };
 
 
