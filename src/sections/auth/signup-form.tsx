@@ -15,7 +15,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getAuth, getRedirectResult } from "firebase/auth";
 import { doc, setDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { firestore } from "@/sections/creategoal/ConversationFlow";
-
+import { logEvent } from "firebase/analytics";
+import { analytics } from "@/lib/firebase";
 import { getApiKeys } from "@/backend/apikeys";
 
 const signupSchema = z.object({
@@ -340,6 +341,12 @@ export function SignupForm({ onSignupSuccess }: SignupFormProps) {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(authInstance, provider);
+      if (analytics) {
+  logEvent(analytics, "login_success", {
+    method: "google",
+  });
+}
+
       if (!result.user) throw new Error("No user returned");
       const user = result.user;
       const isNewUser = user.metadata.creationTime === user.metadata.lastSignInTime;
@@ -359,6 +366,12 @@ export function SignupForm({ onSignupSuccess }: SignupFormProps) {
     setAuthError(null);
     try {
       const userCredential = await createUserWithEmailAndPassword(authInstance, data.email, data.password);
+      if (analytics) {
+  logEvent(analytics, "signup_success", {
+    method: "email",
+  });
+}
+
       await saveUserSession(userCredential.user.uid, userCredential.user.email!, true);
       toast({ title: "Hey, you're in!", description: "Account created successfully!" });
       if (returnUrl === '/creategoal') {

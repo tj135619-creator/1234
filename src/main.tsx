@@ -6,6 +6,9 @@ import { routesSection } from './routes/sections';
 import { ErrorBoundary } from './routes/components';
 import { OnboardingProvider } from './contexts/OnboardingContext';
 import { TourProvider } from './contexts/TourContext'; // ✅ ADD THIS
+import { logEvent } from "firebase/analytics";
+import { analytics } from "./lib/firebase";
+
 
 // ----------------------------------------------------------------------
 
@@ -47,7 +50,27 @@ const AppLayout = () => {
       document.head.appendChild(viewport);
     }
     viewport.setAttribute("content", "width=device-width, initial-scale=1");
+    console.log("Viewport set");
   }, []);
+
+  useEffect(() => {
+  if (analytics) {
+    logEvent(analytics, "page_view", {
+      page_path: location.pathname,
+    });
+    console.log("Page view logged");
+  }
+}, [location]);
+
+  useEffect(() => {
+  if (!analytics) return;
+
+  console.log("Logging test event");
+  logEvent(analytics, "test_event_manual", { test: "working" });
+  console.log("Test event logged");
+}, []);
+
+
 
   const wrapperStyle: React.CSSProperties = {
     overflowX: 'hidden',
@@ -62,6 +85,9 @@ const AppLayout = () => {
     paddingBottom: '0px',
     marginTop: '0px',
   };
+
+  console.log("Analytics object:", analytics);
+
 
   return (
     <App>

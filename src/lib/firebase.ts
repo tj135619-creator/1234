@@ -1,9 +1,9 @@
-// src/lib/firebase.ts
-import { initializeApp, getApp, FirebaseApp } from "firebase/app";
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, Auth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
+import { getAnalytics, Analytics } from "firebase/analytics";
 
-// Firebase config using environment variables
+// Firebase config
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBNCXIOAX2HUdeLvUxkTJh7DVbv8JU485s",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "goalgrid-c5e9c.firebaseapp.com",
@@ -14,38 +14,35 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-BJQMLK9JJ1",
 };
 
-// Initialize Firebase
-let app: FirebaseApp;
-try {
-  app = getApp();
-} catch (error: any) {
-  app = initializeApp(firebaseConfig);
-}
+// ✅ Initialize Firebase ONCE
+const app: FirebaseApp = getApps().length
+  ? getApp()
+  : initializeApp(firebaseConfig);
 
-// Auth and Firestore instances
+// ✅ Services
 export const auth: Auth = getAuth(app);
 export const db: Firestore = getFirestore(app);
+
+// ✅ Analytics (browser-only)
+export let analytics: Analytics | null = null;
+
+if (typeof window !== "undefined") {
+  analytics = getAnalytics(app);
+}
 
 // Google auth provider
 const provider = new GoogleAuthProvider();
 
-// Sign in with Google
+// Sign in
 export const signInWithGoogle = async () => {
-  try {
-    const result = await signInWithPopup(auth, provider);
-    return result.user;
-  } catch (error) {
-    console.error("Error signing in with Google:", error);
-    throw error;
-  }
+  const result = await signInWithPopup(auth, provider);
+  return result.user;
 };
 
 // Sign out
 export const logOut = async () => {
-  try {
-    await signOut(auth);
-  } catch (error) {
-    console.error("Error signing out:", error);
-    throw error;
-  }
+  await signOut(auth);
 };
+
+// Get current user
+export const getCurrentUser = () => auth.currentUser;
