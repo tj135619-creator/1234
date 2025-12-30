@@ -1535,19 +1535,25 @@ const DAY_NAVIGATORS = [Day1Navigator, Day2Navigator, Day3Navigator, Day4Navigat
 
 // ASSUMPTION: The component that renders ChakuSubpage now passes a
 // prop like 'currentDayNumber' based on the timeline index (index + 1).
-const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData, onBackToTimeline }) => {
+const ChakuSubpage = ({
+  lesson: userData,
+  currentDayNumber,
+  onNext,
+  loadUserData,
+  onBackToTimeline,
+}) => {
   const dayNumber = currentDayNumber || 1;
   const [showCelebration, setShowCelebration] = useState(false);
-  
-  // --- FIX: Add Celebration State & Logic HERE inside the component ---
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
+  // --- ANIMATION VARIANTS ---
   const contentVariants = {
     initial: { opacity: 0, y: 50, scale: 0.95 },
     animate: { opacity: 1, y: 0, scale: 1 },
     exit: { opacity: 0, y: -50, scale: 0.95 },
   };
 
+  // --- SCREENS DATA ---
   const screens = [
     {
       title: `Day ${dayNumber} Complete!`,
@@ -1568,9 +1574,7 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData
       stats: (
         <div className="grid grid-cols-2 gap-4 mt-6">
           <div className="bg-white/10 rounded-xl p-4 border border-white/20">
-            <p className="text-3xl font-bold text-white">
-              +{userData?.xp || 100}
-            </p>
+            <p className="text-3xl font-bold text-white">+{userData?.xp || 100}</p>
             <p className="text-purple-200 text-sm">XP</p>
           </div>
           <div className="bg-white/10 rounded-xl p-4 border border-white/20">
@@ -1594,11 +1598,10 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData
     },
     {
       title: "Your Daily Schedule",
-      // 👇 IMAGE ADDED HERE
       icon: (
         <div className="mb-6">
-          <img 
-            src="/assets/schedule.png" /* 👈 REPLACE THIS with your image path */
+          <img
+            src="/assets/schedule.png"
             alt="Daily Schedule"
             className="w-64 h-auto rounded-xl shadow-2xl mx-auto border-2 border-purple-500/30"
           />
@@ -1609,11 +1612,10 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData
     },
     {
       title: "Live Action Support",
-      // 👇 IMAGE ADDED HERE
       icon: (
         <div className="mb-6">
-          <img 
-            src="/assets/liveaction.png" /* 👈 REPLACE THIS */
+          <img
+            src="/assets/liveaction.png"
             alt="Live Support"
             className="w-64 h-auto rounded-xl shadow-2xl mx-auto border-2 border-purple-500/30"
           />
@@ -1624,11 +1626,10 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData
     },
     {
       title: "Track Your Actions",
-      // 👇 IMAGE ADDED HERE
       icon: (
         <div className="mb-6">
-          <img 
-            src="/assets/tasktracker.png" /* 👈 REPLACE THIS */
+          <img
+            src="/assets/tasktracker.png"
             alt="Track Actions"
             className="w-64 h-auto rounded-xl shadow-2xl mx-auto border-2 border-purple-500/30"
           />
@@ -1639,8 +1640,7 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData
     },
     {
       title: "Now Click here to find your next task",
-      // 👇 IMAGE ADDED HERE
-      
+      icon: null,
       text: "You already know what you said you would do today. Stop delaying. Go do it now — before momentum disappears.",
       button: "Finish",
     },
@@ -1649,27 +1649,56 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData
   const currentScreen = screens[currentStepIndex];
   const isLastStep = currentStepIndex === screens.length - 1;
 
-  const handleNextStep123 = () => {
-    if (isLastStep) {
-      handleCelebrationComplete();
-    } else {
-      setCurrentStepIndex(currentStepIndex + 1);
-    }
-  };
-  // ----------------------------------------------------------------
-
+  // --- NAVIGATOR LOGIC ---
   const DAY_NAVIGATORS_LIST = [Day1Navigator, Day2Navigator, Day3Navigator, Day4Navigator];
   const availableNavigatorsCount = DAY_NAVIGATORS_LIST.length;
-
-  let navigatorIndex;
-  if (dayNumber > availableNavigatorsCount) navigatorIndex = availableNavigatorsCount - 1;
-  else if (dayNumber >= 1) navigatorIndex = dayNumber - 1;
-  else navigatorIndex = 0;
-
+  let navigatorIndex = dayNumber > availableNavigatorsCount ? availableNavigatorsCount - 1 : Math.max(dayNumber - 1, 0);
   const CurrentNavigator = DAY_NAVIGATORS_LIST[navigatorIndex];
 
+  // --- ANALYTICS EVENTS ---
+  useEffect(() => {
+    if (analytics) {
+      logEvent(analytics, "day_start", { day: dayNumber, user: auth.currentUser?.uid });
+    }
+  }, [dayNumber]);
+
+  useEffect(() => {
+    if (analytics && CurrentNavigator) {
+      logEvent(analytics, "navigator_opened", {
+        day: dayNumber,
+        navigator: CurrentNavigator?.name,
+        user: auth.currentUser?.uid,
+      });
+    }
+  }, [CurrentNavigator]);
+
+  useEffect(() => {
+    if (analytics && showCelebration) {
+      logEvent(analytics, "step_viewed", { day: dayNumber, step: currentStepIndex, user: auth.currentUser?.uid });
+    }
+  }, [currentStepIndex, showCelebration]);
+
+  const handleNextStep123 = () => {
+    if (analytics && showCelebration) {
+      logEvent(analytics, "step_action", {
+        day: dayNumber,
+        step: currentStepIndex,
+        action: currentScreen.button,
+        user: auth.currentUser?.uid,
+      });
+      if (currentScreen.title === "Track Your Actions") {
+        logEvent(analytics, "action_tracker_used", {
+          day: dayNumber,
+          user: auth.currentUser?.uid,
+        });
+      }
+    }
+
+    if (isLastStep) handleCelebrationComplete();
+    else setCurrentStepIndex(currentStepIndex + 1);
+  };
+
   const handleRouterComplete = async () => {
-    console.log("🎯 Router Complete Called!");
     if (auth.currentUser && userData?.day) {
       try {
         const ref = doc(db, "users", auth.currentUser.uid, "datedcourses", "social_skills");
@@ -1681,35 +1710,32 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData
               d.day === userData.day ? { ...d, completed: true } : d
             ) || [];
           await updateDoc(ref, { "task_overview.days": updatedDays });
-          console.log("✅ Day marked complete");
         }
       } catch (e) {
-        console.error("❌ Error updating Firestore:", e);
+        console.error("Error updating Firestore:", e);
       }
     }
     setShowCelebration(true);
   };
 
   const handleCelebrationComplete = async () => {
+    if (analytics) {
+      logEvent(analytics, "day_complete", { day: dayNumber, user: auth.currentUser?.uid });
+    }
+
     setShowCelebration(false);
     if (loadUserData) await loadUserData();
-    
-    // Redirect to dashboard for Day 1
-    if (dayNumber === 1) {
-      console.log("🎯 Redirecting to dashboard for Day 1");
-      onBackToTimeline();
-    } else {
-      onNext();
-    }
+    if (dayNumber === 1) onBackToTimeline();
+    else onNext();
   };
 
+  // --- SCROLL & LOCK ---
   useEffect(() => {
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
   }, []);
 
-  // 🔒 Lock scroll when navigator is active
   useEffect(() => {
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
@@ -1719,30 +1745,23 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData
     };
   }, []);
 
+  // --- NO CONTENT FALLBACK ---
   if (!CurrentNavigator) {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-slate-900 text-white">
         <AlertCircle className="w-16 h-16 text-red-400 mb-4" />
         <h2 className="text-2xl font-bold mb-4">No Content Available for Day {dayNumber}</h2>
-        <button
-          onClick={onNext}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl"
-        >
+        <button onClick={onNext} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl">
           Skip to Next Section →
         </button>
       </div>
     );
   }
 
-  // 🎉 Celebration Page
+  // --- CELEBRATION MODAL ---
   if (showCelebration) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="fixed inset-0 z-[9999] bg-purple-900 flex items-center justify-center p-4"
-      >
-        {/* LIGHT CONFETTI */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[9999] bg-purple-900 flex items-center justify-center p-4">
         <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
           {[...Array(25)].map((_, i) => (
             <motion.div
@@ -1760,63 +1779,41 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData
                 x: [0, (Math.random() - 0.5) * 150],
                 y: [0, (Math.random() - 0.5) * 150],
               }}
-              transition={{
-                duration: 1.8,
-                delay: i * 0.03,
-                repeat: Infinity,
-                repeatDelay: 2,
-              }}
+              transition={{ duration: 1.8, delay: i * 0.03, repeat: Infinity, repeatDelay: 2 }}
             />
           ))}
         </div>
 
         <div className="relative z-10 w-full h-full overflow-y-auto flex flex-col items-center text-center px-4 py-10">
-
           <AnimatePresence mode="wait">
             <motion.div
-              key={currentStepIndex} 
-              variants={contentVariants} 
+              key={currentStepIndex}
+              variants={contentVariants}
               initial="initial"
               animate="animate"
               exit="exit"
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
               className="flex flex-col items-center"
             >
-              {/* ICON */}
               {currentScreen.icon}
-
-              {/* TITLE */}
-              <h1 className="text-4xl font-bold text-white mb-2">
-                {currentScreen.title}
-              </h1>
-
-              {/* STATS (Only on the first step) */}
+              <h1 className="text-4xl font-bold text-white mb-2">{currentScreen.title}</h1>
               {currentStepIndex === 0 && currentScreen.stats}
-
-              {/* TEXT */}
-              <p className="text-purple-200 text-lg mt-4 mb-8 max-w-sm">
-                {currentScreen.text}
-              </p>
+              <p className="text-purple-200 text-lg mt-4 mb-8 max-w-sm">{currentScreen.text}</p>
             </motion.div>
           </AnimatePresence>
 
-          {/* BUTTON */}
           <motion.button
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            onClick={handleNextStep123} 
+            onClick={handleNextStep123}
             className="mt-10 bg-green-600 text-white font-bold text-lg px-10 py-4 rounded-xl shadow-lg"
           >
             {currentScreen.button}
             <ArrowRight className="inline ml-2 w-4 h-4" />
           </motion.button>
 
-          {/* SMALL SKIP */}
-          <button
-            onClick={handleCelebrationComplete} 
-            className="mt-4 text-purple-300 text-xs"
-          >
+          <button onClick={handleCelebrationComplete} className="mt-4 text-purple-300 text-xs">
             Skip Celebration →
           </button>
         </div>
@@ -1824,7 +1821,7 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData
     );
   }
 
-  // 🚀 Fullscreen Navigator Render
+  // --- FULLSCREEN NAVIGATOR RENDER ---
   return (
     <>
       <div className="w-full min-h-screen bg-slate-900 text-white">
@@ -1845,16 +1842,13 @@ const ChakuSubpage = ({ lesson: userData, currentDayNumber, onNext, loadUserData
 
       {typeof window !== "undefined" &&
         ReactDOM.createPortal(
-          <CurrentNavigator
-            key={dayNumber}
-            lessonContent={userData}
-            onCompleteNavigator={handleRouterComplete}
-          />,
+          <CurrentNavigator key={dayNumber} lessonContent={userData} onCompleteNavigator={handleRouterComplete} />,
           document.body
         )}
     </>
   );
 };
+
 
 
 const MotivationSubpage = ({ lesson, onNext }: any) => (

@@ -307,6 +307,7 @@ const [phase4Step, setPhase4Step] = useState(1);
   }
 };
 
+
 const submitPhase2 = async (e) => {
   e?.preventDefault?.();
   setLoading(true);
@@ -471,14 +472,71 @@ const submitPhase4 = async (e) => {
     const initData = await initRes.json();
     console.log("✅ Session confirmed:", initData);
 
-    // Now submit the phase data
+    // Transform phase4Data to match backend expectations
     const apiKeys = await getApiKeys();
     const apiKey = apiKeys[apiKeys.length - 1];
 
-    const submissionSummary = `Schedule: Detailed weekly breakdown\nSocial touchpoints: ${phase4Data.existing_social_touchpoints.join(", ")}\nStress peaks: ${phase4Data.stress_peaks.join(", ")}`;
+    const transformedData = {
+      ...phase4Data,
+      weekly_schedule: {
+        monday: {
+          morning: phase4Data.morning_routine,
+          afternoon: phase4Data.lunch_routine,
+          evening: phase4Data.evening_routine,
+          energy: phase4Data.energy_peak === 'morning' ? 'high' : 'medium',
+          stress: phase4Data.stressed_days?.includes('Monday') ? 'high' : 'low'
+        },
+        tuesday: {
+          morning: phase4Data.morning_routine,
+          afternoon: phase4Data.lunch_routine,
+          evening: phase4Data.evening_routine,
+          energy: phase4Data.energy_peak === 'afternoon' ? 'high' : 'medium',
+          stress: phase4Data.stressed_days?.includes('Tuesday') ? 'high' : 'low'
+        },
+        wednesday: {
+          morning: phase4Data.morning_routine,
+          afternoon: phase4Data.lunch_routine,
+          evening: phase4Data.evening_routine,
+          energy: phase4Data.energy_peak === 'morning' ? 'high' : 'medium',
+          stress: phase4Data.stressed_days?.includes('Wednesday') ? 'high' : 'low'
+        },
+        thursday: {
+          morning: phase4Data.morning_routine,
+          afternoon: phase4Data.lunch_routine,
+          evening: phase4Data.evening_routine,
+          energy: phase4Data.energy_peak === 'afternoon' ? 'high' : 'medium',
+          stress: phase4Data.stressed_days?.includes('Thursday') ? 'high' : 'low'
+        },
+        friday: {
+          morning: phase4Data.morning_routine,
+          afternoon: phase4Data.lunch_routine,
+          evening: phase4Data.evening_routine,
+          energy: phase4Data.energy_peak === 'evening' ? 'high' : 'medium',
+          stress: phase4Data.stressed_days?.includes('Friday') ? 'high' : 'low'
+        },
+        saturday: {
+          morning: phase4Data.morning_routine,
+          afternoon: phase4Data.lunch_routine,
+          evening: phase4Data.evening_routine,
+          energy: phase4Data.energy_peak === 'morning' ? 'high' : 'medium',
+          stress: phase4Data.stressed_days?.includes('Saturday') ? 'high' : 'low'
+        },
+        sunday: {
+          morning: phase4Data.morning_routine,
+          afternoon: phase4Data.lunch_routine,
+          evening: phase4Data.evening_routine,
+          energy: phase4Data.energy_peak === 'evening' ? 'high' : 'medium',
+          stress: phase4Data.stressed_days?.includes('Sunday') ? 'high' : 'low'
+        }
+      },
+      existing_social_touchpoints: phase4Data.work_touchpoints || [],
+      stress_peaks: [phase4Data.hardest_time].filter(Boolean)
+    };
+
+    const submissionSummary = `Schedule: Detailed weekly breakdown\nSocial touchpoints: ${transformedData.existing_social_touchpoints.join(", ")}\nStress peaks: ${transformedData.stress_peaks.join(", ")}`;
     pushUserMessage(submissionSummary);
 
-    console.log("📤 Submitting Phase 4:", phase4Data);
+    console.log("📤 Submitting Phase 4:", transformedData);
     console.log("🆔 User ID being sent:", userId);
 
     const res = await fetch(`${API_BASE}/submit-phase-data`, {
@@ -487,7 +545,7 @@ const submitPhase4 = async (e) => {
       body: JSON.stringify({
         user_id: userId,
         phase: 4,
-        form_data: phase4Data,
+        form_data: transformedData,
         api_key: apiKey
       })
     });
@@ -516,6 +574,7 @@ const submitPhase4 = async (e) => {
     setLoading(false);
   }
 };
+
 
 const sendChatMessage = async () => {
   if (!inputMessage.trim() || isLoadingChat) return;
@@ -915,8 +974,6 @@ const renderPhase3Form = () => (
   </form>
 );
 
-const renderPhase4Form = () => {
-  const totalSteps = 3;
 
   // Step 1: Energy & Stress Patterns
  
@@ -1612,75 +1669,7 @@ const renderPhase4Form = () => {
 
   // ✅ RENDER CURRENT STEP
   return (
-    <form onSubmit={(e) => {
-      e.preventDefault();
-      // Transform the collected data to match backend expectations
-      const transformedData = {
-        weekly_schedule: {
-          monday: {
-            morning: phase4Data.morning_routine,
-            afternoon: phase4Data.lunch_routine,
-            evening: phase4Data.evening_routine,
-            energy: phase4Data.energy_peak === 'morning' ? 'high' : 'medium',
-            stress: phase4Data.stressed_days?.includes('Monday') ? 'high' : 'low'
-          },
-          tuesday: {
-            morning: phase4Data.morning_routine,
-            afternoon: phase4Data.lunch_routine,
-            evening: phase4Data.evening_routine,
-            energy: phase4Data.energy_peak === 'afternoon' ? 'high' : 'medium',
-            stress: phase4Data.stressed_days?.includes('Tuesday') ? 'high' : 'low'
-          },
-          wednesday: {
-            morning: phase4Data.morning_routine,
-            afternoon: phase4Data.lunch_routine,
-            evening: phase4Data.evening_routine,
-            energy: phase4Data.energy_peak === 'morning' ? 'high' : 'medium',
-            stress: phase4Data.stressed_days?.includes('Wednesday') ? 'high' : 'low'
-          },
-          thursday: {
-            morning: phase4Data.morning_routine,
-            afternoon: phase4Data.lunch_routine,
-            evening: phase4Data.evening_routine,
-            energy: phase4Data.energy_peak === 'afternoon' ? 'high' : 'medium',
-            stress: phase4Data.stressed_days?.includes('Thursday') ? 'high' : 'low'
-          },
-          friday: {
-            morning: phase4Data.morning_routine,
-            afternoon: phase4Data.lunch_routine,
-            evening: phase4Data.evening_routine,
-            energy: phase4Data.energy_peak === 'evening' ? 'high' : 'medium',
-            stress: phase4Data.stressed_days?.includes('Friday') ? 'high' : 'low'
-          },
-          saturday: {
-            morning: phase4Data.morning_routine,
-            afternoon: phase4Data.lunch_routine,
-            evening: phase4Data.evening_routine,
-            energy: phase4Data.energy_peak === 'morning' ? 'high' : 'medium',
-            stress: phase4Data.stressed_days?.includes('Saturday') ? 'high' : 'low'
-          },
-          sunday: {
-            morning: phase4Data.morning_routine,
-            afternoon: phase4Data.lunch_routine,
-            evening: phase4Data.evening_routine,
-            energy: phase4Data.energy_peak === 'evening' ? 'high' : 'medium',
-            stress: phase4Data.stressed_days?.includes('Sunday') ? 'high' : 'low'
-          }
-        },
-        existing_social_touchpoints: phase4Data.work_touchpoints || [],
-        stress_peaks: [phase4Data.hardest_time].filter(Boolean)
-      };
-      
-      // Merge all the new fields into the submission
-      const finalData = {
-        ...phase4Data,
-        weekly_schedule: transformedData.weekly_schedule,
-        existing_social_touchpoints: transformedData.existing_social_touchpoints,
-        stress_peaks: transformedData.stress_peaks
-      };
-      
-      submitPhase4(finalData);
-    }} className="max-w-2xl mx-auto">
+    <form onSubmit={submitPhase4} className="max-w-2xl mx-auto">
       {phase4Step === 1 && renderStep1()}
       {phase4Step === 2 && renderStep2()}
       {phase4Step === 3 && renderStep3()}
@@ -1693,7 +1682,7 @@ const renderPhase4Form = () => {
 
 
 
-};
+
 
 
   const renderPlanSummary = () => {
