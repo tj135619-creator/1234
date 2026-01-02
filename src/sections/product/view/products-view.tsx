@@ -13,7 +13,7 @@ import OptimizedSupport from './Optimizedsupport';
 import { OnboardingExplanation } from 'src/onboarding/reusableonboarding';
 import { useTour } from 'src/contexts/TourContext';
 import  OnboardingTrailer from './onboarding'
-
+import mixpanelService from 'src/services/servicesmixpanel'; // Adjust path based on your structure
 // ============================================
 // FIREBASE IMPORTS (Replace with actual Firebase SDK in production)
 // ============================================
@@ -57,32 +57,43 @@ const signUpUser = async (email, password, name, username) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
-    // Initialize user in Firestore
     await initializeNewUser(user.uid, {
       email,
       name,
       username,
     });
     
+    // Track signup
+    mixpanelService.signup(user.uid, email);
+    
     return user;
   } catch (error) {
     console.error('Error signing up:', error);
+    mixpanel.track('Error', { type: 'signup_error', message: error.message });
     throw error;
   }
 };
 
+
 const loginUser = async (email, password) => {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    
+    // Track login
+    mixpanelService.login(userCredential.user.uid);
+    
     return userCredential.user;
   } catch (error) {
     console.error('Error logging in:', error);
+    mixpanel.track('Error', { type: 'login_error', message: error.message });
     throw error;
   }
 };
 
 const logoutUser = async () => {
   try {
+    mixpanelService.logout();
+    mixpanel.reset(); // Clear Mixpanel identity
     await signOut(auth);
   } catch (error) {
     console.error('Error logging out:', error);
@@ -441,7 +452,7 @@ const [showOnboardingOverlay, setShowOnboardingOverlay] = useState(true);
 useEffect(() => {
   let isMounted = true;
   let unsubscribe = null;
-  let hasLoadedData = false; // Prevent multiple data loads
+  let hasLoadedData = false;
   
   console.log('🚀 Initializing auth listener...');
   
@@ -452,7 +463,6 @@ useEffect(() => {
       setLoading(true);
       setIsAuthChecking(true);
       
-      // Listen to auth state changes
       unsubscribe = onAuthStateChanged(auth, async (user) => {
         console.log('🔐 Auth state changed:', user ? `User: ${user.uid}` : 'No user');
         
@@ -465,13 +475,11 @@ useEffect(() => {
           console.log('✅ User authenticated:', user.uid);
           setCurrentUser(user);
           
-          // Only load data once per auth session
           if (!hasLoadedData) {
             hasLoadedData = true;
             console.log('📊 Loading user data for first time...');
             
             try {
-              // Load user profile
               const profile = await FirebaseService.user.getUserComplete(user.uid);
               
               if (!isMounted) {
@@ -479,7 +487,6 @@ useEffect(() => {
                 return;
               }
               
-              // Ensure stats object exists with defaults
               if (!profile.stats) {
                 profile.stats = {
                   totalXP: 0,
@@ -495,8 +502,9 @@ useEffect(() => {
               console.log('👤 Profile loaded:', profile.name);
               setUserProfile(profile);
               
-              // Load initial data
-              console.log('📥 Loading all app data...');
+              // 🔥 TRACK USER IDENTITY
+              mixpanelService.identifyUser(user.uid, profile);
+              
               await loadAllData(user.uid);
               console.log('✅ All data loaded successfully');
             } catch (err) {
@@ -510,7 +518,7 @@ useEffect(() => {
           }
         } else {
           console.log('❌ No user authenticated');
-          hasLoadedData = false; // Reset for next login
+          hasLoadedData = false;
           if (isMounted) {
             setCurrentUser(null);
             setUserProfile(null);
@@ -537,7 +545,6 @@ useEffect(() => {
   
   initializeApp();
   
-  // Cleanup function
   return () => {
     console.log('🧹 Cleaning up auth listener');
     isMounted = false;
@@ -546,6 +553,7 @@ useEffect(() => {
     }
   };
 }, []);
+
 
   // Auto-start main tour
   useEffect(() => {
@@ -560,10 +568,10 @@ useEffect(() => {
   useEffect(() => {
   const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
   if (!hasSeenOnboarding && currentUser) {
+    mixpanelService.trackOnboardingStarted(); // 🔥 TRACK
     setShowOnboarding(true);
   }
 }, [currentUser]);
-  
   // ============================================
   // DATA LOADING FUNCTIONS
   // ============================================
@@ -755,73 +763,89 @@ const handleLogout = async () => {
 };
   
   const handleSendFriendRequest = async (toUserId) => {
-    if (!currentUser) return;
+  if (!currentUser) return;
+  
+  try {
+    await FirebaseService.friendship.sendRequest(currentUser.uid, toUserId);
     
-    try {
-      await FirebaseService.friendship.sendRequest(currentUser.uid, toUserId);
-      alert('Friend request sent!');
-    } catch (err) {
-      console.error('Error sending friend request:', err);
-      alert('Failed to send friend request. Please try again.');
-    }
-  };
+    // 🔥 TRACK
+    const targetUser = allUsers.find(u => u.id === toUserId) || searchResults.find(u => u.id === toUserId);
+    mixpanelService.sendFriendRequest(toUserId, targetUser?.name || 'Unknown');
+    
+    alert('Friend request sent!');
+  } catch (err) {
+    console.error('Error sending friend request:', err);
+    alert('Failed to send friend request. Please try again.');
+  }
+};
   
   const handleAcceptFriendRequest = async (requestId) => {
-    if (!currentUser) return;
+  if (!currentUser) return;
+  
+  try {
+    mixpanelService.acceptFriendRequest(requestId); // 🔥 TRACK
     
-    try {
-      await FirebaseService.friendship.acceptRequest(requestId);
-      await loadFriends(currentUser.uid);
-      alert('Friend request accepted!');
-    } catch (err) {
-      console.error('Error accepting friend request:', err);
-      alert('Failed to accept friend request. Please try again.');
-    }
-  };
+    await FirebaseService.friendship.acceptRequest(requestId);
+    await loadFriends(currentUser.uid);
+    alert('Friend request accepted!');
+  } catch (err) {
+    console.error('Error accepting friend request:', err);
+    alert('Failed to accept friend request. Please try again.');
+  }
+};
   
   const handleRemoveFriend = async (friendId) => {
-    if (!currentUser) return;
+  if (!currentUser) return;
+  
+  if (!confirm('Are you sure you want to remove this friend?')) return;
+  
+  try {
+    mixpanelService.removeFriend(friendId); // 🔥 TRACK
     
-    if (!confirm('Are you sure you want to remove this friend?')) return;
-    
-    try {
-      await FirebaseService.friendship.removeFriend(currentUser.uid, friendId);
-      await loadFriends(currentUser.uid);
-      setSelectedFriend(null);
-      alert('Friend removed.');
-    } catch (err) {
-      console.error('Error removing friend:', err);
-      alert('Failed to remove friend. Please try again.');
-    }
-  };
+    await FirebaseService.friendship.removeFriend(currentUser.uid, friendId);
+    await loadFriends(currentUser.uid);
+    setSelectedFriend(null);
+    alert('Friend removed.');
+  } catch (err) {
+    console.error('Error removing friend:', err);
+    alert('Failed to remove friend. Please try again.');
+  }
+};
+
   
   const handleJoinGroup = async (groupId) => {
-    if (!currentUser) return;
+  if (!currentUser) return;
+  
+  try {
+    const group = groups.find(g => g.id === groupId);
+    mixpanelService.joinGroup(groupId, group?.name || 'Unknown'); // 🔥 TRACK
     
-    try {
-      await FirebaseService.group.joinGroup(groupId, currentUser.uid);
-      await loadGroups();
-      alert('Successfully joined group!');
-    } catch (err) {
-      console.error('Error joining group:', err);
-      alert('Failed to join group. Please try again.');
-    }
-  };
+    await FirebaseService.group.joinGroup(groupId, currentUser.uid);
+    await loadGroups();
+    alert('Successfully joined group!');
+  } catch (err) {
+    console.error('Error joining group:', err);
+    alert('Failed to join group. Please try again.');
+  }
+};
   
   const handleLeaveGroup = async (groupId) => {
-    if (!currentUser) return;
+  if (!currentUser) return;
+  
+  if (!confirm('Are you sure you want to leave this group?')) return;
+  
+  try {
+    const group = groups.find(g => g.id === groupId);
+    mixpanelService.leaveGroup(groupId, group?.name || 'Unknown'); // 🔥 TRACK
     
-    if (!confirm('Are you sure you want to leave this group?')) return;
-    
-    try {
-      await FirebaseService.group.leaveGroup(groupId, currentUser.uid);
-      await loadGroups();
-      alert('Left group.');
-    } catch (err) {
-      console.error('Error leaving group:', err);
-      alert('Failed to leave group. Please try again.');
-    }
-  };
+    await FirebaseService.group.leaveGroup(groupId, currentUser.uid);
+    await loadGroups();
+    alert('Left group.');
+  } catch (err) {
+    console.error('Error leaving group:', err);
+    alert('Failed to leave group. Please try again.');
+  }
+};
   
   const handleCreatePost = async (groupId) => {
     if (!currentUser || !newPost.trim()) return;
@@ -1115,54 +1139,53 @@ const handleAcceptGroupInvite = async (inviteId) => {
   };
 
  const handleCreateGroup = async () => {
-    if (!currentUser) return;
+  if (!currentUser) return;
+  
+  if (!newGroupData.name.trim()) {
+    alert('Please enter a group name');
+    return;
+  }
+  
+  if (!newGroupData.description.trim()) {
+    alert('Please enter a group description');
+    return;
+  }
+  
+  try {
+    setCreatingGroup(true);
     
-    // Validate inputs
-    if (!newGroupData.name.trim()) {
-      alert('Please enter a group name');
-      return;
-    }
+    const groupId = await FirebaseService.group.createGroup(currentUser.uid, {
+      name: newGroupData.name.trim(),
+      description: newGroupData.description.trim(),
+      category: newGroupData.category,
+      icon: newGroupData.icon,
+      members: 1,
+      activeNow: 0,
+      posts: []
+    });
     
-    if (!newGroupData.description.trim()) {
-      alert('Please enter a group description');
-      return;
-    }
+    mixpanelService.createGroup(groupId, newGroupData.name, newGroupData.category); // 🔥 TRACK
     
-    try {
-      setCreatingGroup(true);
-      
-      const groupId = await FirebaseService.group.createGroup(currentUser.uid, {
-        name: newGroupData.name.trim(),
-        description: newGroupData.description.trim(),
-        category: newGroupData.category,
-        icon: newGroupData.icon,
-        members: 1,
-        activeNow: 0,
-        posts: []
-      });
-      
-      alert('Group created successfully!');
-      
-      // Reset form
-      setNewGroupData({
-        name: '',
-        description: '',
-        category: 'Learning',
-        icon: '📚'
-      });
-      
-      setShowCreateGroupModal(false);
-      
-      // Reload groups
-      await loadGroups();
-      
-    } catch (err) {
-      console.error('Error creating group:', err);
-      alert('Failed to create group. Please try again.');
-    } finally {
-      setCreatingGroup(false);
-    }
-  };
+    alert('Group created successfully!');
+    
+    setNewGroupData({
+      name: '',
+      description: '',
+      category: 'Learning',
+      icon: '📚'
+    });
+    
+    setShowCreateGroupModal(false);
+    await loadGroups();
+    
+  } catch (err) {
+    console.error('Error creating group:', err);
+    alert('Failed to create group. Please try again.');
+  } finally {
+    setCreatingGroup(false);
+  }
+};
+
 
   // Handle invite friend to group
   const handleInviteFriendToGroup = async (friendId, groupId) => {
@@ -1215,7 +1238,6 @@ const handleSelectPostTemplate = (template) => {
 const handleCreateStructuredPost = async () => {
   if (!currentUser || !selectedGroup || !selectedPostTemplate) return;
   
-  // Validate that all fields are filled
   const allFieldsFilled = selectedPostTemplate.fields.every(
     field => newPostData.content[field.name]?.trim()
   );
@@ -1226,6 +1248,8 @@ const handleCreateStructuredPost = async () => {
   }
   
   try {
+    mixpanelService.createPost(selectedGroup.id, newPostData.type); // 🔥 TRACK
+    
     await FirebaseService.group.createStructuredPost(
       selectedGroup.id,
       currentUser.uid,
@@ -1238,7 +1262,6 @@ const handleCreateStructuredPost = async () => {
     
     alert('Post created successfully!');
     
-    // Reset and reload
     setSelectedPostTemplate(null);
     setNewPostData({ type: 'PRACTICE_REPORT', content: {} });
     await handleOpenGroupDetail(selectedGroup);
@@ -1248,6 +1271,7 @@ const handleCreateStructuredPost = async () => {
     alert('Failed to create post. Please try again.');
   }
 };
+
 
 const handleAddComment = async (postId) => {
   if (!currentUser || !newComment.trim()) return;
@@ -1510,9 +1534,7 @@ const loadChallengeTemplates = async () => {
 
             {/*<CommunityFeed/>*/}
 
-            <div className="mb-12">
-              <SocialCityMap data-tour="discover-btn" />
-            </div>
+            
           </header>
 
           {/* 🔥 MOBILE-OPTIMIZED HERO STATS SECTION */}

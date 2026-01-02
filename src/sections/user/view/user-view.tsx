@@ -15,8 +15,9 @@ import GoogleSignIn from './GoogleSignIn';
 import ActionSchedulerPage from './ActionSchedulerPage'; // Adjust path as needed
 import { Bell } from "lucide-react";
 import FirstLessonPrompt from './betweenpage';
-
-
+import mixpanelService from 'src/services/servicesmixpanel.ts'; // Adjust path based on your structure
+import { getAnalytics, logEvent } from "firebase/analytics";
+import { app } from '../../../firebase'; // Adjust path to your firebase config
 import {getDoc } from "firebase/firestore";
 
 import Day1Navigator from "src/components/DAY_01/MAINNAVIGATOR";
@@ -39,6 +40,9 @@ getUserStats,
 type Lesson,
 type Task
 } from '../../../services/lessonService';
+
+
+const analytics = getAnalytics(app);
 
 const Day1CompletionOverlay = ({ onDismiss }) => {
   // Assuming Trophy, ArrowRight, X icons are available via the imports
@@ -233,6 +237,12 @@ useEffect(() => {
     }
 }, [progress]); // Add all relevant user/progress state variables here
 
+// Initialize Mixpanel when app loads
+useEffect(() => {
+  mixpanelService.init();
+  console.log('🎯 Mixpanel initialized in App');
+}, []);
+
 // In your loadUserData function (already in your code):
 
 const ROUTER_COMPONENTS: React.FC<NavigatorProps>[] = [
@@ -341,7 +351,33 @@ useEffect(() => {
     clearInterval(interval);
   };
 }, [currentView]); 
-                                                                                                                  
+                      
+
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    setUser(currentUser);
+    setAuthLoading(false);
+
+    if (currentUser) {
+      console.log('✅ User authenticated:', currentUser.email);
+      
+      // 🎯 MIXPANEL: Track user login
+      mixpanelService.identifyUser(currentUser.uid, {
+        email: currentUser.email,
+        name: currentUser.displayName,
+        signup_date: currentUser.metadata.creationTime
+      });
+      mixpanelService.trackLogin(currentUser.uid);
+      
+      loadUserData();
+    } else {
+      console.log('👤 No user authenticated');
+    }
+  });
+
+  return () => unsubscribe();
+}, []);
+
 const QuizSubpage = ({ lesson, onNext }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -646,18 +682,22 @@ function renderSubpage(lesson, tasks, toggleTask, journalEntry, setJournalEntry,
 
 const handleSelectLesson = (lesson, index) => {
   console.log('🎯 handleSelectLesson called:', { lesson, index });
-  console.log('📍 Current view before:', currentView);
-  console.log('📚 Lessons array:', lessons);
+  
+  // 🎯 MIXPANEL: Track lesson started
+  mixpanelService.trackEvent('Lesson Started', {
+    lesson_id: lesson.id,
+    lesson_title: lesson.title,
+    lesson_day: lesson.day,
+    lesson_index: index,
+    user_id: auth.currentUser?.uid
+  });
   
   setSelectedLesson(lesson); 
   setCurrentSubpage(0);
   setSelectedDayNumber(index + 1); 
   
-  // Use setTimeout to ensure state updates before view change
   setTimeout(() => {
     setCurrentView('lesson');
-    console.log('✅ View set to lesson');
-    console.log('📍 Current view after:', currentView);
   }, 50);
 };
 
@@ -929,11 +969,17 @@ const handleCompleteLesson = async () => {
   if (!selectedLesson || !auth.currentUser) return;
   
   try {
-    // Lessons are auto-completed when all tasks are done
-    // Just reload data to reflect completion status
-    await loadUserData();
+    // 🎯 MIXPANEL: Track lesson completed
+    mixpanelService.trackLessonDone({
+      lessonId: selectedLesson.id,
+      lessonNumber: selectedLesson.day,
+      lessonName: selectedLesson.title,
+      moduleName: 'Social Skills',
+      timeSpent: 0, // Calculate if you track time
+      completionPercentage: 100
+    });
     
-    // Return to timeline
+    await loadUserData();
     setCurrentView('timeline');
     
   } catch (err) {
@@ -941,6 +987,7 @@ const handleCompleteLesson = async () => {
     alert('Failed to complete lesson. Please try again.');
   }
 };
+
 
 const handleSubmitConcern = async () => {
   if (!userConcern.trim()) return;
@@ -1679,24 +1726,28 @@ const ChakuSubpage = ({
   }, [currentStepIndex, showCelebration]);
 
   const handleNextStep123 = () => {
-    if (analytics && showCelebration) {
-      logEvent(analytics, "step_action", {
-        day: dayNumber,
-        step: currentStepIndex,
-        action: currentScreen.button,
-        user: auth.currentUser?.uid,
-      });
-      if (currentScreen.title === "Track Your Actions") {
-        logEvent(analytics, "action_tracker_used", {
-          day: dayNumber,
-          user: auth.currentUser?.uid,
-        });
-      }
-    }
+  // Existing Firebase Analytics
+  if (analytics && showCelebration) {
+    logEvent(analytics, "step_action", {
+      day: dayNumber,
+      step: currentStepIndex,
+      action: currentScreen.button,
+      user: auth.currentUser?.uid,
+    });
+  }
 
-    if (isLastStep) handleCelebrationComplete();
-    else setCurrentStepIndex(currentStepIndex + 1);
-  };
+  // 🎯 MIXPANEL: Track step progression
+  mixpanelService.trackEvent('Celebration Step', {
+    day_number: dayNumber,
+    step_index: currentStepIndex,
+    step_title: currentScreen.title,
+    button_text: currentScreen.button,
+    user_id: auth.currentUser?.uid
+  });
+
+  if (isLastStep) handleCelebrationComplete();
+  else setCurrentStepIndex(currentStepIndex + 1);
+};
 
   const handleRouterComplete = async () => {
     if (auth.currentUser && userData?.day) {
@@ -1719,15 +1770,24 @@ const ChakuSubpage = ({
   };
 
   const handleCelebrationComplete = async () => {
-    if (analytics) {
-      logEvent(analytics, "day_complete", { day: dayNumber, user: auth.currentUser?.uid });
-    }
+  // Existing Firebase Analytics
+  if (analytics) {
+    logEvent(analytics, "day_complete", { day: dayNumber, user: auth.currentUser?.uid });
+  }
 
-    setShowCelebration(false);
-    if (loadUserData) await loadUserData();
-    if (dayNumber === 1) onBackToTimeline();
-    else onNext();
-  };
+  // 🎯 MIXPANEL: Track day completion
+  mixpanelService.trackEvent('Day Completed', {
+    day_number: dayNumber,
+    user_id: auth.currentUser?.uid,
+    xp_earned: userData?.xp || 100,
+    completed_at: new Date().toISOString()
+  });
+
+  setShowCelebration(false);
+  if (loadUserData) await loadUserData();
+  if (dayNumber === 1) onBackToTimeline();
+  else onNext();
+};
 
   // --- SCROLL & LOCK ---
   useEffect(() => {

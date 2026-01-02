@@ -5,6 +5,8 @@ import { socialSkillsServices } from './firebase-services';
 import GoogleSignIn from '../../../components/auth/GoogleSignIn';
 import SocialOnboardingQuiz from './SocialOnboardingQuiz';
 import ReactDOM from 'react-dom';
+import mixpanelService from 'src/services/servicesmixpanel';
+
 import {
   BarChart,
   Bar,
@@ -45,6 +47,10 @@ const TRAIT_ICONS = {
   Networking: Users,
   Empathy: Sparkles
 };
+import { getAnalytics, logEvent } from "firebase/analytics";
+import { app } from '../../../firebase';  // adjust path if needed
+const analytics = getAnalytics(app);
+
 
 // Archetype definitions
 const ARCHETYPES = {
@@ -377,6 +383,50 @@ export default function ProfileView() {
     }
   }, [user]);
 
+  useEffect(() => {
+    console.log('🚀 Initializing Mixpanel...');
+    mixpanelService.init();
+  }, []);
+
+  // 2️⃣ Handle authentication (runs once on mount)
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      console.log('👤 Auth state changed:', currentUser?.uid);
+      setUser(currentUser);
+      setLoading(!currentUser);
+      
+      // Identify user in Mixpanel when logged in
+      if (currentUser) {
+        mixpanelService.identifyUser(currentUser.uid, {
+          email: currentUser.email,
+          name: currentUser.displayName,
+          signup_date: currentUser.metadata.creationTime
+        });
+        
+        // Track login
+        mixpanelService.trackLogin(currentUser.uid);
+      }
+    });
+    
+    return () => unsubscribe();
+  }, []); // Empty dependency array - only run once
+
+  // 3️⃣ Check onboarding when user changes
+  useEffect(() => {
+    if (user?.uid) {
+      checkOnboardingStatus();
+    }
+  }, [user]);
+
+  // 4️⃣ Track profile view when data loads
+  useEffect(() => {
+    if (user?.uid && !loading && !showOnboarding) {
+      console.log('📊 Tracking profile view...');
+      mixpanelService.trackProfileView(user.uid);
+    }
+  }, [user, loading, showOnboarding]);
+  
+
   const checkOnboardingStatus = async () => {
     if (!user?.uid) return;
     
@@ -469,35 +519,84 @@ export default function ProfileView() {
     }
   };
 
-  const handleChallengeComplete = async (challengeId) => {
-    if (!user?.uid) return;
-    
-    try {
-      await socialSkillsServices.challenges.completeChallenge(user.uid, challengeId);
-      const updatedChallenges = await socialSkillsServices.challenges.getChallenges(user.uid);
-      setChallenges(updatedChallenges);
-    } catch (error) {
-      console.error('Error completing challenge:', error);
-      alert('Failed to complete challenge');
-    }
-  };
 
-  const handleOnboardingComplete = async (profileData) => {
-    try {
-      setLoading(true);
-      await socialSkillsServices.onboarding.saveOnboardingResults(user.uid, profileData);
-      setShowOnboarding(false);
-      await loadAllData();
-      
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 5000);
-    } catch (error) {
-      console.error('Error completing onboarding:', error);
-      alert('Failed to save your profile. Please try again.');
-      setLoading(false);
+
+// Updated handleOnboardingComplete function with Mixpanel tracking
+const handleOnboardingComplete = async (profileData) => {
+  try {
+    setLoading(true);
+    await socialSkillsServices.onboarding.saveOnboardingResults(user.uid, profileData);
+
+    // Track with Firebase Analytics (keep existing)
+    logEvent(analytics, 'quiz_completed', {
+      user_id: user.uid,
+      archetype: profileData.archetype || null,
+      timestamp: new Date().toISOString()
+    });
+
+    // 🎯 MIXPANEL: Track Profile Quiz Completion
+    mixpanelService.trackProfileQuizDone({
+      userId: user.uid,
+      archetypeCurrent: profileData.archetypeCurrent || currentArchetype,
+      archetypeFuture: profileData.archetypeFuture || futureArchetype,
+      quizDuration: profileData.quizDuration || null,
+      traitsSelected: profileData.traitsSelected || [],
+      totalQuestions: profileData.totalQuestions || 10
+    });
+
+    setShowOnboarding(false);
+    await loadAllData();
+
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 5000);
+  } catch (error) {
+    console.error('Error completing onboarding:', error);
+    alert('Failed to save your profile. Please try again.');
+    setLoading(false);
+  }
+};
+
+// Updated handleChallengeComplete with Mixpanel tracking
+const handleChallengeComplete = async (challengeId) => {
+  if (!user?.uid) return;
+  
+  try {
+    // Find the challenge before completing it
+    const challenge = challenges.find(c => c.id === challengeId);
+    
+    await socialSkillsServices.challenges.completeChallenge(user.uid, challengeId);
+    
+    // 🎯 MIXPANEL: Track Challenge Completion
+    if (challenge) {
+      mixpanelService.trackChallengeCompleted({
+        challengeId: challenge.id,
+        title: challenge.title,
+        xp: challenge.xp,
+        streak: challenge.streak || 0
+      });
     }
-  };
+    
+    const updatedChallenges = await socialSkillsServices.challenges.getChallenges(user.uid);
+    setChallenges(updatedChallenges);
+  } catch (error) {
+    console.error('Error completing challenge:', error);
+    alert('Failed to complete challenge');
+  }
+};
+
+// Add tracking for reflection mood selection
+const handleReflectionMoodSelect = (mood) => {
+  setReflectionMood(mood);
+  
+  // 🎯 MIXPANEL: Track Weekly Reflection
+  mixpanelService.trackReflectionMood({
+    mood: mood,
+    weekNumber: Math.ceil(new Date().getDate() / 7)
+  });
+};
+
+
 
   if (!user) {
     return (
@@ -1141,6 +1240,57 @@ export default function ProfileView() {
                 </div>
               )}
             </div>
+
+            {/* 🧪 TEST BUTTON - Remove after testing */}
+<div style={{ 
+  position: 'fixed', 
+  bottom: '20px', 
+  right: '20px', 
+  zIndex: 9999 
+}}>
+  <button
+    onClick={() => {
+      console.log('🧪 Testing Mixpanel...');
+      
+      // Test 1: Check if Mixpanel is initialized
+      if (window.mixpanel) {
+        console.log('✅ Mixpanel is loaded on window');
+      } else {
+        console.error('❌ Mixpanel NOT found on window');
+      }
+      
+      // Test 2: Send a test event
+      try {
+        mixpanelService.trackEvent('Test Button Clicked', {
+          test_timestamp: new Date().toISOString(),
+          test_user: user?.uid || 'anonymous',
+          test_page: 'ProfileView'
+        });
+        console.log('✅ Test event sent successfully!');
+        alert('✅ Test event sent! Check your browser console and Mixpanel dashboard.');
+      } catch (error) {
+        console.error('❌ Error sending test event:', error);
+        alert('❌ Error: ' + error.message);
+      }
+    }}
+    style={{
+      padding: '1rem 1.5rem',
+      background: 'linear-gradient(135deg, #10b981, #059669)',
+      color: 'white',
+      border: 'none',
+      borderRadius: '12px',
+      fontSize: '1rem',
+      fontWeight: 'bold',
+      cursor: 'pointer',
+      boxShadow: '0 4px 20px rgba(16, 185, 129, 0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem'
+    }}
+  >
+    🧪 Test Mixpanel
+  </button>
+</div>
           </GlassCard>
         </section>
       </div>

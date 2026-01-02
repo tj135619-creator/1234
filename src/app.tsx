@@ -1,5 +1,3 @@
-
-
 import { useEffect, useState } from 'react';
 import { CssBaseline } from '@mui/material';
 import { ThemeProvider } from 'src/theme/theme-provider';
@@ -9,8 +7,8 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from './firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import BottomNav from './MobileNav'; // adjust path
-
+import BottomNav from './MobileNav';
+import mixpanel from 'mixpanel-browser'; // ✅ Import Mixpanel
 
 // ----------------------------------------------------------------------
 
@@ -37,6 +35,31 @@ export default function App({ children }: AppProps) {
   const [authInitialized, setAuthInitialized] = useState(false);
   const [userData, setUserData] = useState<any>(null);
 
+  // ----------------- MIXPANEL INIT -----------------
+  useEffect(() => {
+    mixpanel.init('3f57bf9b5f5d11792f52742c157e9004', {
+      autocapture: true,
+      record_sessions_percent: 100,
+    });
+  }, []);
+
+  // Track page views for every route change
+  useEffect(() => {
+    if (!loading && authInitialized) {
+      if (user) {
+        mixpanel.identify(user.uid);
+        mixpanel.people.set({
+          $email: user.email,
+          $name: user.displayName || 'User',
+          uid: user.uid,
+          lastLogin: new Date().toISOString(),
+        });
+      }
+      mixpanel.track('Page View', { page: pathname, user_id: user?.uid, email: user?.email });
+    }
+  }, [pathname, loading, authInitialized, user]);
+  // -------------------------------------------------
+
   // GLOBAL AUTH INITIALIZATION
   useEffect(() => {
     const initializeAuth = async () => {
@@ -61,6 +84,16 @@ export default function App({ children }: AppProps) {
             await setDoc(userRef, newUserData);
             setUserData(newUserData);
             currentUserData = newUserData;
+
+            // Track new user signup
+            mixpanel.identify(user.uid);
+            mixpanel.people.set({
+              $email: user.email,
+              $name: user.displayName || 'User',
+              uid: user.uid,
+              createdAt: new Date().toISOString(),
+            });
+            mixpanel.track('New User Created', { uid: user.uid });
           } else {
             const existingData = userSnap.data();
             await setDoc(
@@ -87,6 +120,9 @@ export default function App({ children }: AppProps) {
 
           // Store user data separately
           localStorage.setItem('goalgrid_user_data', JSON.stringify(currentUserData));
+
+          // Track login
+          mixpanel.track('User Login', { uid: user.uid });
         } catch (error) {
           console.error('Error initializing auth:', error);
         }
@@ -169,27 +205,24 @@ export default function App({ children }: AppProps) {
 
   return (
     <ThemeProvider>
-  <CssBaseline />
+      <CssBaseline />
+      <div
+        style={{
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'linear-gradient(135deg, #240046 0%, #2d0066 50%, #330066 100%)',
+        }}
+      >
+        {/* SCROLLABLE CONTENT */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {children}
+        </div>
 
-  <div style={{ height: '100vh',  display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, #240046 0%, #2d0066 50%, #330066 100%)', }} >
-
-  
-
-
-    {/* SCROLLABLE CONTENT */}
-    <div
-      style={{
-        flex: 1,
-        overflowY: 'auto',              // ⬅️ critical
-      }}
-    >
-      {children}
-    </div>
-
-    {/* NAV */}
-    <BottomNav />
-  </div>
-</ThemeProvider>
-
+        {/* NAV */}
+        <BottomNav />
+      </div>
+    </ThemeProvider>
   );
 }
+
