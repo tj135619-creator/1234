@@ -1,4 +1,4 @@
-import React, { useState, useEffect , useRef } from 'react';
+ import React, { useState, useEffect , useRef } from 'react';
 import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -322,114 +322,112 @@ const handleStartTrial = async () => {
 
       {/* Main Dashboard Content */}
       <DashboardContent maxWidth={false}>
-        <div className="min-h-screen flex justify-center">
-          <div className="w-full px-4 py-6 space-y-12">
-
-
-            {/* Welcome Header */}
-            <div className="text-center overview-welcome-header">
-              <div className="flex flex-col items-center space-y-4">
-                <img
-                  src={selectedAvatar}
-                  alt="Avatar"
-                  style={{ width: 120, height: 120, borderRadius: '50%' }}
-                />
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-purple-100 text-center">
-                  Welcome{userSignupStatus.isNewUser ? ' back' : ''}, {user?.displayName || 'User'}!
-                  
-                </h1>
-                
-                <QuickActionsGrid />
-
-              </div>
-              <p className="text-base md:text-lg text-purple-200">Let's continue your journey.</p>
+  <div className="min-h-screen">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      
+      {/* Header Section */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <img
+              src={selectedAvatar}
+              alt="Avatar"
+              className="w-16 h-16 rounded-full ring-4 ring-white/20 shadow-lg backdrop-blur-sm"
+            />
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-white drop-shadow-lg">
+                Welcome back, {user?.displayName || 'User'}!
+              </h1>
+              <p className="text-white/80 mt-1 drop-shadow">Let's continue your journey</p>
             </div>
-
-            {/* Lesson + Transformation */}
-
-
-<Grid item xs={12} md={8} lg={6} xl={5} className="tour-today-action-card" id="daily-tasks">
-
-  
- <TodayActionCard />
-</Grid>
-
-              <Grid item xs={12} md={8} lg={6} xl={5} className="tour-today-action-card" id="resume-lesson">
-
-  
-  <TodayLessonHero 
-    onStartLesson={handleStartLesson} 
-    activeDay={testDay}
-  />
-</Grid>
-
-            {/* Components Grid */}
-            <Grid container spacing={6} justifyContent="center" className="components-grid">
-              
-
-
-              <Grid item xs={12} md={6} lg={4} className="tour-duolingo-progress-map">
-                <div ref={mapRef} className="relative">
-                  {showTip && (
-                    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                      <div className="bg-gradient-to-br from-purple-900 to-indigo-900 text-white rounded-3xl shadow-2xl p-8 max-w-lg text-center border border-purple-500/40 animate-fadeIn">
-                        <h2 className="text-2xl font-bold mb-4">Your 5-Day Plan</h2>
-                        <p className="text-base mb-3">
-                          This section helps you preview your next 5 days – each day's focus,
-                          lessons, and challenges appear here.
-                        </p>
-                        <p className="text-base mb-6">
-                          Explore it at your own pace. You can always come back here to track
-                          progress or restart your plan.
-                        </p>
-                        <button
-                          onClick={() => {
-                            setShowTip(false);
-                            todayRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                          }}
-                          className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-xl font-semibold text-white transition-all"
-                        >
-                          Got it, what's next?
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div
-
-                    id="progress"
-
-                    className={`transition-all duration-700 rounded-2xl p-2 ${
-                      highlight
-                        ? "ring-8 ring-purple-500/70 shadow-[0_0_40px_rgba(168,85,247,0.8)] scale-105"
-                        : ""
-                    }` }
-                  >
-                    <DuolingoProgressMap />
-                  </div>
-                </div>
-              </Grid>
-
-              <Grid item xs={12} className="tour-friends-community">
-                <Communityfeed />
-                
-              </Grid>
-              
-              <Grid item xs={12} md={6} lg={4} className="tour-mini-task-tracker">
-                <MiniTaskTracker />
-              </Grid>
-              
-
-             
-
-             
-            </Grid>
-
-            
-
           </div>
         </div>
-      </DashboardContent>
+        
+        {/* Quick Actions */}
+        <QuickActionsGrid />
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        
+        {/* Left Column - Primary Content */}
+        <div className="lg:col-span-2 space-y-6">
+          
+          {/* Today's Lesson - Hero Card */}
+          <div className="tour-today-action-card" id="resume-lesson">
+            <TodayLessonHero 
+              onStartLesson={handleStartLesson} 
+              activeDay={testDay}
+            />
+          </div>
+
+          
+
+          {/* Daily Tasks */}
+          <div className="tour-today-action-card" id="daily-tasks">
+            <TodayActionCard />
+          </div>
+
+          {/* Community Feed */}
+          <div className="tour-friends-community">
+            <Communityfeed />
+          </div>
+        </div>
+
+        {/* Right Column - Secondary Content */}
+        <div className="space-y-6">
+          
+          {/* Progress Map */}
+          <div className="tour-duolingo-progress-map" ref={mapRef}>
+            <div className="sticky top-6">
+              {showTip && (
+                <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                  <div className="bg-gradient-to-br from-purple-900 to-indigo-900 text-white rounded-3xl shadow-2xl p-8 max-w-lg mx-4 text-center border border-purple-500/40 animate-fadeIn">
+                    <h2 className="text-2xl font-bold mb-4">Your 5-Day Plan</h2>
+                    <p className="text-base mb-3">
+                      This section helps you preview your next 5 days – each day's focus,
+                      lessons, and challenges appear here.
+                    </p>
+                    <p className="text-base mb-6">
+                      Explore it at your own pace. You can always come back here to track
+                      progress or restart your plan.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setShowTip(false);
+                        todayRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                      className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-xl font-semibold text-white transition-all"
+                    >
+                      Got it, what's next?
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div
+                id="progress"
+                className={`transition-all duration-700 rounded-2xl overflow-hidden ${
+                  highlight
+                    ? "ring-4 ring-purple-500/70 shadow-[0_0_40px_rgba(168,85,247,0.6)] scale-[1.02]"
+                    : ""
+                }`}
+              >
+                <DuolingoProgressMap />
+              </div>
+            </div>
+          </div>
+
+          {/* Mini Task Tracker */}
+          <div className="tour-mini-task-tracker">
+            <MiniTaskTracker />
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</DashboardContent>
     </>
   );
 };

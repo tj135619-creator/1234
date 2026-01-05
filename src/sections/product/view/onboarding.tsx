@@ -24,7 +24,6 @@ const OnboardingTrailer: React.FC<OnboardingTrailerProps> = ({
   const slides = [
     {
       icon: Users,
-      image: "src/sections/product/view/days.png",
       title: "Welcome to Your Social Skills Journey",
       description:
         "Connect with others, build meaningful relationships, and grow together in a supportive community.",
@@ -37,7 +36,6 @@ const OnboardingTrailer: React.FC<OnboardingTrailerProps> = ({
     },
     {
       icon: Target,
-      image: "src/sections/product/view/days.png",
       title: "Set Goals & Track Progress",
       description:
         "Transform your social abilities with structured challenges and measurable growth.",
@@ -50,7 +48,6 @@ const OnboardingTrailer: React.FC<OnboardingTrailerProps> = ({
     },
     {
       icon: MessageCircle,
-      image: "src/sections/product/view/days.png",
       title: "Share & Learn Together",
       description:
         "Post your experiences, ask questions, and celebrate wins with your community.",
@@ -63,7 +60,6 @@ const OnboardingTrailer: React.FC<OnboardingTrailerProps> = ({
     },
     {
       icon: Trophy,
-      image: "/images/onboarding/achievements.png",
       title: "Compete & Achieve",
       description:
         "Rise through leagues, earn achievements, and become your best self.",
@@ -95,7 +91,6 @@ const OnboardingTrailer: React.FC<OnboardingTrailerProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="relative w-full max-w-2xl max-h-[90vh] bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 rounded-3xl border border-purple-500/30 shadow-2xl flex flex-col">
 
-
         {/* Skip */}
         <button
           onClick={onSkip}
@@ -106,21 +101,11 @@ const OnboardingTrailer: React.FC<OnboardingTrailerProps> = ({
 
         <div className="p-8 md:p-12 overflow-y-auto flex-1">
 
-
           {/* Icon */}
           <div
             className={`w-20 h-20 mb-6 rounded-2xl flex items-center justify-center bg-gradient-to-br ${slide.color}`}
           >
             <Icon size={40} className="text-white" />
-          </div>
-
-          {/* Image */}
-          <div className="w-full mb-6 flex justify-center">
-            <img
-              src={slide.image}
-              alt={slide.title}
-              className="w-full max-w-md rounded-xl shadow-xl object-cover"
-            />
           </div>
 
           {/* Title */}
@@ -184,6 +169,7 @@ const OnboardingTrailer: React.FC<OnboardingTrailerProps> = ({
               )}
             </button>
           </div>
+
         </div>
       </div>
     </div>

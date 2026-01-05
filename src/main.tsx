@@ -5,10 +5,8 @@ import App from './app';
 import { routesSection } from './routes/sections';
 import { ErrorBoundary } from './routes/components';
 import { OnboardingProvider } from './contexts/OnboardingContext';
-import { TourProvider } from './contexts/TourContext'; // ✅ ADD THIS
 import { logEvent } from "firebase/analytics";
 import { analytics } from "./lib/firebase";
-
 
 // ----------------------------------------------------------------------
 
@@ -21,7 +19,8 @@ const AppLayout = () => {
 
   useEffect(() => {
     const link = document.createElement("link");
-    link.href = "https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap";
+    link.href =
+      "https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap";
     link.rel = "stylesheet";
     document.head.appendChild(link);
 
@@ -50,27 +49,19 @@ const AppLayout = () => {
       document.head.appendChild(viewport);
     }
     viewport.setAttribute("content", "width=device-width, initial-scale=1");
-    console.log("Viewport set");
   }, []);
 
   useEffect(() => {
-  if (analytics) {
+    if (!analytics) return;
     logEvent(analytics, "page_view", {
       page_path: location.pathname,
     });
-    console.log("Page view logged");
-  }
-}, [location]);
+  }, [location]);
 
   useEffect(() => {
-  if (!analytics) return;
-
-  console.log("Logging test event");
-  logEvent(analytics, "test_event_manual", { test: "working" });
-  console.log("Test event logged");
-}, []);
-
-
+    if (!analytics) return;
+    logEvent(analytics, "test_event_manual", { test: "working" });
+  }, []);
 
   const wrapperStyle: React.CSSProperties = {
     overflowX: 'hidden',
@@ -85,9 +76,6 @@ const AppLayout = () => {
     paddingBottom: '0px',
     marginTop: '0px',
   };
-
-  console.log("Analytics object:", analytics);
-
 
   return (
     <App>
@@ -115,9 +103,7 @@ const root = createRoot(document.getElementById('root')!);
 root.render(
   <StrictMode>
     <OnboardingProvider>
-      <TourProvider> {/* ✅ ADD THIS */}
-        <RouterProvider router={router} />
-      </TourProvider>
+      <RouterProvider router={router} />
     </OnboardingProvider>
   </StrictMode>
 );

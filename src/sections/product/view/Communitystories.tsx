@@ -484,77 +484,77 @@ const CommunityStories = ({ userId = 'currentUser', userName = 'You', userAvatar
       </div>
 
       {/* Stories Feed - Horizontal Scroll */}
-      {/* Stories Feed - Horizontal Scroll */}
-     <div className="mb-8 mt-10">
-        <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-4 pt-4">
-          {/* Add Story Circle */}
+      <div className="mt-10 mb-8">
+  {/* ================= SHARED STORIES BORDER ================= */}
+  <div
+    className="
+      relative
+      rounded-[80px]
+      p-[4px]
+      bg-gradient-to-r from-purple-500 via-pink-400 to-purple-500
+      shadow-[0_0_100px_rgba(168,85,247,0.8),0_0_50px_rgba(168,85,247,0.6),inset_0_0_30px_rgba(168,85,247,0.3)]
+    "
+  >
+    {/* ================= INNER GLASS CONTAINER ================= */}
+    <div className="rounded-[76px] bg-gradient-to-b from-purple-900/95 to-purple-950/95 backdrop-blur-xl px-8 py-6 shadow-inner">
+      {/* ================= STORIES ROW ================= */}
+      <div className="flex gap-4 overflow-x-auto scrollbar-hide items-center justify-start">
+        {/* ===== ADD STORY ===== */}
         <div
           onClick={() => setShowCreateStory(true)}
-          className="flex-shrink-0 cursor-pointer group relative"
+          className="flex-shrink-0 cursor-pointer text-center"
         >
-          <div className="relative">
-            <div className="w-24 h-24 rounded-full p-[3px] bg-gradient-to-tr from-purple-500 to-pink-500 group-hover:scale-110 transition-all duration-300 shadow-2xl animate-pulse-slow">
-              <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-900 to-gray-800 border-3 border-black flex items-center justify-center group-hover:scale-105 transition-transform">
-                <div className="text-4xl font-bold text-white">+</div>
-              </div>
-            </div>
+          <div
+            className="
+              w-20 h-20 rounded-full
+              bg-gradient-to-br from-purple-800 to-black
+              flex items-center justify-center
+              text-4xl font-bold text-white
+              hover:scale-110 transition-transform
+              shadow-lg
+            "
+          >
+            +
           </div>
-          <p className="text-xs text-center mt-3 text-white font-medium max-w-[96px]">
+          <p className="text-xs mt-2 text-purple-200 max-w-[80px]">
             Your Story
           </p>
         </div>
-          {filteredStories.map((story, index) => (
+        {/* ===== USER STORIES ===== */}
+        {filteredStories.map((story, index) => {
+          const unseen = !isStorySeen(story)
+          return (
             <div
               key={story.storyID}
               onClick={() => handleStoryClick(index)}
-              className="flex-shrink-0 cursor-pointer group relative"
+              className="flex-shrink-0 cursor-pointer text-center relative"
             >
-              <div className="relative">
-                {/* Animated Ring */}
-                <div className={`w-24 h-24 rounded-full p-[3px] ${
-                  isStorySeen(story)
-                    ? 'bg-gray-700'
-                    : `bg-gradient-to-tr ${getCategoryColor(story.category)} animate-pulse-slow`
-                } group-hover:scale-110 transition-all duration-300 shadow-2xl`}>
-                  {/* Avatar */}
-                  <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-900 to-gray-800 border-3 border-black flex items-center justify-center text-4xl group-hover:scale-105 transition-transform">
-                    {story.avatar}
-                  </div>
-                </div>
-                
-                {/* Trending Badge */}
-                {story.trending && (
-                  <div className="absolute -top-1 -right-1 w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg animate-bounce-slow">
-                    <TrendingUp className="w-4 h-4 text-white" />
-                  </div>
-                )}
-                
-                {/* Streak Badge */}
-                {story.streak > 0 && (
-                  <div className="absolute -bottom-1 -right-1 w-9 h-9 bg-gradient-to-br from-orange-500 to-pink-600 rounded-full flex items-center justify-center shadow-lg border-3 border-black animate-pulse-slow">
-                    <span className="text-sm font-bold text-white">{story.streak}</span>
-                  </div>
-                )}
-
-                {/* Achievement Badge */}
-                {story.badge && (
-                  <div className="absolute -top-1 -left-1 text-2xl animate-bounce-slow">
-                    {story.badge}
-                  </div>
-                )}
+              <div
+                className={`
+                  w-20 h-20 rounded-full
+                  flex items-center justify-center text-4xl
+                  transition-transform hover:scale-105
+                  ${unseen
+                    ? 'bg-gradient-to-br from-purple-700 to-purple-900 shadow-lg'
+                    : 'bg-gray-800/80'}
+                `}
+              >
+                {story.avatar}
               </div>
-              <p className="text-xs text-center mt-3 text-white font-medium max-w-[96px] truncate">
+              <p className="text-xs mt-2 text-purple-200 truncate max-w-[80px]">
                 {story.username}
               </p>
-              {!isStorySeen(story) && (
-                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 px-2 py-0.5 bg-purple-500 rounded-full text-xs text-white font-bold animate-pulse">
-                  NEW
-                </div>
+              {/* NEW INDICATOR */}
+              {unseen && (
+                <span className="absolute top-0 right-2 w-3 h-3 rounded-full bg-purple-500 border-2 border-purple-950" />
               )}
             </div>
-          ))}
-        </div>
+          )
+        })}
       </div>
+    </div>
+  </div>
+</div>
 
 
       {/* Create Story Modal */}

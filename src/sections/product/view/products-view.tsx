@@ -11,9 +11,10 @@ import CommunityStories from './Communitystories';
 import { ActionGroupFeed } from './ActionGroupFeed';
 import OptimizedSupport from './Optimizedsupport';
 import { OnboardingExplanation } from 'src/onboarding/reusableonboarding';
-import { useTour } from 'src/contexts/TourContext';
+
 import  OnboardingTrailer from './onboarding'
 import mixpanelService from 'src/services/servicesmixpanel'; // Adjust path based on your structure
+import EnhancedCommunity from './partners';
 // ============================================
 // FIREBASE IMPORTS (Replace with actual Firebase SDK in production)
 // ============================================
@@ -330,7 +331,6 @@ export default  function ProductsView() {
   // ============================================
 
 
-  const { startMainTour } = useTour();
  
 const [mapExpanded, setMapExpanded] = useState(true);
 const [showChallengeModal, setShowChallengeModal] = useState(false);
@@ -555,15 +555,6 @@ useEffect(() => {
 }, []);
 
 
-  // Auto-start main tour
-  useEffect(() => {
-    if (currentUser && userProfile) {
-      const tourCompleted = localStorage.getItem('mainTourCompleted');
-      if (!tourCompleted) {
-        setTimeout(() => startMainTour(), 1000);
-      }
-    }
-  }, [currentUser, userProfile, startMainTour]);
 
   useEffect(() => {
   const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
@@ -1499,119 +1490,52 @@ const loadChallengeTemplates = async () => {
       <div className="min-h-screen bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 text-white relative overflow-x-hidden">
         {!isMobile && <ParticleBackground />}
         
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 md:py-8 relative z-10 pb-32 md:pb-12">
-          
-          <header className="mb-6 md:mb-8 text-center">
-            
-            
-            <h1 id="productHeader" className="text-3xl md:text-5xl lg:text-6xl font-bold mb-3 md:mb-4 bg-gradient-to-r from-purple-200 via-pink-200 to-purple-300 bg-clip-text text-transparent px-4">
-              Community 
-            </h1>
-            
-            <p className="text-purple-200 text-sm md:text-lg lg:text-xl max-w-2xl mx-auto mb-3 md:mb-4 px-4">
-              Transform your skills through community, track progress, and unlock your potential
-            </p>
-            
-            <CommunityStories 
-              userId={currentUser?.uid} 
-              userName={userProfile?.name}
-              userAvatar={userProfile?.avatar}
-            />
+       <div className="relative z-10 pb-32 md:pb-12">
 
-            <div className="flex items-center justify-center gap-2 text-purple-300 italic px-4">
-              <Sparkles className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
-              <p className="text-xs md:text-sm">{dailyQuote}</p>
-              <Sparkles className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
-            </div>
+  {/* ================= HEADER ================= */}
+  <header className="max-w-7xl mx-auto px-4 md:px-8 pt-6 md:pt-10 text-center">
+    <h1
+      id="productHeader"
+      className="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 bg-gradient-to-r from-purple-200 via-pink-200 to-purple-300 bg-clip-text text-transparent"
+    >
+      Community
+    </h1>
 
-            <div className="inline-block border-2 border-purple-500 rounded-xl p-4">
-  <OptimizedSupport
-    onComplete={() => setShowOptimizedSupport(false)}
+    <div className="flex items-center justify-center gap-2 text-purple-300 italic mb-6">
+      <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
+      <p className="text-xs md:text-sm">{dailyQuote}</p>
+      <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
+    </div>
+  </header>
+
+
+  {/* ================= COMMUNITY STORIES ================= */}
+  <section className="max-w-7xl mx-auto px-4 md:px-8 mt-6">
+    <CommunityStories
+      userId={currentUser?.uid}
+      userName={userProfile?.name}
+      userAvatar={userProfile?.avatar}
+    />
+  </section>
+
+  {/* ================= PRIMARY ACTION ZONE ================= */}
+  <section
+    className="w-full bg-gradient-to-b from-purple-900/40 to-transparent py-8 md:py-12"
     data-tour="find-friends-btn"
-  />
+  >
+    <div className="w-full max-w-none px-0 md:px-8">
+      <OptimizedSupport
+        onComplete={() => setShowOptimizedSupport(false)}
+      />
+    </div>
+  </section>
+
+  
+
+ 
+
 </div>
 
-
-            {/*<CommunityFeed/>*/}
-
-            
-          </header>
-
-          {/* 🔥 MOBILE-OPTIMIZED HERO STATS SECTION */}
-          <div id="user-stats"  className="mb-6 bg-gradient-to-br from-purple-900/60 to-indigo-900/60 backdrop-blur-sm rounded-2xl border-2 border-purple-500/30 p-6">
-            {/* User Quick Stats */}
-            <div className="flex items-center gap-4 mb-6">
-              <img
-                src={userProfile?.avatar}
-                alt={userProfile?.name}
-                className="w-16 h-16 rounded-full border-4 border-purple-500/50"
-              />
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-white">{userProfile?.name}</h3>
-                <p className="text-sm text-purple-300">@{userProfile?.username}</p>
-                <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${
-                  userProfile?.league === 'GOLD' ? 'bg-yellow-500/20 text-yellow-400' :
-                  userProfile?.league === 'SILVER' ? 'bg-gray-400/20 text-gray-300' :
-                  userProfile?.league === 'DIAMOND' ? 'bg-blue-400/20 text-blue-300' :
-                  userProfile?.league === 'PLATINUM' ? 'bg-gray-300/20 text-gray-200' :
-                  'bg-orange-500/20 text-orange-400'
-                }`}>
-                  {LEAGUES[userProfile?.league]?.name || 'Bronze'} League
-                </span>
-              </div>
-            </div>
-
-            {/* Stats Grid */}
-            <div   data-tour="user-stats" className="grid grid-cols-3 gap-3 mb-4">
-              <div className="bg-purple-950/40 p-3 rounded-xl text-center">
-                <div className="text-2xl font-bold text-yellow-400">{userProfile?.stats?.totalXP || 0}</div>
-                <div className="text-xs text-purple-300">Total XP</div>
-              </div>
-              <div className="bg-purple-950/40 p-3 rounded-xl text-center">
-                <div className="text-2xl font-bold text-orange-400 flex items-center justify-center gap-1">
-                  <Flame size={16} />
-                  {userProfile?.stats?.streak || 0}
-                </div>
-                <div className="text-xs text-purple-300">Streak</div>
-              </div>
-              <div className="bg-purple-950/40 p-3 rounded-xl text-center">
-                <div className="text-2xl font-bold text-pink-400">{userProfile?.stats?.friendsCount || 0}</div>
-                <div className="text-xs text-purple-300" >Friends</div>
-              </div>
-            </div>
-
-            {/* Quick Actions */} 
-            <div  data-tour="find-friends-btn" className="grid grid-cols-2 gap-3">
-              <button
-                onClick={handleOpenFriendSearch}
-                className="px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-bold hover:scale-105 transition-transform flex items-center justify-center gap-2 text-sm"
-                style={{ touchAction: 'manipulation' }}
-              >
-                <Search size={16} />
-                Find Friends
-              </button>
-              <button
-                onClick={() => {
-                  setShowDiscoverModal(true);
-                  handleLoadAllUsers();
-                }}
-                className="px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl font-bold hover:scale-105 transition-transform flex items-center justify-center gap-2 text-sm"
-                style={{ touchAction: 'manipulation' }}
-              >
-                <Users size={16} />
-                Discover
-              </button>
-            </div>
-          </div>
-
-          {/* 🔥 CLEAN SEARCH + NOTIFICATIONS BAR */}
-         
-        
-       
-
-        
-
-        </div>
 
        {showOnboardingOverlay && (
   <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">

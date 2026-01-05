@@ -8,9 +8,7 @@ import { auth } from './firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import BottomNav from './MobileNav';
-import mixpanel from 'mixpanel-browser'; // ✅ Import Mixpanel
-
-// ----------------------------------------------------------------------
+import mixpanel from 'mixpanel-browser';
 
 type AppProps = {
   children: React.ReactNode;
@@ -21,7 +19,6 @@ function useScrollToTop() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [pathname]);
-  return null;
 }
 
 export default function App({ children }: AppProps) {
@@ -30,12 +27,11 @@ export default function App({ children }: AppProps) {
   const pathname = usePathname();
   const navigate = useNavigate();
 
-  // AUTH STATE MANAGEMENT
   const [user, loading] = useAuthState(auth);
   const [authInitialized, setAuthInitialized] = useState(false);
   const [userData, setUserData] = useState<any>(null);
 
-  // ----------------- MIXPANEL INIT -----------------
+  // Mixpanel init
   useEffect(() => {
     mixpanel.init('3f57bf9b5f5d11792f52742c157e9004', {
       autocapture: true,
@@ -43,7 +39,7 @@ export default function App({ children }: AppProps) {
     });
   }, []);
 
-  // Track page views for every route change
+  // Track page views
   useEffect(() => {
     if (!loading && authInitialized) {
       if (user) {
@@ -52,152 +48,79 @@ export default function App({ children }: AppProps) {
           $email: user.email,
           $name: user.displayName || 'User',
           uid: user.uid,
-          lastLogin: new Date().toISOString(),
         });
       }
-      mixpanel.track('Page View', { page: pathname, user_id: user?.uid, email: user?.email });
-    }
-  }, [pathname, loading, authInitialized, user]);
-  // -------------------------------------------------
 
-  // GLOBAL AUTH INITIALIZATION
+      mixpanel.track('Page View', {
+        page: pathname,
+        uid: user?.uid,
+      });
+    }
+  }, [pathname, loading, authInitialized]);
+
+  // Auth init
   useEffect(() => {
-    const initializeAuth = async () => {
+    const init = async () => {
       if (loading) return;
 
       if (user) {
-        try {
-          const userRef = doc(db, 'users', user.uid);
-          const userSnap = await getDoc(userRef);
+        const ref = doc(db, 'users', user.uid);
+        const snap = await getDoc(ref);
 
-          let currentUserData;
+        let data;
 
-          if (!userSnap.exists()) {
-            const newUserData = {
-              uid: user.uid,
-              email: user.email,
-              displayName: user.displayName || 'User',
-              photoURL: user.photoURL || null,
-              createdAt: new Date().toISOString(),
-              lastLogin: new Date().toISOString(),
-            };
-            await setDoc(userRef, newUserData);
-            setUserData(newUserData);
-            currentUserData = newUserData;
-
-            // Track new user signup
-            mixpanel.identify(user.uid);
-            mixpanel.people.set({
-              $email: user.email,
-              $name: user.displayName || 'User',
-              uid: user.uid,
-              createdAt: new Date().toISOString(),
-            });
-            mixpanel.track('New User Created', { uid: user.uid });
-          } else {
-            const existingData = userSnap.data();
-            await setDoc(
-              userRef,
-              { lastLogin: new Date().toISOString() },
-              { merge: true }
-            );
-            setUserData(existingData);
-            currentUserData = existingData;
-          }
-
-          // Store quick auth info
-          localStorage.setItem(
-            'goalgrid_auth',
-            JSON.stringify({
-              uid: user.uid,
-              email: user.email,
-              displayName: user.displayName,
-              photoURL: user.photoURL,
-              isAuthenticated: true,
-              lastSync: Date.now(),
-            })
-          );
-
-          // Store user data separately
-          localStorage.setItem('goalgrid_user_data', JSON.stringify(currentUserData));
-
-          // Track login
-          mixpanel.track('User Login', { uid: user.uid });
-        } catch (error) {
-          console.error('Error initializing auth:', error);
+        if (!snap.exists()) {
+          data = {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName || 'User',
+            createdAt: new Date().toISOString(),
+          };
+          await setDoc(ref, data);
+        } else {
+          data = snap.data();
+          await setDoc(ref, { lastLogin: new Date().toISOString() }, { merge: true });
         }
+
+        localStorage.setItem('goalgrid_auth', JSON.stringify(data));
+        setUserData(data);
       } else {
-        localStorage.removeItem('goalgrid_auth');
-        localStorage.removeItem('goalgrid_user_data');
+        localStorage.clear();
         setUserData(null);
       }
 
       setAuthInitialized(true);
     };
 
-    initializeAuth();
+    init();
   }, [user, loading]);
 
-  // Listen for auth changes globally
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      if (currentUser) {
-        localStorage.setItem('auth_change', Date.now().toString());
-        window.dispatchEvent(
-          new CustomEvent('authStateChanged', {
-            detail: { user: currentUser, isAuthenticated: true },
-          })
-        );
-      } else {
-        window.dispatchEvent(
-          new CustomEvent('authStateChanged', {
-            detail: { user: null, isAuthenticated: false },
-          })
-        );
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  // LOADING SCREEN
+  // Loading screen
   if (loading || !authInitialized) {
     return (
       <ThemeProvider>
         <CssBaseline />
         <div
           style={{
-            minHeight: '100vh',
-            background: 'linear-gradient(135deg, #240046 0%, #2d0066 50%, #330066 100%)',
+            height: '100vh',
+            width: '100vw',
+            overflow: 'hidden',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            background: 'linear-gradient(135deg, #240046, #330066)',
           }}
         >
-          <div style={{ textAlign: 'center' }}>
-            <div
-              style={{
-                width: '64px',
-                height: '64px',
-                border: '4px solid rgba(168, 85, 247, 0.3)',
-                borderTop: '4px solid #a855f7',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-                margin: '0 auto 16px',
-              }}
-            />
-            <style>
-              {`
-                @keyframes spin {
-                  0% { transform: rotate(0deg); }
-                  100% { transform: rotate(360deg); }
-                }
-              `}
-            </style>
-            <p style={{ color: 'white', fontSize: '18px', fontWeight: '500' }}>
-              Initializing GoalGrid...
-            </p>
-          </div>
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              border: '4px solid rgba(168,85,247,0.3)',
+              borderTop: '4px solid #a855f7',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+            }}
+          />
         </div>
       </ThemeProvider>
     );
@@ -206,23 +129,42 @@ export default function App({ children }: AppProps) {
   return (
     <ThemeProvider>
       <CssBaseline />
+
+      {/* Root container */}
       <div
         style={{
           height: '100vh',
+          width: '100vw',
+          overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          background: 'linear-gradient(135deg, #240046 0%, #2d0066 50%, #330066 100%)',
+          background: 'linear-gradient(135deg, #240046, #330066)',
         }}
       >
-        {/* SCROLLABLE CONTENT */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        {/* Scrollable content */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            maxWidth: '100vw',
+            boxSizing: 'border-box',
+          }}
+        >
           {children}
         </div>
 
-        {/* NAV */}
-        <BottomNav />
+        {/* Bottom Nav */}
+        <div
+          style={{
+            flexShrink: 0,
+            width: '100%',
+            overflow: 'hidden',
+          }}
+        >
+          <BottomNav />
+        </div>
       </div>
     </ThemeProvider>
   );
 }
-

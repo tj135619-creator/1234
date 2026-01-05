@@ -4,7 +4,7 @@ import { Send, User, Bot, Loader2, CheckCircle, Download, Sparkles, Calendar, Ma
 const API_BASE = "https://pythonbackend-74es.onrender.com";
 
 const getApiKeys = async () => {
-  return ["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"];
+  return ["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"];
 };
 
 export default function AIBRAINPhaseFlow({ onComplete }) {

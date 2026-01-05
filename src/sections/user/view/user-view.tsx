@@ -19,13 +19,13 @@ import mixpanelService from 'src/services/servicesmixpanel.ts'; // Adjust path b
 import { getAnalytics, logEvent } from "firebase/analytics";
 import { app } from '../../../firebase'; // Adjust path to your firebase config
 import {getDoc } from "firebase/firestore";
-
+import SmallTalkNavigator from './smalltalk';
 
 import Day1Navigator from "src/components/DAY_01/MAINNAVIGATOR";
 import Day2Navigator from "src/components/DAY_02/Day2Navigator";
 import Day3Navigator from "src/components/DAY_03/Day3Navigator";
 import Day4Navigator from "src/components/DAY_04/Day4Navigator";
-import TopicModulesSection from "src/sections/user/view/newmodule";
+
 import IRLConnectionsHub from './irlconnections'
 import IRLConnectionsValueHero from './HerosectionIRL'
 import { useRouter } from 'next/router';
@@ -232,6 +232,7 @@ const topicModules = [
       {
         id: 'small_talk',
         title: 'Small Talk Fundamentals',
+        isTopicModule: true, // ADD THIS FLAG
         summary: 'Learn to start and maintain casual conversations effortlessly',
         duration: '25 min',
         xp: 150,
@@ -1374,6 +1375,7 @@ function TopicModuleCard({ module, index, isExpanded, onToggle, onSelectLesson }
       {
         id: 'small_talk',
         title: 'Small Talk Fundamentals',
+        isTopicModule: true, // ADD THIS FLAG
         summary: 'Learn to start and maintain casual conversations effortlessly',
         duration: '25 min',
         xp: 150,
@@ -1536,6 +1538,7 @@ function TopicLessonCard({ lesson, moduleColor, onSelect }) {
       {
         id: 'small_talk',
         title: 'Small Talk Fundamentals',
+        isTopicModule: true, // ADD THIS FLAG
         summary: 'Learn to start and maintain casual conversations effortlessly',
         duration: '25 min',
         xp: 150,
@@ -1758,6 +1761,7 @@ const topicModules = [
       {
         id: 'small_talk',
         title: 'Small Talk Fundamentals',
+        isTopicModule: true, // ADD THIS FLAG
         summary: 'Learn to start and maintain casual conversations effortlessly',
         duration: '25 min',
         xp: 150,
@@ -2336,6 +2340,14 @@ const ChakuSubpage = ({
         </button>
       </div>
     );
+  }
+
+  // In ChakuSubpage, add this check at the top:
+if (userData.isTopicModule) {
+    return <SmallTalkNavigator 
+      lessonContent={userData} 
+      onCompleteNavigator={handleRouterComplete} 
+    />;
   }
 
   // --- CELEBRATION MODAL ---
