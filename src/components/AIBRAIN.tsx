@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Send, User, Bot, Loader2, CheckCircle, Download, Sparkles, Calendar, MapPin, Target, Zap } from "lucide-react";
+import { getApiKeys } from "../backend/apikeys";
 
 const API_BASE = "https://pythonbackend-74es.onrender.com";
 
-const getApiKeys = async () => {
-  return ["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"];
-};
+
 
 export default function AIBRAINPhaseFlow({ onComplete }) {
   const [userId, setUserId] = useState(() => {
@@ -23,6 +22,10 @@ export default function AIBRAINPhaseFlow({ onComplete }) {
   const [planGenerated, setPlanGenerated] = useState(false);
   const [courseId, setCourseId] = useState(null);
   const [taskOverview, setTaskOverview] = useState(null);
+
+  const [apiKeys, setApiKeys] = useState<string[]>([]);
+const [loadingKeys, setLoadingKeys] = useState(true);
+
 
   const [touchpointInput, setTouchpointInput] = useState("");
   const [stressPeakInput, setStressPeakInput] = useState("");
@@ -105,6 +108,24 @@ const [phase4Step, setPhase4Step] = useState(1);
   useEffect(() => {
     initSession();
   }, []);
+
+  useEffect(() => {
+  let mounted = true;
+
+  async function loadKeys() {
+    try {
+      const keys = await getApiKeys();
+      if (mounted) setApiKeys(keys);
+    } catch (e) {
+      console.error("Failed to load API keys", e);
+    } finally {
+      if (mounted) setLoadingKeys(false);
+    }
+  }
+
+  loadKeys();
+  return () => { mounted = false; };
+}, []);
 
   useEffect(() => {
   localStorage.setItem("user_id", userId);

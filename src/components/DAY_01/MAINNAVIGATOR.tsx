@@ -130,7 +130,7 @@ const Day1Navigator = forwardRef(({ onCompleteNavigator }, ref) => {
   };
 
   const pages = [
-    //<FullScreenWrapper key="aibrain"><AIChatInterface onComplete={nextPage} /></FullScreenWrapper>,
+    <FullScreenWrapper key="aibrain"><AIChatInterface onComplete={nextPage} /></FullScreenWrapper>,
     <FullScreenWrapper key="youarenotalone"><YouAreNotAlone onComplete={nextPage} /></FullScreenWrapper>,
     //<FullScreenWrapper key="times"><SetYourTimes02 onComplete={nextPage} /></FullScreenWrapper>,
     //<FullScreenWrapper key="anxiety"><HelpWithAnxiety03 onComplete={nextPage} /></FullScreenWrapper>,
