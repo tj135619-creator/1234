@@ -35,6 +35,7 @@ import {
   increment,
 
 } from 'firebase/firestore';
+import CreatePostModal from "./createpost"
 
 const Optimizedsupport = () => {
 // Firebase state
@@ -51,6 +52,9 @@ const [showMoreMenu, setShowMoreMenu] = useState({});
 const [reactionAnimations, setReactionAnimations] = useState({});
 const [activeTab, setActiveTab] = useState('all');
 const [showFullPost, setShowFullPost] = useState({});
+
+const [showCreatePostModal, setShowCreatePostModal] = useState(false);
+
 
 const [currentUser, setCurrentUser] = useState(null);
 const [userProfile, setUserProfile] = useState(null);
@@ -148,11 +152,97 @@ const handleAddSolution = async (postId, solution) => {
   setShowSolutionInput({ ...showSolutionInput, [postId]: false });
 };
 
+const handleCreatePost = async (postType, postData) => {
+  const db = getFirestore();
+  const postsRef = collection(db, 'groups', 'socialAvoidance', 'posts');
+  
+  await addDoc(postsRef, {
+    type: postType,
+    ...postData,
+    author: {
+      avatar: '👤',
+      uid: currentUser?.uid || 'anonymous'
+    },
+    timestamp: serverTimestamp(),
+    timeAgo: 'just now',
+    reactions: {
+      relate: 0,
+      helped: 0,
+      following: 0,
+      comments: 0,
+      cheering: 0,
+      joined: 0,
+      trying: 0
+    },
+    solutions: [],
+    comments: [],
+    participants: [],
+    updates: []
+  });
+};
+
 const [posts, setPosts] = useState([]);
 
 // ============================================
 // STRUGGLE → SOLUTION CARD
 // ============================================
+
+
+const POST_TEMPLATES = [
+  {
+    type: 'struggle-solution',
+    icon: '🆘',
+    title: 'Need Support',
+    color: 'from-red-600 to-pink-600',
+    description: 'Share a struggle you\'re facing and get community support',
+    fields: [
+      { name: 'struggle', label: 'What are you struggling with?', type: 'textarea', placeholder: 'Describe your situation...', required: true },
+      { name: 'helpNeeded', label: 'What help do you need?', type: 'textarea', placeholder: 'Be specific about what would help...', required: true },
+      { name: 'whatTried', label: 'What have you tried? (one per line)', type: 'textarea', placeholder: 'List things you\'ve already attempted...', required: false },
+      { name: 'urgency', label: 'Urgency Level', type: 'select', options: ['low', 'medium', 'high'], required: true }
+    ]
+  },
+  {
+    type: 'journey-tracker',
+    icon: '🛤️',
+    title: 'Share Journey',
+    color: 'from-purple-600 to-indigo-600',
+    description: 'Document your progress and inspire others',
+    fields: [
+      { name: 'title', label: 'Journey Title', type: 'text', placeholder: 'Give your journey a name...', required: true },
+      { name: 'before', label: 'Where you started', type: 'textarea', placeholder: 'How things were before...', required: true },
+      { name: 'today', label: 'Where you are today', type: 'textarea', placeholder: 'Your current situation...', required: true },
+      { name: 'goal', label: 'Where you\'re going', type: 'textarea', placeholder: 'Your goal or aspiration...', required: true },
+      { name: 'timeline', label: 'Timeline', type: 'text', placeholder: 'e.g., 3 months, 1 year...', required: false }
+    ]
+  },
+  {
+    type: 'what-worked',
+    icon: '💡',
+    title: 'Share Solution',
+    color: 'from-green-600 to-emerald-600',
+    description: 'Share what worked for you to help others',
+    fields: [
+      { name: 'problem', label: 'What was the problem?', type: 'textarea', placeholder: 'Describe the challenge you faced...', required: true },
+      { name: 'solution', label: 'What worked for you?', type: 'textarea', placeholder: 'Explain your solution in detail...', required: true },
+      { name: 'impact', label: 'How did it help?', type: 'textarea', placeholder: 'What changed after you tried this?', required: true }
+    ]
+  },
+  {
+    type: 'micro-challenge',
+    icon: '🎯',
+    title: 'Create Challenge',
+    color: 'from-cyan-600 to-blue-600',
+    description: 'Start a challenge and invite others to join',
+    fields: [
+      { name: 'challenge', label: 'The Challenge', type: 'textarea', placeholder: 'What\'s the challenge?', required: true },
+      { name: 'whyThisMatters', label: 'Why this matters', type: 'textarea', placeholder: 'Why should people do this?', required: true },
+      { name: 'duration', label: 'Duration', type: 'text', placeholder: 'e.g., 7 days, 30 days...', required: true },
+      { name: 'difficulty', label: 'Difficulty', type: 'select', options: ['beginner', 'intermediate', 'advanced'], required: true }
+    ]
+  }
+];
+
 
 const StruggleSolutionCard = ({ post }) => {
 const urgencyStyles = {
@@ -911,9 +1001,14 @@ rounded-lg text-purple-300 font-medium text-xs md:text-sm whitespace-nowrap tran
 </div>
 
 {/* Create Post Button */}
-<button className="w-full p-3 md:p-4 mb-4 md:mb-6 bg-gradient-to-r from-purple-900/50 to-pink-900/50 hover:from-purple-900/70 hover:to-pink-900/70 border-2 border-dashed border-purple-500/30 hover:border-purple-500/60 rounded-2xl text-purple-300 hover:text-white font-medium text-sm md:text-base transition-all flex items-center justify-center gap-2"> <Plus className="w-4 h-4 md:w-5 md:h-5" /> Share your struggle, journey, solution, or challenge... </button>
 
- 
+
+<CreatePostModal
+  isOpen={showCreatePostModal}
+  onClose={() => setShowCreatePostModal(false)}
+  onSubmit={handleCreatePost}
+  currentUser={currentUser}
+/>
 
 
 
