@@ -914,13 +914,7 @@ rounded-lg text-purple-300 font-medium text-xs md:text-sm whitespace-nowrap tran
 <button className="w-full p-3 md:p-4 mb-4 md:mb-6 bg-gradient-to-r from-purple-900/50 to-pink-900/50 hover:from-purple-900/70 hover:to-pink-900/70 border-2 border-dashed border-purple-500/30 hover:border-purple-500/60 rounded-2xl text-purple-300 hover:text-white font-medium text-sm md:text-base transition-all flex items-center justify-center gap-2"> <Plus className="w-4 h-4 md:w-5 md:h-5" /> Share your struggle, journey, solution, or challenge... </button>
 
  
-{/* ADD THIS SEED BUTTON */}
-<button 
-  onClick={seedSampleData}
-  className="w-full p-3 mb-4 bg-green-600 hover:bg-green-500 rounded-lg text-white font-bold"
->
-  🌱 Seed Sample Data (Click Once Only!)
-</button>
+
 
 
 {/* Feed */}
