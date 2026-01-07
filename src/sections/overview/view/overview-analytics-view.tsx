@@ -31,8 +31,7 @@ import SocialCityMap from 'src/components/actionmap';
 import { Capacitor } from '@capacitor/core';
 import Communityfeed from "src/sections/product/view/Communityfeed"
 import QuickActionsGrid from 'src/components/quickboard';
-
-
+import App from "src/sections/user/view/module1"
 
 
 
@@ -343,8 +342,10 @@ const handleStartTrial = async () => {
           </div>
         </div>
         
+        
         {/* Quick Actions */}
         <QuickActionsGrid />
+       {/* <App /> */}
       </div>
 
       {/* Main Content Grid */}

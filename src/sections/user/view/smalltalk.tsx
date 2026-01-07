@@ -7,7 +7,7 @@ import {
   Award, ThumbsUp, AlertCircle, BookOpen, Brain
 } from 'lucide-react';
 
-export default function SmallTalkNavigator({ lessonContent, onCompleteNavigator }) {
+export default function SmallTalkNavigator12({ lessonContent, onBackToTimeline, onCompleteNavigator}) {
   const [currentStep, setCurrentStep] = useState(0);
   const [userResponses, setUserResponses] = useState({});
   const [scenarioProgress, setScenarioProgress] = useState({});
@@ -18,14 +18,19 @@ export default function SmallTalkNavigator({ lessonContent, onCompleteNavigator 
     window.scrollTo(0, 0);
   }, [currentStep]);
 
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      onCompleteNavigator();
+  const handleNext = async () => {
+  if (currentStep < steps.length - 1) {
+    setCurrentStep(currentStep + 1);
+  } else {
+    // Call BOTH completion handlers (one of them will be defined)
+    if (onCompleteNavigator) {
+      await onCompleteNavigator();
     }
-  };
-
+    if (onBackToTimeline) {
+      await onBackToTimeline();
+    }
+  }
+};
   const handleBack = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
@@ -141,7 +146,7 @@ export default function SmallTalkNavigator({ lessonContent, onCompleteNavigator 
             }`}
           >
             <ArrowLeft className="w-5 h-5" />
-            Back
+            
           </button>
 
           <div className="flex gap-2">
@@ -1124,35 +1129,42 @@ function ChallengeStep({ onNext }) {
       </div>
 
       {!acceptedChallenge ? (
-        <motion.div
-          initial={{ scale: 0.9 }}
-          animate={{ scale: 1 }}
-          className="text-center"
-        >
-          <button
-            onClick={() => setAcceptedChallenge(true)}
-            className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white px-12 py-6 rounded-2xl font-bold text-2xl transition-all shadow-2xl shadow-yellow-500/30"
-          >
-            I Accept the Challenge! 🚀
-          </button>
-        </motion.div>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-gradient-to-r from-green-900/30 to-emerald-900/30 rounded-2xl p-8 border border-green-500/30 text-center"
-        >
-          <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
-          <h3 className="text-3xl font-bold mb-4 text-green-400">Challenge Accepted!</h3>
-          <p className="text-xl text-slate-300 mb-6">
-            You're ready. Go start a conversation today. It doesn't have to be perfect—it just has to happen.
-          </p>
-          <p className="text-lg text-slate-400">
-            Remember: Every person you admire who's great at conversation was once exactly where you are now. 
-            The difference? <span className="text-blue-400 font-semibold">They started.</span>
-          </p>
-        </motion.div>
-      )}
+  <motion.div
+    initial={{ scale: 0.9 }}
+    animate={{ scale: 1 }}
+    className="text-center"
+  >
+    <button
+      onClick={() => setAcceptedChallenge(true)}
+      className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white px-12 py-6 rounded-2xl font-bold text-2xl transition-all shadow-2xl shadow-yellow-500/30"
+    >
+      I Accept the Challenge! 🚀
+    </button>
+  </motion.div>
+) : (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    className="bg-gradient-to-r from-green-900/30 to-emerald-900/30 rounded-2xl p-8 border border-green-500/30 text-center"
+  >
+    <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
+    <h3 className="text-3xl font-bold mb-4 text-green-400">Challenge Accepted!</h3>
+    <p className="text-xl text-slate-300 mb-6">
+      You're ready. Go start a conversation today. It doesn't have to be perfect—it just has to happen.
+    </p>
+    <p className="text-lg text-slate-400 mb-6">
+      Remember: Every person you admire who's great at conversation was once exactly where you are now. 
+      The difference? <span className="text-blue-400 font-semibold">They started.</span>
+    </p>
+    <button
+      onClick={onNext}
+      className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-lg"
+    >
+      Complete Module ✨
+    </button>
+  </motion.div>
+)}
+
     </div>
   );
 }
